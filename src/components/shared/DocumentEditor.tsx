@@ -182,8 +182,6 @@ export function DocumentEditor({ docType }: { docType: DocType }) {
     toast({ title: 'Generating PDF...', description: 'This may take a moment.' });
 
     const pdf = new jsPDF('p', 'pt', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
     const elements = Array.from(pdfRef.current.children) as HTMLElement[];
     
     try {
@@ -193,8 +191,16 @@ export function DocumentEditor({ docType }: { docType: DocType }) {
             const canvas = await html2canvas(elements[i], { scale: 2, backgroundColor: '#ffffff' });
             const imgData = canvas.toDataURL('image/png');
             
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
             const canvasWidth = canvas.width;
             const canvasHeight = canvas.height;
+            
+            // Check for zero dimensions to prevent division by zero
+            if (canvasWidth === 0 || canvasHeight === 0) {
+                 throw new Error("Canvas has zero dimensions.");
+            }
+            
             const ratio = canvasWidth / canvasHeight;
 
             let finalWidth = pdfWidth;
@@ -208,16 +214,16 @@ export function DocumentEditor({ docType }: { docType: DocType }) {
             const x = (pdfWidth - finalWidth) / 2;
             const y = (pdfHeight - finalHeight) / 2;
 
-            if (isFinite(x) && isFinite(y) && isFinite(finalWidth) && isFinite(finalHeight)) {
+            if (isFinite(x) && isFinite(y) && isFinite(finalWidth) && isFinite(finalHeight) && finalWidth > 0 && finalHeight > 0) {
                 pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
             } else {
                 throw new Error("Invalid dimensions for PDF generation.");
             }
         }
         pdf.save(`${docType}.pdf`);
-    } catch (error) {
+    } catch (error: any) {
         console.error("PDF generation failed:", error);
-        toast({ title: 'PDF Generation Error', description: 'Could not generate the PDF.', variant: 'destructive' });
+        toast({ title: 'PDF Generation Error', description: error.message || 'Could not generate the PDF.', variant: 'destructive' });
     } finally {
         setIsDownloading(false);
     }

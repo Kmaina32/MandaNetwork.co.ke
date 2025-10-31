@@ -20,6 +20,7 @@ import type { GenerateFormalDocumentInput, GenerateFormalDocumentOutput } from '
 import type { GenerateHackathonIdeasInput, GenerateHackathonIdeasOutput } from '@/ai/flows/generate-hackathon-ideas';
 import type { TextToSpeechOutput, TextToSpeechInput } from '@/ai/flows/text-to-speech';
 import type { StudentHelpInput, StudentHelpOutput } from '@/ai/flows/student-help';
+import type { GetPortfolioFeedbackInput, GetPortfolioFeedbackOutput } from '@/ai/flows/portfolio-advisor';
 import { createNotification } from '@/lib/firebase-service';
 
 // Each function dynamically imports its corresponding flow, ensuring that the AI logic
@@ -132,6 +133,11 @@ export async function generateFormalDocument(input: { docType: string; content: 
 export async function generateHackathonIdeas(input: GenerateHackathonIdeasInput): Promise<GenerateHackathonIdeasOutput> {
     const { generateHackathonIdeas } = await import('@/ai/flows/generate-hackathon-ideas');
     return generateHackathonIdeas(input);
+}
+
+export async function getPortfolioFeedback(input: GetPortfolioFeedbackInput): Promise<GetPortfolioFeedbackOutput> {
+    const { getPortfolioFeedback } = await import('@/ai/flows/portfolio-advisor');
+    return getPortfolioFeedback(input);
 }
 
 export async function sendContactMessage(payload: {

@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI agent for formalizing documentation.
@@ -5,7 +6,7 @@
 
 import { ai } from '@/ai/genkit-instance';
 import { z } from 'zod';
-import { googleAI } from '@genkit-ai/googleai';
+import { googleAI } from '@genkit-ai/google-genai';
 
 export const GenerateFormalDocumentInputSchema = z.object({
   docType: z.enum(['PITCH_DECK.md', 'FRAMEWORK.md', 'API.md', 'B2B_STRATEGY.md', 'SEO_STRATEGY.md', 'VISUAL_FRAMEWORK.md', 'PORTFOLIO_ROADMAP.md']),
