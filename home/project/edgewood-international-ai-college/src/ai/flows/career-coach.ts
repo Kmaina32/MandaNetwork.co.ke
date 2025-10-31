@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -11,7 +12,7 @@
 import { ai } from '@/ai/genkit-instance';
 import { z } from 'zod';
 import { listCoursesTool } from '../tools/course-catalog';
-import { googleAI } from '@genkit-ai/googleai';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const HistoryItemSchema = z.object({
   role: z.enum(['user', 'model']),
