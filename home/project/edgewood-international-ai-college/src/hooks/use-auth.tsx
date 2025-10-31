@@ -68,18 +68,17 @@ const createBypassUser = (): { user: User, dbUser: RegisteredUser, organization:
         metadata: { creationTime: new Date().toISOString(), lastSignInTime: new Date().toISOString() },
     } as User;
 
-    const bypassDbUser = {
+    const bypassDbUser: RegisteredUser = {
         uid: bypassUID,
         email: 'gmaina424@gmail.com',
         displayName: 'Dev Super Admin',
         slug: 'dev-super-admin',
         isAdmin: true,
-        isSuperAdmin: true,
         isOrganizationAdmin: true,
         organizationId: 'super-admin-org',
     };
 
-    const bypassOrg = {
+    const bypassOrg: Organization = {
         id: 'super-admin-org',
         name: SUPER_ADMIN_ORG_NAME,
         ownerId: bypassUID,

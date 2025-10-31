@@ -78,7 +78,7 @@ export default function SignupPage() {
         }
     }
     fetchInviteData();
-  }, [searchParams, toast]);
+  }, [searchParams, toast, form]);
 
   useEffect(() => {
     const fetchSettings = async () => {
