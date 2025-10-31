@@ -9,7 +9,7 @@ import { getCourseById, updateUserCourseProgress, getUserCourses, saveTutorHisto
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { CheckCircle, Lock, PlayCircle, Star, Loader2, ArrowLeft, Youtube, Video, AlertCircle, Menu, Bot, User, Send, MessageSquare, Volume2, Mic, MicOff, BrainCircuit, FileText, Sparkles, Pencil, VolumeX, Link as LinkIcon, Download, Gem, MessageCircle, ArrowRight } from 'lucide-react';
+import { CheckCircle, Lock, PlayCircle, Star, Loader2, ArrowLeft, Youtube, Video, AlertCircle, Menu, Bot, User, Send, MessageSquare, Volume2, Mic, MicOff, BrainCircuit, FileText, Sparkles, Pencil, VolumeX, Link as LinkIcon, Download, Gem, MessageCircle, ArrowRight, CaseUpper } from 'lucide-react';
 import { AppSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
@@ -89,14 +89,14 @@ const GoogleDriveIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 
-function CourseOutline({ course, progress, completedLessons, unlockedLessonsCount, currentLesson, onLessonClick, onExamClick, isMobileSheet = false }: {
+function CourseOutline({ course, progress, completedLessons, unlockedLessonsCount, currentLesson, onLessonClick, onAssignmentClick, isMobileSheet = false }: {
     course: Course;
     progress: number;
     completedLessons: Set<string>;
     unlockedLessonsCount: number;
     currentLesson: Lesson | null;
     onLessonClick: (lesson: Lesson, index: number) => void;
-    onExamClick: () => void;
+    onAssignmentClick: (type: 'exam' | 'project') => void;
     isMobileSheet?: boolean;
 }) {
      const router = useRouter();
@@ -170,22 +170,22 @@ function CourseOutline({ course, progress, completedLessons, unlockedLessonsCoun
                     </AccordionItem>
                 )
             })}
-            <AccordionItem value="exam">
-                <AccordionTrigger className="font-semibold px-4">Final Exam</AccordionTrigger>
+             <AccordionItem value="final-assignment">
+                <AccordionTrigger className="font-semibold px-4">Final Assignment</AccordionTrigger>
                 <AccordionContent>
-                    <div className="p-2">
-                    <button
-                        onClick={onExamClick}
-                        disabled={progress < 100}
-                        className="w-full text-left flex items-center gap-3 p-2 rounded-md transition-colors hover:bg-primary/5 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {progress < 100 ? (
-                            <Lock className="h-5 w-5 text-muted-foreground" />
-                        ) : (
-                            <Star className="h-5 w-5 text-yellow-500" />
+                    <div className="p-2 space-y-1">
+                        {course.exam && course.exam.length > 0 && (
+                            <button onClick={() => onAssignmentClick('exam')} disabled={progress < 100} className="w-full text-left flex items-center gap-3 p-2 rounded-md transition-colors hover:bg-primary/5 disabled:opacity-50 disabled:cursor-not-allowed">
+                                {progress < 100 ? <Lock className="h-5 w-5 text-muted-foreground" /> : <Star className="h-5 w-5 text-yellow-500" />}
+                                <span className="text-sm">Take the Final Exam</span>
+                            </button>
                         )}
-                        <span className="text-sm">Take the Final Exam</span>
-                    </button>
+                         {course.project && (
+                             <button onClick={() => onAssignmentClick('project')} disabled={progress < 100} className="w-full text-left flex items-center gap-3 p-2 rounded-md transition-colors hover:bg-primary/5 disabled:opacity-50 disabled:cursor-not-allowed">
+                                {progress < 100 ? <Lock className="h-5 w-5 text-muted-foreground" /> : <GitBranch className="h-5 w-5 text-blue-500" />}
+                                <span className="text-sm">Submit Final Project</span>
+                            </button>
+                        )}
                     </div>
                 </AccordionContent>
             </AccordionItem>
@@ -600,11 +600,15 @@ export default function CoursePlayerPage() {
       }
   }
 
-  const handleExamClick = () => {
-    router.push(`/courses/${slugify(course!.title)}/exam`);
-    if (isMobile) {
-        setIsSheetOpen(false);
-    }
+  const handleAssignmentClick = (type: 'exam' | 'project') => {
+      if (type === 'exam') {
+        router.push(`/courses/${slugify(course!.title)}/exam`);
+      } else {
+        router.push(`/courses/${slugify(course!.title)}/project`);
+      }
+      if (isMobile) {
+          setIsSheetOpen(false);
+      }
   }
 
   const handleCompleteLesson = async () => {
@@ -684,6 +688,8 @@ export default function CoursePlayerPage() {
     notFound();
   }
   
+  const assignmentType = (course.project && course.project.id) ? 'project' : 'exam';
+
   return (
      <SidebarProvider>
       <AppSidebar />
@@ -713,7 +719,7 @@ export default function CoursePlayerPage() {
                             unlockedLessonsCount={unlockedLessonsCount}
                             currentLesson={currentLesson}
                             onLessonClick={handleLessonClick}
-                            onExamClick={handleExamClick}
+                            onAssignmentClick={handleAssignmentClick}
                             isMobileSheet={true}
                         />
                     </SheetContent>
@@ -734,7 +740,7 @@ export default function CoursePlayerPage() {
                     unlockedLessonsCount={unlockedLessonsCount}
                     currentLesson={currentLesson}
                     onLessonClick={handleLessonClick}
-                    onExamClick={handleExamClick}
+                    onAssignmentClick={handleAssignmentClick}
                 />
               </aside>
             )}
@@ -765,8 +771,8 @@ export default function CoursePlayerPage() {
                                     <CheckCircle className="h-24 w-24 text-green-500 mb-4" />
                                     <h1 className="text-3xl font-bold mb-2 font-headline">You've completed all lessons!</h1>
                                     <p className="text-muted-foreground mb-6">Great job. Now it's time to test your knowledge.</p>
-                                    <Button size="lg" onClick={() => router.push(`/courses/${slugify(course.title)}/exam`)}>
-                                        Go to Final Exam
+                                    <Button size="lg" onClick={() => handleAssignmentClick(assignmentType)}>
+                                        Go to Final {assignmentType === 'exam' ? 'Exam' : 'Project'}
                                     </Button>
                                 </>
                             ) : (

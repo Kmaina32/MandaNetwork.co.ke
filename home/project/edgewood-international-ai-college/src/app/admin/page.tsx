@@ -6,8 +6,8 @@ import { useEffect, useState } from 'react';
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, BookOpen, UserPlus, DollarSign, BarChart3, Activity, UserPlus2, BookCopy, Trophy, User, Building, Rocket, ArrowRight } from "lucide-react";
-import type { Course, RegisteredUser, UserCourse, UserActivity } from '@/lib/types';
-import { getAllCourses, getAllUsers, getAllOrganizations, getAllHackathons, getActivityLogs, getHeroData } from '@/lib/firebase-service';
+import type { Course, RegisteredUser, UserCourse, UserActivity, ProjectSubmission } from '@/lib/types';
+import { getAllCourses, getAllUsers, getAllOrganizations, getAllHackathons, getActivityLogs, getHeroData, getAllSubmissions, getAllProjectSubmissions } from '@/lib/firebase-service';
 import { Loader2 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Line, ComposedChart, Legend, PieChart, Pie, Cell } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
