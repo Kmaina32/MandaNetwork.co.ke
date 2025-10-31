@@ -88,7 +88,7 @@ export async function getCourseBySlug(slug: string): Promise<Course | null> {
 }
 
 
-export async function createCourse(courseData: Omit<Course, 'id'>): Promise<string> {
+export async function createCourse(courseData: Omit<Course, 'id' | 'createdAt' | 'project' | 'discussionPrompt'>): Promise<string> {
     const coursesRef = ref(db, 'courses');
     const newCourseRef = push(coursesRef);
     const dataToSave = {
@@ -147,6 +147,17 @@ export async function getUserByEmail(email: string): Promise<RegisteredUser | nu
     const usersRef = query(ref(db, 'users'), orderByChild('email'), equalTo(email));
     const snapshot = await get(usersRef);
     if (snapshot.exists()) {
+        const usersData = snapshot.val();
+        const uid = Object.keys(usersData)[0];
+        return { uid, ...usersData[uid] };
+    }
+    return null;
+}
+
+export async function getUserBySlug(slug: string): Promise<RegisteredUser | null> {
+    const usersRef = query(ref(db, 'users'), orderByChild('slug'), equalTo(slug));
+    const snapshot = await get(usersRef);
+     if (snapshot.exists()) {
         const usersData = snapshot.val();
         const uid = Object.keys(usersData)[0];
         return { uid, ...usersData[uid] };
@@ -1232,4 +1243,3 @@ export async function deleteBlogPost(postId: string): Promise<void> {
     const postRef = ref(db, `blogPosts/${postId}`);
     await remove(postRef);
 }
-

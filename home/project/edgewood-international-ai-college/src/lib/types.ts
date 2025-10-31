@@ -327,6 +327,7 @@ export interface RegisteredUser {
     email: string | null;
     displayName: string | null;
     createdAt?: string; // ISO String
+    slug?: string;
     cohort?: string;
     purchasedCourses?: Record<string, Omit<UserCourse, 'courseId'>>;
     plan?: 'free' | 'basic' | 'pro';
