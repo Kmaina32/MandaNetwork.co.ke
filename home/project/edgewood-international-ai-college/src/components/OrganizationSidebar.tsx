@@ -16,11 +16,12 @@ import { GitBranch, LayoutDashboard, Users, BookOpen, CreditCard, Settings, Exte
 import { Button } from './ui/button';
 import { Separator } from './ui/separator';
 import { useAuth } from '@/hooks/use-auth';
+import pkg from '../../package.json';
 
 export function OrganizationSidebar() {
     const pathname = usePathname();
     const router = useRouter();
-    const { logout, isOrganizationAdmin, isAdmin } = useAuth();
+    const { logout, isOrganizationAdmin, isAdmin, organization } = useAuth();
     
     const isFullAdmin = isOrganizationAdmin || isAdmin;
 
@@ -39,7 +40,7 @@ export function OrganizationSidebar() {
         <SidebarHeader className="mb-4">
             <div className="flex items-center gap-2">
                 <GitBranch className="h-6 w-6 text-yellow-500" />
-                <span className="font-bold text-lg font-headline group-data-[collapsible=icon]:hidden">Manda Network</span>
+                <span className="font-bold text-lg font-headline group-data-[collapsible=icon]:hidden">{organization?.name || 'Manda Network'}</span>
             </div>
         </SidebarHeader>
         <SidebarContent>
@@ -161,7 +162,7 @@ export function OrganizationSidebar() {
         </SidebarContent>
         <SidebarFooter>
             <div className="flex items-center gap-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-                <Tag />
+                <Tag className="h-3 w-3" />
                 <span>v1.0.2</span>
             </div>
         </SidebarFooter>
