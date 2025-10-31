@@ -17,7 +17,7 @@ import { PortfolioProject } from '@/lib/types';
 
 const GenerateCourseContentInputSchema = z.object({
   courseTitle: z.string().describe('The title of the course to be generated.'),
-  courseContext: z.string().optional().describe('A rich text context containing course material, including potential YouTube links.'),
+  courseContext: z.string().optional().describe('A rich text context containing course material, such as a Kaggle dataset URL, sample CSV data, or a YouTube transcript.'),
 });
 export type GenerateCourseContentInput = z.infer<typeof GenerateCourseContentInputSchema>;
 
@@ -101,7 +101,7 @@ It MUST include:
 Course Title: {{{courseTitle}}}
 
 {{#if courseContext}}
-Use the following context as the primary source of information. Extract key topics for modules and lessons, and most importantly, extract any YouTube URLs to include in the relevant lessons.
+Use the following context as the primary source of information. If it contains a Kaggle URL, structure the course around analyzing that dataset. If it contains other text like a YouTube transcript or sample CSV data, use that as the basis for the curriculum. Extract key topics for modules and lessons, and most importantly, extract any YouTube URLs to include in the relevant lessons.
 Course Context:
 {{{courseContext}}}
 {{/if}}
