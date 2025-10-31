@@ -12,7 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, User as UserIcon, Camera, Upload, Eye, Building, Share2, PlusCircle, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, User as UserIcon, Camera, Upload, Eye, Building, Share2, PlusCircle, Trash2, Wand2 } from 'lucide-react';
 import { AppSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
@@ -34,6 +34,7 @@ import { Icon } from '@iconify/react';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { slugify } from '@/lib/utils';
+import { getPortfolioFeedback } from '@/app/actions';
 
 
 const projectSchema = z.object({
@@ -103,6 +104,8 @@ export default function ProfilePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [dbUser, setDbUser] = useState<RegisteredUser | null>(null);
+  const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false);
+  const [feedback, setFeedback] = useState<{ overallFeedback: string; actionableSteps: string[]; } | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -267,9 +270,11 @@ export default function ProfilePage() {
           await updateProfile(user, { displayName: newDisplayName });
         }
 
+        const userSlug = slugify(newDisplayName);
+
         await saveUser(user.uid, {
             displayName: newDisplayName,
-            slug: slugify(newDisplayName),
+            slug: userSlug,
             photoURL: user.photoURL,
             portfolio: {
                 aboutMe: values.aboutMe,
@@ -292,6 +297,7 @@ export default function ProfilePage() {
         
         await auth.currentUser?.reload();
         setUser(auth.currentUser);
+        setDbUser(prev => prev ? ({ ...prev, slug: userSlug }) : null);
         
         toast({ title: 'Success', description: 'Your profile has been updated.' });
     } catch(error) {
@@ -301,6 +307,22 @@ export default function ProfilePage() {
         setIsLoading(false);
     }
   }
+
+   const handleGetFeedback = async () => {
+    if (!dbUser) return;
+    setIsGeneratingFeedback(true);
+    setFeedback(null);
+    try {
+        const result = await getPortfolioFeedback({ userProfile: dbUser });
+        setFeedback(result);
+    } catch(error) {
+        console.error(error);
+        toast({ title: "Feedback Error", description: "The AI advisor could not generate feedback at this time.", variant: "destructive"});
+    } finally {
+        setIsGeneratingFeedback(false);
+    }
+  }
+
 
   if (loading || !user || !dbUser) {
      return (
@@ -381,9 +403,10 @@ export default function ProfilePage() {
                             </div>
 
                             <Tabs defaultValue="account">
-                                <TabsList className="grid w-full grid-cols-2">
+                                <TabsList className="grid w-full grid-cols-3">
                                     <TabsTrigger value="account">Account</TabsTrigger>
                                     <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
+                                    <TabsTrigger value="advisor">AI Advisor</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="account" className="pt-6">
                                      <div className="space-y-4">
@@ -498,6 +521,42 @@ export default function ProfilePage() {
                                     <FormField control={form.control} name="public" render={({ field }) => ( <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4"> <div className="space-y-0.5"> <FormLabel className="text-base">Make Portfolio Public</FormLabel> <FormDescription> Allow employers and peers to view your completed courses and profile. </FormDescription> </div> <FormControl> <Switch checked={field.value} onCheckedChange={field.onChange} /> </FormControl> </FormItem> )}/>
 
                                 </TabsContent>
+                                 <TabsContent value="advisor" className="pt-6 space-y-6">
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle>AI Portfolio Advisor</CardTitle>
+                                            <CardDescription>Get personalized feedback on how to improve your portfolio to attract employers.</CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <Button type="button" onClick={handleGetFeedback} disabled={isGeneratingFeedback}>
+                                                {isGeneratingFeedback ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4"/>}
+                                                Get Feedback
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                    {isGeneratingFeedback && (
+                                        <div className="flex items-center justify-center py-8">
+                                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                                            <p className="ml-2 text-muted-foreground">The AI is analyzing your profile...</p>
+                                        </div>
+                                    )}
+                                    {feedback && (
+                                        <Card className="bg-secondary/50">
+                                            <CardHeader>
+                                                <CardTitle>Feedback from your AI Advisor</CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="space-y-4">
+                                                <p>{feedback.overallFeedback}</p>
+                                                <div>
+                                                    <h4 className="font-semibold mb-2">Your Actionable Roadmap:</h4>
+                                                    <ul className="list-disc pl-5 space-y-2">
+                                                        {feedback.actionableSteps.map((step, index) => <li key={index}>{step}</li>)}
+                                                    </ul>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    )}
+                                </TabsContent>
                             </Tabs>
                         </CardContent>
                          <CardFooter className="flex flex-col sm:flex-row justify-between px-6 pt-6">
@@ -506,7 +565,7 @@ export default function ProfilePage() {
                                 <Button asChild variant="secondary">
                                     <Link href={`/portfolio/${dbUser.slug}`}>
                                         <Eye className="mr-2 h-4 w-4" />
-                                        View My Public Portfolio
+                                        View Public Portfolio
                                     </Link>
                                 </Button>
                                 <Button type="submit" disabled={isLoading}>
