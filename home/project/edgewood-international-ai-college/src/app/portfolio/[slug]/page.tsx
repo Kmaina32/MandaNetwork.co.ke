@@ -48,7 +48,7 @@ export default function PortfolioPage() {
                 const userSlug = params.slug as string;
                 const userData = await getUserBySlug(userSlug);
                 
-                if (!userData || (!userData.portfolio?.public && authUser?.uid !== userData.uid)) {
+                if (!userData || (!userData.portfolio?.public && authUser?.uid !== userData.uid && !isEmployer)) {
                     if (!authUser && !authLoading) {
                         router.push(`/login?redirect=${pathname}`);
                         return;
@@ -314,5 +314,3 @@ export default function PortfolioPage() {
         </>
     )
 }
-
-    

@@ -1,0 +1,169 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "courses": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
+    },
+    "programs": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
+    },
+    "bundles": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
+    },
+    "bootcamps": {
+      ".read": true,
+      ".write": "auth != null && (auth.uid === newData.child('participants').child(auth.uid).name() || root.child('users').child(auth.uid).child('isAdmin').val() === true)"
+    },
+    "pricingPlans": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
+    },
+    "hero": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
+    },
+    "tutorSettings": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
+    },
+    "certificateSettings": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
+    },
+    "hackathons": {
+      ".read": true,
+      ".write": "auth != null && (auth.uid === newData.child('participants').child(auth.uid).name() || root.child('users').child(auth.uid).child('isAdmin').val() === true)"
+    },
+    "leaderboard": {
+      ".read": true,
+      ".indexOn": "score",
+      "$userId": {
+        ".write": "auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('isAdmin').val() === true)"
+      }
+    },
+    "users": {
+      ".indexOn": ["email", "organizationId", "portfolio/public"],
+      "$userId": {
+        ".read": "data.child('portfolio/public').val() === true || (auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('isAdmin').val() === true || root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true))",
+        ".write": "auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('isAdmin').val() === true)",
+        "purchasedCourses": {
+          "$courseId": {
+            ".write": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true || (auth.uid === $userId && !data.exists()))"
+          }
+        }
+      }
+    },
+    "calendarEvents": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
+    },
+    "organizations": {
+      ".read": "auth != null",
+      ".indexOn": "ownerId",
+      "$orgId": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true || (data.exists() && data.child('ownerId').val() === auth.uid) || (!data.exists() && newData.child('ownerId').val() === auth.uid))"
+      }
+    },
+    "invitations": {
+      ".read": "auth != null",
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true || root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true)"
+    },
+    "userNotes": {
+      "$userId": {
+        ".read": "auth != null && auth.uid === $userId",
+        ".write": "auth != null && auth.uid === $userId"
+      }
+    },
+    "tutorHistory": {
+      "$userId": {
+        ".read": "auth != null && auth.uid === $userId",
+        ".write": "auth != null && auth.uid === $userId"
+      }
+    },
+    "submissions": {
+      ".indexOn": "userId",
+      "$submissionId": {
+        ".read": "auth != null && (data.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('isAdmin').val() === true)",
+        ".write": "auth != null && ((newData.child('userId').val() === auth.uid) || root.child('users').child(auth.uid).child('isAdmin').val() === true)"
+      }
+    },
+    "hackathonSubmissions": {
+      ".indexOn": ["userId", "hackathonId"],
+      "$submissionId": {
+        ".read": "auth != null && (data.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('isAdmin').val() === true)",
+        ".write": "auth != null && (newData.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('isAdmin').val() === true)"
+      }
+    },
+    "courseFeedback": {
+      "$courseId": {
+        ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+        ".write": "auth != null"
+      }
+    },
+    "discussions": {
+      ".read": "auth != null",
+      "threads": {
+        "$courseId": {
+          ".write": "auth != null",
+          ".indexOn": "createdAt"
+        }
+      },
+      "replies": {
+        "$threadId": {
+          ".write": "auth != null",
+          ".indexOn": "createdAt"
+        }
+      }
+    },
+    "permissionRequests": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('isSuperAdmin').val() === true",
+      ".write": "auth != null"
+    },
+    "notifications": {
+      ".read": "auth != null",
+      "$notificationId": {
+        ".write": "auth != null"
+      }
+    },
+     "userActivity": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      "$logId": {
+        ".write": "auth != null && newData.child('userId').val() === auth.uid",
+        ".validate": "newData.hasChildren(['userId', 'userName', 'userAvatar', 'type', 'details', 'timestamp'])"
+      }
+    },
+    "blogPosts": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      ".indexOn": "slug"
+    },
+    "webrtc-offers": {
+      ".read": "auth != null",
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true || root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true)"
+    },
+    "webrtc-answers": {
+      "$sessionId": {
+        "$userId": {
+          ".read": "auth != null",
+          ".write": "auth != null && auth.uid === $userId"
+        }
+      }
+    },
+    "webrtc-candidates": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "liveChat": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "liveReactions": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    }
+  }
+}
