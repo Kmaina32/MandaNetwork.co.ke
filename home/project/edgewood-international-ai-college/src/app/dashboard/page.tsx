@@ -467,7 +467,7 @@ export default function DashboardPage() {
                         <CardContent className="pt-6">
                              <ul className="space-y-4">
                                 {completedCourses.map((course, index) => (
-                                course.id && course.title && (
+                                course.id && course.title && dbUser.slug && (
                                     <li key={course.id}>
                                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                                              <div>
