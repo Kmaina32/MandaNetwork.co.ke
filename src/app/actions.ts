@@ -5,7 +5,7 @@
 // between server and client code. All functions exported from a 'use server' file must be async.
 
 import type { LearningPathInput, LearningPathOutput } from '@/ai/flows/career-coach';
-import type { ContentStrategyOutput, CardPaymentInput, PayPalPaymentInput, ApiKey } from '@/lib/types';
+import type { ContentStrategyOutput, CardPaymentInput, PayPalPaymentInput, ApiKey, ProjectSubmission, Conversation } from '@/lib/types';
 import type { CourseTutorInput, CourseTutorOutput } from '@/ai/flows/course-tutor';
 import type { GenerateApiKeyInput } from '@/ai/flows/generate-api-key';
 import type { GenerateCourseContentInput, GenerateCourseContentOutput } from '@/ai/flows/generate-course-content';
@@ -21,7 +21,7 @@ import type { GenerateHackathonIdeasInput, GenerateHackathonIdeasOutput } from '
 import type { TextToSpeechOutput, TextToSpeechInput } from '@/ai/flows/text-to-speech';
 import type { StudentHelpInput, StudentHelpOutput } from '@/ai/flows/student-help';
 import type { GetPortfolioFeedbackInput, GetPortfolioFeedbackOutput } from '@/ai/flows/portfolio-advisor';
-import { createNotification } from '@/lib/firebase-service';
+import { createNotification, createProjectSubmission as saveProjectSubmission, createOrUpdateConversation, sendMessage } from '@/lib/firebase-service';
 
 // Each function dynamically imports its corresponding flow, ensuring that the AI logic
 // is only loaded on the server when the action is executed.
@@ -59,6 +59,10 @@ export async function generateExam(input: GenerateExamInput): Promise<GenerateEx
 export async function generateProject(input: GenerateProjectInput): Promise<GenerateProjectOutput> {
     const { generateProject } = await import('@/ai/flows/generate-project');
     return generateProject(input);
+}
+
+export async function createProjectSubmission(submissionData: Omit<ProjectSubmission, 'id'>): Promise<string> {
+    return saveProjectSubmission(submissionData);
 }
 
 export async function gradeShortAnswerExam(input: GradeShortAnswerExamInput): Promise<GradeShortAnswerExamOutput> {
@@ -141,25 +145,33 @@ export async function getPortfolioFeedback(input: GetPortfolioFeedbackInput): Pr
 }
 
 export async function sendContactMessage(payload: {
-    studentId: string;
-    employerName: string;
-    organizationName: string;
-    email: string;
-    phone: string;
-    message: string;
+  studentId: string;
+  studentName: string;
+  employerId: string;
+  employerName: string;
+  employerPhotoUrl: string;
+  organizationName: string;
+  email: string;
+  phone: string;
+  message: string;
 }) {
-    const { studentId, employerName, organizationName, email, phone, message } = payload;
+  const { studentId, studentName, employerId, employerName, employerPhotoUrl, message } = payload;
     
-    await createNotification({
-        userId: studentId,
-        title: `New Message from ${employerName}`,
-        body: {
-            employerName,
-            organizationName,
-            email,
-            phone,
-            message,
-        },
-        link: '/messages',
+  // This function now creates or updates a conversation instead of a simple notification
+  await createOrUpdateConversation({
+    studentId,
+    studentName,
+    employerId,
+    employerName,
+    employerPhotoUrl,
+    initialMessage: message,
+  });
+}
+
+export async function sendChatMessage(conversationId: string, senderId: string, text: string) {
+    await sendMessage(conversationId, {
+        senderId,
+        text,
+        timestamp: new Date().toISOString(),
     });
 }

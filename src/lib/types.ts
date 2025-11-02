@@ -1,5 +1,8 @@
 
 import { z } from 'zod';
+import type { Metadata as NextMetadata } from 'next';
+
+export type Metadata = NextMetadata;
 
 export interface YoutubeLink {
   title: string;
@@ -120,6 +123,20 @@ export interface Bootcamp {
   duration: string;
   startDate: string; // ISO String
   participants?: Record<string, boolean>;
+}
+
+export interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  author: string;
+  category: string;
+  content: string;
+  isPublished: boolean;
+  createdAt: string; // ISO String
+  updatedAt: string; // ISO String
 }
 
 
@@ -287,8 +304,9 @@ export interface ProjectSubmission {
     userId: string;
     title: string;
     description: string;
-    url?: string;
-    imageUrl?: string;
+    liveUrl: string;
+    sourceUrl: string;
+    imageUrl: string;
     submittedAt: string;
 }
 
@@ -310,6 +328,7 @@ export interface RegisteredUser {
     email: string | null;
     displayName: string | null;
     createdAt?: string; // ISO String
+    slug?: string;
     cohort?: string;
     purchasedCourses?: Record<string, Omit<UserCourse, 'courseId'>>;
     plan?: 'free' | 'basic' | 'pro';
@@ -424,4 +443,25 @@ export interface UserActivity {
     type: 'signup' | 'enrollment' | 'page_visit';
     details: any;
     timestamp: string; // ISO string
+}
+
+export interface ConversationMessage {
+    senderId: string;
+    text: string;
+    timestamp: string;
+}
+
+export interface ConversationParticipant {
+    name: string;
+    photoURL: string;
+    isOnline?: boolean;
+}
+
+export interface Conversation {
+    id: string;
+    participants: Record<string, ConversationParticipant>;
+    lastMessage: ConversationMessage;
+    updatedAt: string;
+    readBy?: Record<string, boolean>; // Tracks read status for each participant
+    messages?: Record<string, ConversationMessage>;
 }
