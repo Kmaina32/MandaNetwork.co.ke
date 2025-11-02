@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Footer } from "@/components/Footer";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ArrowLeft, Mail, Loader2, Send } from 'lucide-react';
 import { AppSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
@@ -27,7 +26,7 @@ import { NoConversationSelected } from '@/components/shared/NoConversationSelect
 const getInitials = (name: string | null | undefined) => {
     if (!name) return 'U';
     const names = name.split(' ');
-    return names.length > 1 ? `${names[0][0]}${names[names.length - 1][0]}` : names[0]?.[0] || 'U';
+    return names.length > 1 && names[1] ? `${names[0][0]}${names[names.length - 1][0]}` : names[0]?.[0] || 'U';
 };
 
 export default function MessagesPage() {
@@ -106,7 +105,10 @@ export default function MessagesPage() {
                 </div>
                 <ScrollArea className="flex-1">
                     {loadingConversations ? <LoadingAnimation /> : conversations.map(convo => {
-                        const otherParticipant = convo.participants[Object.keys(convo.participants).find(id => id !== user?.uid)!];
+                        const otherParticipantKey = Object.keys(convo.participants).find(id => id !== user?.uid);
+                        if (!otherParticipantKey) return null;
+                        const otherParticipant = convo.participants[otherParticipantKey];
+                        
                         return (
                             <button 
                                 key={convo.id}
@@ -153,8 +155,8 @@ export default function MessagesPage() {
                                         <div key={index} className={cn("flex items-end gap-2", msg.senderId === user?.uid ? 'justify-end' : 'justify-start')}>
                                             {msg.senderId !== user?.uid && (
                                                 <Avatar className="h-8 w-8">
-                                                    <AvatarImage src={selectedConversation.participants[msg.senderId].photoURL} />
-                                                    <AvatarFallback>{getInitials(selectedConversation.participants[msg.senderId].name)}</AvatarFallback>
+                                                    <AvatarImage src={selectedConversation.participants[msg.senderId]?.photoURL} />
+                                                    <AvatarFallback>{getInitials(selectedConversation.participants[msg.senderId]?.name)}</AvatarFallback>
                                                 </Avatar>
                                             )}
                                             <div className={cn(
