@@ -285,7 +285,7 @@ export default function PortfolioPage() {
                                                     </div>
                                                      {course.title && (
                                                         <Button asChild variant="outline">
-                                                            <Link href={`/dashboard/certificate/${slugify(course.title)}`}>
+                                                            <Link href={`/portfolio/${user.slug}/certificate/${slugify(course.title)}`}>
                                                                 View Certificate
                                                             </Link>
                                                         </Button>
