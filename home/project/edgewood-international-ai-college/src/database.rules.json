@@ -1,3 +1,4 @@
+
 {
   "rules": {
     ".read": false,
@@ -150,14 +151,14 @@
     },
     "webrtc-offers": {
       "$sessionId": {
-          ".read": "auth != null",
+          ".read": "auth != null && (root.child('users').child(auth.uid).child('organizationId').val() === $sessionId.replace('org-live-session-', '') || root.child('users').child(auth.uid).child('isAdmin').val() === true)",
           ".write": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true || root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true)"
       }
     },
     "webrtc-answers": {
       "$sessionId": {
         "$userId": {
-          ".read": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true || root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true)",
+          ".read": "auth != null && (root.child('users').child(auth.uid).child('organizationId').val() === $sessionId.replace('org-live-session-', '') || root.child('users').child(auth.uid).child('isAdmin').val() === true)",
           ".write": "auth != null && auth.uid === $userId"
         }
       }
@@ -183,6 +184,7 @@
     "conversations": {
       "$conversationId": {
         ".read": "auth != null && data.child('participants').child(auth.uid).exists()",
+        ".write": "auth != null && data.child('participants').child(auth.uid).exists()",
         "messages": {
           ".write": "auth != null && data.parent().child('participants').child(auth.uid).exists()"
         }
