@@ -443,3 +443,23 @@ export interface UserActivity {
     details: any;
     timestamp: string; // ISO string
 }
+
+export interface ConversationMessage {
+    senderId: string;
+    text: string;
+    timestamp: string;
+}
+
+export interface ConversationParticipant {
+    name: string;
+    photoURL: string;
+    isOnline?: boolean;
+}
+
+export interface Conversation {
+    id: string;
+    participants: Record<string, ConversationParticipant>;
+    lastMessage: ConversationMessage;
+    updatedAt: string;
+    messages?: Record<string, ConversationMessage>;
+}
