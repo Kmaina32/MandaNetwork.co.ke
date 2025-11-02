@@ -35,6 +35,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { slugify } from '@/lib/utils';
 import { getPortfolioFeedback } from '@/app/actions';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 
 const projectSchema = z.object({
@@ -327,7 +328,7 @@ export default function ProfilePage() {
   if (loading || !user || !dbUser) {
      return (
         <div className="flex justify-center items-center min-h-screen">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <LoadingAnimation />
         </div>
     )
   }
@@ -585,3 +586,5 @@ export default function ProfilePage() {
     </SidebarProvider>
   );
 }
+
+    
