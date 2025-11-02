@@ -14,12 +14,14 @@ import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carouse
 import Autoplay from "embla-carousel-autoplay";
 import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
+import { Input } from '@/components/ui/input';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 
 const getInitials = (name: string | null | undefined) => {
     if (!name) return 'U';
     const names = name.split(' ');
-    return names.length > 1 ? `${names[0][0]}${names[names.length - 1][0]}` : names[0]?.[0] || 'U';
+    return names.length > 1 && names[1] ? `${names[0][0]}${names[names.length - 1][0]}` : names[0]?.[0] || 'U';
 };
 
 const hiringFeatures = [
@@ -133,7 +135,7 @@ export default function PortfoliosPage() {
                 <section className="container mx-auto px-4 md:px-6 py-12">
                     {loading ? (
                         <div className="flex justify-center items-center py-20">
-                            <Loader2 className="h-10 w-10 animate-spin" />
+                            <LoadingAnimation />
                         </div>
                     ) : publicProfiles.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

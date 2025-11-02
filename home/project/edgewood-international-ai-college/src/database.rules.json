@@ -46,7 +46,7 @@
       }
     },
     "users": {
-      ".indexOn": ["email", "organizationId", "portfolio/public"],
+      ".indexOn": ["email", "organizationId", "portfolio/public", "slug"],
       "$userId": {
         ".read": "data.child('portfolio/public').val() === true || (auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('isAdmin').val() === true || root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true))",
         ".write": "auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('isAdmin').val() === true)",
@@ -86,6 +86,13 @@
     },
     "submissions": {
       ".indexOn": "userId",
+      "$submissionId": {
+        ".read": "auth != null && (data.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('isAdmin').val() === true)",
+        ".write": "auth != null && ((newData.child('userId').val() === auth.uid) || root.child('users').child(auth.uid).child('isAdmin').val() === true)"
+      }
+    },
+     "projectSubmissions": {
+      ".indexOn": ["userId", "courseId"],
       "$submissionId": {
         ".read": "auth != null && (data.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('isAdmin').val() === true)",
         ".write": "auth != null && ((newData.child('userId').val() === auth.uid) || root.child('users').child(auth.uid).child('isAdmin').val() === true)"
@@ -142,28 +149,44 @@
       ".indexOn": "slug"
     },
     "webrtc-offers": {
-      ".read": "auth != null",
-      ".write": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true || root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true)"
+      "$sessionId": {
+          ".read": "auth != null",
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true || root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true)"
+      }
     },
     "webrtc-answers": {
       "$sessionId": {
         "$userId": {
-          ".read": "auth != null",
+          ".read": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true || root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true)",
           ".write": "auth != null && auth.uid === $userId"
         }
       }
     },
     "webrtc-candidates": {
-      ".read": "auth != null",
-      ".write": "auth != null"
+        "$sessionId": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        }
     },
     "liveChat": {
-      ".read": "auth != null",
-      ".write": "auth != null"
+      "$sessionId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
     },
     "liveReactions": {
-      ".read": "auth != null",
-      ".write": "auth != null"
+       "$sessionId": {
+            ".read": "auth != null",
+            ".write": "auth != null"
+       }
+    },
+    "conversations": {
+      "$conversationId": {
+        ".read": "auth != null && data.child('participants').child(auth.uid).exists()",
+        "messages": {
+          ".write": "auth != null && data.parent().child('participants').child(auth.uid).exists()"
+        }
+      }
     }
   }
 }

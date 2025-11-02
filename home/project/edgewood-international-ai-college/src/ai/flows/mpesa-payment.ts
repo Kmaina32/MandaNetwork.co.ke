@@ -99,13 +99,16 @@ const mpesaPaymentFlow = ai.defineFlow(
 
     try {
         const accessToken = await getMpesaAccessToken();
+        
+        // Use 1 KES for sandbox testing, otherwise use the actual amount
+        const paymentAmount = process.env.NODE_ENV === 'production' ? amount : 1;
 
         const response = await axios.post("https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest", {
             BusinessShortCode: shortCode,
             Password: password,
             Timestamp: timestamp,
             TransactionType: "CustomerBuyGoodsOnline",
-            Amount: amount,
+            Amount: paymentAmount,
             PartyA: formattedPhoneNumber,
             PartyB: shortCode,
             PhoneNumber: formattedPhoneNumber,

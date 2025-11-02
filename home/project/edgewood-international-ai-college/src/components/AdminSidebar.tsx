@@ -13,11 +13,10 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { GitBranch, Home, LayoutDashboard, ListTodo, Calendar, Users, ImageIcon, CreditCard, Cog, HelpCircle, ExternalLink, Bot, Bell, Clapperboard, Library, Layers, BarChart3, Tag, ShieldCheck, Building, FileText, Rocket, ChevronRight, BookCopy, Contact, Users2, Speaker, LineChart, Book, Trophy, Briefcase, Award, Megaphone, Rss, BrainCircuit } from 'lucide-react';
+import { GitBranch, LayoutDashboard, ListTodo, Calendar, Users, ImageIcon, CreditCard, Cog, HelpCircle, ExternalLink, Bot, Bell, Clapperboard, Library, Layers, BarChart3, Tag, ShieldCheck, Building, FileText, Rocket, BookCopy, Briefcase, Award, Megaphone, Rss } from 'lucide-react';
 import { Button } from './ui/button';
 import { Separator } from './ui/separator';
 import { useAuth } from '@/hooks/use-auth';
-import { cn } from '@/lib/utils';
 import pkg from '../../package.json';
 
 export function AdminSidebar() {
@@ -25,7 +24,7 @@ export function AdminSidebar() {
     const { isSuperAdmin } = useAuth();
 
     const isActive = (path: string) => {
-        if (path === '/admin' && pathname !== '/admin') return false;
+        if (path === '/admin') return pathname === '/admin';
         return pathname.startsWith(path);
     }
 
@@ -43,7 +42,7 @@ export function AdminSidebar() {
             </div>
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === '/admin'} tooltip="Dashboard">
+                    <SidebarMenuButton asChild isActive={isActive('/admin')} tooltip="Dashboard">
                         <Link href="/admin">
                             <LayoutDashboard />
                             <span>Dashboard</span>
@@ -57,7 +56,7 @@ export function AdminSidebar() {
                         <Link href="/admin/courses"><BookCopy className="h-4 w-4 mr-2"/>Courses</Link>
                     </SidebarMenuButton>
                  </SidebarMenuItem>
-                 <SidebarMenuItem>
+                  <SidebarMenuItem>
                      <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/blog')} tooltip="Blog">
                         <Link href="/admin/blog"><Rss className="h-4 w-4 mr-2"/>Blog</Link>
                     </SidebarMenuButton>
