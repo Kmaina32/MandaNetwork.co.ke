@@ -59,7 +59,7 @@ export default function CertificatePage() {
             // Access control:
             // Allow access if the user owns the certificate OR if the portfolio is public
             if (!currentUserCourse?.certificateAvailable) {
-                if (studentData.uid !== authUser?.uid || !studentData.portfolio?.public) {
+                if (!authUser || (studentData.uid !== authUser?.uid && !studentData.portfolio?.public)) {
                     notFound();
                     return;
                 }
@@ -72,7 +72,7 @@ export default function CertificatePage() {
 
         } catch (error) {
             console.error("Error fetching certificate data:", error);
-            notFound();
+            // Don't call notFound() here as it might be a temporary network issue
         } finally {
             setLoading(false);
         }
@@ -91,6 +91,7 @@ export default function CertificatePage() {
   
   if (!course || !student || !userCourse) {
     notFound();
+    return null; // Ensure nothing renders before notFound throws
   }
 
   return (
@@ -123,3 +124,5 @@ export default function CertificatePage() {
     </SidebarProvider>
   );
 }
+
+    

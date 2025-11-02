@@ -283,7 +283,7 @@ export default function PortfolioPage() {
                                                             <p className="text-sm text-muted-foreground">Instructor: {course.instructor}</p>
                                                         </div>
                                                     </div>
-                                                     {course.title && (
+                                                     {course.title && user.slug && (
                                                         <Button asChild variant="outline">
                                                             <Link href={`/portfolio/${user.slug}/certificate/${slugify(course.title)}`}>
                                                                 View Certificate
@@ -314,3 +314,5 @@ export default function PortfolioPage() {
         </>
     )
 }
+
+    
