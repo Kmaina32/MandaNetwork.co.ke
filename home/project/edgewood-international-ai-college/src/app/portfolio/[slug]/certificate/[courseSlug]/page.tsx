@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { notFound, useParams, useRouter } from "next/navigation";
-import { getCourseBySlug, getUserCourses, getCertificateSettings, getUserBySlug } from "@/lib/firebase-service";
+import { getCourseBySlug, getUserCourses, getCertificateSettings, getUserBySlug, getAllCourses } from "@/lib/firebase-service";
 import type { Course, UserCourse, RegisteredUser } from "@/lib/types";
 import { Footer } from "@/components/Footer";
 import { Certificate } from "@/components/Certificate";
@@ -13,6 +13,7 @@ import { AppSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
+import { slugify } from '@/lib/utils';
 
 export default function CertificatePage() {
   const params = useParams<{ slug: string, courseSlug: string }>();
@@ -26,44 +27,61 @@ export default function CertificatePage() {
 
   useEffect(() => {
     const fetchCertificateData = async () => {
+        if (!params.slug || !params.courseSlug) {
+            setLoading(false);
+            notFound();
+            return;
+        }
+
         setLoading(true);
-        const studentData = await getUserBySlug(params.slug as string);
-
-        if (!studentData) {
-            notFound();
-            return;
-        }
-
-        const allCourses = await getAllCourses();
-        const courseData = allCourses.find(c => c.slug === params.courseSlug);
-        
-        if (!courseData) {
-            notFound();
-            return;
-        }
-        
-        const [userCoursesData, certSettings] = await Promise.all([
-            getUserCourses(studentData.uid),
-            getCertificateSettings(),
-        ]);
-        
-        const currentUserCourse = userCoursesData.find(uc => uc.courseId === courseData.id);
-
-        if (!currentUserCourse?.certificateAvailable && studentData.uid !== authUser?.uid) {
-             if(!studentData.portfolio?.public) {
+        try {
+            const studentData = await getUserBySlug(params.slug as string);
+            if (!studentData) {
                 notFound();
                 return;
-             }
-        }
+            }
 
-        setStudent(studentData);
-        setCourse(courseData);
-        setUserCourse(currentUserCourse || null);
-        setAcademicDirector(certSettings.academicDirector);
-        setLoading(false);
+            const allCourses = await getAllCourses();
+            const courseData = allCourses.find(c => slugify(c.title) === params.courseSlug);
+            
+            if (!courseData) {
+                notFound();
+                return;
+            }
+            
+            const [userCoursesData, certSettings] = await Promise.all([
+                getUserCourses(studentData.uid),
+                getCertificateSettings(),
+            ]);
+            
+            const currentUserCourse = userCoursesData.find(uc => uc.courseId === courseData.id);
+
+            // Access control:
+            // Allow access if the user owns the certificate OR if the portfolio is public
+            if (!currentUserCourse?.certificateAvailable) {
+                if (studentData.uid !== authUser?.uid || !studentData.portfolio?.public) {
+                    notFound();
+                    return;
+                }
+            }
+
+            setStudent(studentData);
+            setCourse(courseData);
+            setUserCourse(currentUserCourse || null);
+            setAcademicDirector(certSettings.academicDirector);
+
+        } catch (error) {
+            console.error("Error fetching certificate data:", error);
+            notFound();
+        } finally {
+            setLoading(false);
+        }
     }
-    fetchCertificateData();
-  }, [params.slug, params.courseSlug, authUser]);
+
+    if (!loadingAuth) {
+        fetchCertificateData();
+    }
+  }, [params.slug, params.courseSlug, authUser, loadingAuth]);
 
   if (loadingAuth || loading) {
     return <div className="flex justify-center items-center min-h-screen">
