@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -452,9 +451,54 @@ export default function ProfilePage() {
                                     <Separator/>
 
                                     <div className="grid grid-cols-1 gap-4">
-                                    <FormField control={form.control} name="github" render={({ field }) => ( <FormItem> <FormLabel><div className="flex items-center gap-2"><Icon icon="mdi:github" className="h-5 w-5" /> GitHub URL</div></FormLabel> <FormControl><Input placeholder="https://github.com/username" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                                    <FormField control={form.control} name="gitlab" render={({ field }) => ( <FormItem> <FormLabel><div className="flex items-center gap-2"><Icon icon="mdi:gitlab" className="h-5 w-5" /> GitLab URL</div></FormLabel> <FormControl><Input placeholder="https://gitlab.com/username" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                                    <FormField control={form.control} name="bitbucket" render={({ field }) => ( <FormItem> <FormLabel><div className="flex items-center gap-2"><Icon icon="mdi:bitbucket" className="h-5 w-5" /> Bitbucket URL</div></FormLabel> <FormControl><Input placeholder="https://bitbucket.org/username" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                                      <FormField 
+                                        control={form.control} 
+                                        name="github" 
+                                        render={({ field }) => ( 
+                                          <FormItem> 
+                                            <FormLabel className="flex items-center gap-2">
+                                              <Icon icon="mdi:github" className="h-5 w-5" /> 
+                                              GitHub URL
+                                            </FormLabel> 
+                                            <FormControl>
+                                              <Input placeholder="https://github.com/username" {...field} />
+                                            </FormControl> 
+                                            <FormMessage /> 
+                                          </FormItem> 
+                                        )} 
+                                      />
+                                      <FormField 
+                                        control={form.control} 
+                                        name="gitlab" 
+                                        render={({ field }) => ( 
+                                          <FormItem> 
+                                            <FormLabel className="flex items-center gap-2">
+                                              <Icon icon="mdi:gitlab" className="h-5 w-5" /> 
+                                              GitLab URL
+                                            </FormLabel> 
+                                            <FormControl>
+                                              <Input placeholder="https://gitlab.com/username" {...field} />
+                                            </FormControl> 
+                                            <FormMessage /> 
+                                          </FormItem> 
+                                        )} 
+                                      />
+                                      <FormField 
+                                        control={form.control} 
+                                        name="bitbucket" 
+                                        render={({ field }) => ( 
+                                          <FormItem> 
+                                            <FormLabel className="flex items-center gap-2">
+                                              <Icon icon="mdi:bitbucket" className="h-5 w-5" /> 
+                                              Bitbucket URL
+                                            </FormLabel> 
+                                            <FormControl>
+                                              <Input placeholder="https://bitbucket.org/username" {...field} />
+                                            </FormControl> 
+                                            <FormMessage /> 
+                                          </FormItem> 
+                                        )} 
+                                      />
                                     </div>
                                     
                                      <div>

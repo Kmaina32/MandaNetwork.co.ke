@@ -1,4 +1,5 @@
 
+
 import { z } from 'zod';
 import type { Metadata as NextMetadata } from 'next';
 
@@ -174,6 +175,8 @@ export interface Notification {
     createdAt: string;
     cohort?: string;
     userId?: string; // For targeted notifications
+    read?: boolean;
+    archived?: boolean;
     actions?: Array<{
         title: string;
         action: 'accept_org_invite';
@@ -304,8 +307,9 @@ export interface ProjectSubmission {
     userId: string;
     title: string;
     description: string;
-    url?: string;
-    imageUrl?: string;
+    liveUrl: string;
+    sourceUrl: string;
+    imageUrl: string;
     submittedAt: string;
 }
 
@@ -461,5 +465,6 @@ export interface Conversation {
     participants: Record<string, ConversationParticipant>;
     lastMessage: ConversationMessage;
     updatedAt: string;
+    readBy?: Record<string, boolean>; // Tracks read status for each participant
     messages?: Record<string, ConversationMessage>;
 }
