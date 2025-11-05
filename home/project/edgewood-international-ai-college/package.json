@@ -13,7 +13,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "jest --watch",
-    "deploy": "firebase deploy"
+    "deploy": "firebase deploy",
+    "count:lines": "node scripts/count-lines.js"
   },
   "dependencies": {
     "@genkit-ai/firebase": "1.18.0",

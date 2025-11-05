@@ -60,5 +60,5 @@ The application follows a modern, serverless architecture that is scalable, main
 
 ## 6. Codebase Overview
 
-- **Lines of Code (Approximate):** As of the latest update, the project consists of approximately 25,000-30,000 lines of TypeScript/TSX code, spread across components, pages, services, and AI flows.
+- **Lines of Code (Approximate):** As of the latest update, the project consists of approximately **35,714** lines of TypeScript/TSX code, spread across components, pages, services, and AI flows.
 - **Organization:** The code is structured following Next.js App Router conventions, with a clear separation of concerns between UI components (`/components`), application logic (`/app`), AI flows (`/ai`), and backend services (`/lib`).
