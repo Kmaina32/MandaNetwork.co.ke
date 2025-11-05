@@ -467,5 +467,3 @@ export interface Conversation {
     readBy?: Record<string, boolean>; // Tracks read status for each participant
     messages?: Record<string, ConversationMessage>;
 }
-
-    

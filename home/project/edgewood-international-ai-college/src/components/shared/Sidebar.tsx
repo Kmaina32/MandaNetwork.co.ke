@@ -301,5 +301,3 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
-
-    

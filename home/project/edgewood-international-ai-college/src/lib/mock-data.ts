@@ -1,301 +1,212 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import {
-  Sidebar,
-  SidebarHeader,
-  SidebarContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarFooter,
-  useSidebar,
-} from '@/components/ui/sidebar';
-import { GitBranch, Home, LayoutDashboard, ListTodo, Calendar, User, HelpCircle, Mail, Info, UserPlus, Book, Shield, Notebook as NotebookIcon, Clapperboard, Library, Briefcase, Tag, Building, Users as PortfoliosIcon, Rocket, Trophy, Rss } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Footer } from "@/components/Footer";
+import { ArrowLeft, Mail, Loader2, Send } from 'lucide-react';
+import { AppSidebar } from '@/components/Sidebar';
+import { Header } from '@/components/Header';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useAuth } from '@/hooks/use-auth';
-import { Separator } from '../ui/separator';
-import pkg from '../../../package.json';
-import { useEffect, useMemo, useState } from 'react';
-import type { CalendarEvent } from '@/lib/types';
-import { getAllCalendarEvents } from '@/lib/firebase-service';
-import Image from 'next/image';
+import type { Conversation } from '@/lib/types';
+import { getConversationsForUser, getMessagesForConversation, sendMessage } from '@/lib/firebase-service';
+import { formatDistanceToNow } from 'date-fns';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
+import { Button } from '@/components/ui/button';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import { NoConversationSelected } from '@/components/shared/NoConversationSelected';
 
-export function AppSidebar() {
-    const pathname = usePathname();
-    const { user, isAdmin, isOrganizationAdmin, organization } = useAuth();
-    const { setOpenMobile } = useSidebar();
-    const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
-    const [readEventIds, setReadEventIds] = useState<Set<string>>(new Set());
-    const [loadingEvents, setLoadingEvents] = useState(true);
+const getInitials = (name: string | null | undefined) => {
+    if (!name) return 'U';
+    const names = name.split(' ');
+    return names.length > 1 && names[1] ? `${names[0][0]}${names[names.length - 1][0]}` : names[0]?.[0] || 'U';
+};
 
-    useEffect(() => {
-        if (user) {
-            const fetchEvents = async () => {
-                try {
-                    setLoadingEvents(true);
-                    const events = await getAllCalendarEvents();
-                    setCalendarEvents(events);
-                } catch (error) {
-                    console.error("Failed to fetch calendar events for sidebar", error);
-                } finally {
-                    setLoadingEvents(false);
-                }
-            };
+export default function MessagesPage() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+  
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Conversation['messages']>([]);
+  const [loadingConversations, setLoadingConversations] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [reply, setReply] = useState('');
+  const [isSending, setIsSending] = useState(false);
 
-            const storedIds = localStorage.getItem('readCalendarEventIds');
-            if (storedIds) {
-                setReadEventIds(new Set(JSON.parse(storedIds)));
-            }
-            fetchEvents();
-        }
-    }, [user]);
-
-    const unreadCalendarEvents = useMemo(() => {
-        if (loadingEvents || !user) return [];
-        const userCreationTime = new Date(user.metadata.creationTime || 0);
-        return calendarEvents.filter(event => 
-            !readEventIds.has(event.id) && new Date(event.date) > userCreationTime
-        );
-    }, [calendarEvents, readEventIds, loadingEvents, user]);
-
-    const isActive = (path: string) => {
-        if (path === '/') return pathname === '/';
-        return pathname.startsWith(path);
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login?redirect=/messages');
     }
-    
-    const onLinkClick = (path?: string) => {
-        if (path === '/calendar' && unreadCalendarEvents.length > 0) {
-            const allEventIds = new Set(calendarEvents.map(e => e.id));
-            setReadEventIds(allEventIds);
-            localStorage.setItem('readCalendarEventIds', JSON.stringify(Array.from(allEventIds)));
-        }
-        setOpenMobile(false);
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
+    if (user) {
+      const unsubscribe = getConversationsForUser(user.uid, (convos) => {
+        setConversations(convos);
+        setLoadingConversations(false);
+      });
+      return () => unsubscribe();
     }
+  }, [user]);
+
+  useEffect(() => {
+    if (selectedConversation) {
+      setLoadingMessages(true);
+      const unsubscribe = getMessagesForConversation(selectedConversation.id, (msgs) => {
+        setMessages(msgs);
+        setLoadingMessages(false);
+      });
+      return () => unsubscribe();
+    }
+  }, [selectedConversation]);
+  
+  const handleSendMessage = async () => {
+    if (!reply.trim() || !selectedConversation || !user) return;
+    setIsSending(true);
+    try {
+        await sendMessage(selectedConversation.id, {
+            senderId: user.uid,
+            text: reply,
+            timestamp: new Date().toISOString(),
+        });
+        setReply('');
+    } catch(e) {
+        toast({title: 'Error', description: 'Could not send message.', variant: 'destructive'});
+    } finally {
+        setIsSending(false);
+    }
+  }
+
+  if (authLoading) {
+    return <div className="flex h-screen items-center justify-center"><LoadingAnimation /></div>;
+  }
 
   return (
-    <Sidebar>
-        <SidebarHeader className="mb-4">
-             <Link href="/" className="flex items-center gap-2">
-                <GitBranch className="h-6 w-6 text-yellow-500" />
-                <span className="font-bold text-lg font-headline group-data-[collapsible=icon]:hidden">Manda Network</span>
-            </Link>
-        </SidebarHeader>
-        <SidebarContent>
-            <SidebarMenu>
-                 {user ? (
-                    <>
-                        <p className="text-xs font-semibold text-muted-foreground px-2 mb-2 group-data-[collapsible=icon]:hidden">Main Navigation</p>
-                        <SidebarMenuItem>
-                           <SidebarMenuButton asChild size="sm" isActive={isActive('/') && pathname==='/'} tooltip="Browse Courses" onClick={() => onLinkClick('/')}>
-                                <Link href="/"><Book className="mr-2"/>Browse Courses</Link>
-                           </SidebarMenuButton>
-                        </SidebarMenuItem>
-                         <SidebarMenuItem>
-                           <SidebarMenuButton asChild size="sm" isActive={isActive('/dashboard')} tooltip="Dashboard" onClick={() => onLinkClick('/dashboard')}>
-                                <Link href="/dashboard"><LayoutDashboard className="mr-2"/>Dashboard</Link>
-                           </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton asChild size="sm" isActive={isActive('/programs')} tooltip="Certificate Programs" onClick={() => onLinkClick('/programs')}>
-                                <Link href="/programs"><Library className="mr-2"/>Programs</Link>
-                           </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                           <SidebarMenuButton asChild size="sm" isActive={isActive('/bootcamps')} tooltip="Bootcamps" onClick={() => onLinkClick('/bootcamps')}>
-                                <Link href="/bootcamps"><Rocket className="mr-2"/>Bootcamps</Link>
-                           </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                           <SidebarMenuButton asChild size="sm" isActive={isActive('/portal/hackathons')} tooltip="Hackathons" onClick={() => onLinkClick('/portal/hackathons')}>
-                                <Link href="/portal/hackathons"><Trophy className="mr-2"/>Hackathons</Link>
-                           </SidebarMenuButton>
-                        </SidebarMenuItem>
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <Header />
+        <main className="h-[calc(100vh-4rem)]">
+          <ResizablePanelGroup direction="horizontal" className="h-full max-w-full">
+            <ResizablePanel defaultSize={30} minSize={25} className="min-w-[300px]">
+              <div className="flex h-full flex-col">
+                <div className="p-4 border-b">
+                   <h2 className="text-xl font-bold flex items-center gap-2"><Mail className="h-5 w-5"/> Inbox</h2>
+                   <p className="text-sm text-muted-foreground">{conversations.length} conversations</p>
+                </div>
+                <ScrollArea className="flex-1">
+                    {loadingConversations ? <LoadingAnimation /> : conversations.map(convo => {
+                        const otherParticipantKey = Object.keys(convo.participants).find(id => id !== user?.uid);
+                        if (!otherParticipantKey) return null;
+                        const otherParticipant = convo.participants[otherParticipantKey];
                         
-                        <Separator className="my-2"/>
-                        <p className="text-xs font-semibold text-muted-foreground px-2 mb-2 group-data-[collapsible=icon]:hidden">Learning Tools</p>
-                         <SidebarMenuItem>
-                           <SidebarMenuButton asChild size="sm" isActive={isActive('/assignments')} tooltip="My Exams" onClick={() => onLinkClick('/assignments')}>
-                                <Link href="/assignments"><ListTodo className="mr-2"/>My Exams</Link>
-                           </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                           <SidebarMenuButton asChild size="sm" isActive={isActive('/messages')} tooltip="Message Center" onClick={() => onLinkClick('/messages')}>
-                                <Link href="/messages"><Mail className="mr-2"/>Message Center</Link>
-                           </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                           <SidebarMenuButton asChild size="sm" isActive={isActive('/notebook')} tooltip="Notebook" onClick={() => onLinkClick('/notebook')}>
-                                <Link href="/notebook"><NotebookIcon className="mr-2"/>Notebook</Link>
-                           </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                           <SidebarMenuButton asChild size="sm" isActive={isActive('/live')} tooltip="Live Classroom" onClick={() => onLinkClick('/live')}>
-                                <Link href="/live"><Clapperboard className="mr-2"/>Live Classroom</Link>
-                           </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton asChild size="sm" isActive={isActive('/calendar')} tooltip="Calendar" onClick={() => onLinkClick('/calendar')}>
-                                <Link href="/calendar" className="relative">
-                                    <Calendar className="mr-2"/>
-                                    <span>Calendar</span>
-                                     {unreadCalendarEvents.length > 0 && (
-                                        <span className="absolute top-1 right-1 flex h-2 w-2">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                                        </span>
-                                    )}
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-
-                        <Separator className="my-2"/>
-                        <p className="text-xs font-semibold text-muted-foreground px-2 mb-2 group-data-[collapsible=icon]:hidden">Career & Support</p>
-                        <SidebarMenuItem>
-                           <SidebarMenuButton asChild size="sm" isActive={isActive('/portfolios')} tooltip="Hiring Center" onClick={() => onLinkClick('/portfolios')}>
-                                <Link href="/portfolios"><PortfoliosIcon className="mr-2"/>Hiring Center</Link>
-                           </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                             <SidebarMenuButton asChild size="sm" isActive={isActive('/coach')} tooltip="AI Career Coach" onClick={() => onLinkClick('/coach')}>
-                                <Link href="/coach"><Briefcase className="mr-2"/>Career Coach</Link>
-                           </SidebarMenuButton>
-                        </SidebarMenuItem>
-                         <SidebarMenuItem>
-                           <SidebarMenuButton asChild size="sm" isActive={isActive('/blog')} tooltip="Blog" onClick={() => onLinkClick('/blog')}>
-                                <Link href="/blog"><Rss className="mr-2"/>Blog</Link>
-                           </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                           <SidebarMenuButton asChild size="sm" isActive={isActive('/about')} tooltip="About Us" onClick={() => onLinkClick('/about')}>
-                                <Link href="/about"><Info className="mr-2"/>About Us</Link>
-                           </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                           <SidebarMenuButton asChild size="sm" isActive={isActive('/help')} tooltip="Help" onClick={() => onLinkClick('/help')}>
-                                <Link href="/help"><HelpCircle className="mr-2"/>Help</Link>
-                           </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                           <SidebarMenuButton asChild size="sm" isActive={isActive('/contact')} tooltip="Contact Us" onClick={() => onLinkClick('/contact')}>
-                                <Link href="/contact"><Mail className="mr-2"/>Contact</Link>
-                           </SidebarMenuButton>
-                        </SidebarMenuItem>
-
-                         <Separator className="my-2" />
-                        <p className="text-xs font-semibold text-muted-foreground px-2 mb-2 group-data-[collapsible=icon]:hidden">Account</p>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton asChild size="sm" isActive={isActive('/profile')} tooltip="Profile" onClick={() => onLinkClick('/profile')}>
-                                <Link href="/profile"><User className="mr-2"/>My Profile</Link>
-                           </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            {organization && (
-                                <SidebarMenuButton asChild size="sm" isActive={isActive('/organization')} tooltip={isAdmin || isOrganizationAdmin ? "Manage Organization" : organization.name} onClick={() => onLinkClick(isAdmin || isOrganizationAdmin ? '/organization/dashboard' : '/organization/home')}>
-                                    <Link href={isAdmin || isOrganizationAdmin ? '/organization/dashboard' : '/organization/home'}>
-                                        <Building className="mr-2"/>
-                                        <span>{isAdmin || isOrganizationAdmin ? 'Manage Organization' : organization.name}</span>
-                                    </Link>
-                                </SidebarMenuButton>
+                        return (
+                            <button 
+                                key={convo.id}
+                                onClick={() => setSelectedConversation(convo)}
+                                className={cn(
+                                    "flex w-full items-center gap-3 p-4 text-left hover:bg-secondary transition-colors",
+                                    selectedConversation?.id === convo.id && 'bg-secondary'
+                                )}
+                            >
+                                <Avatar className="h-10 w-10 relative">
+                                    <AvatarImage src={otherParticipant.photoURL} />
+                                    <AvatarFallback>{getInitials(otherParticipant.name)}</AvatarFallback>
+                                    {otherParticipant.isOnline && <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background"/>}
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-semibold truncate">{otherParticipant.name}</p>
+                                    <p className="text-sm text-muted-foreground truncate">{convo.lastMessage?.text || 'No messages yet'}</p>
+                                </div>
+                                <p className="text-xs text-muted-foreground self-start">{convo.lastMessage ? formatDistanceToNow(new Date(convo.lastMessage.timestamp), { addSuffix: true }) : ''}</p>
+                            </button>
+                        )
+                    })}
+                </ScrollArea>
+              </div>
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={70}>
+                {selectedConversation ? (
+                     <div className="flex flex-col h-full">
+                        <div className="p-4 border-b flex items-center gap-3">
+                            <Avatar>
+                                <AvatarImage src={selectedConversation.participants[Object.keys(selectedConversation.participants).find(id => id !== user?.uid)!].photoURL} />
+                                <AvatarFallback>{getInitials(selectedConversation.participants[Object.keys(selectedConversation.participants).find(id => id !== user?.uid)!].name)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <h3 className="font-semibold">{selectedConversation.participants[Object.keys(selectedConversation.participants).find(id => id !== user?.uid)!].name}</h3>
+                                <p className="text-xs text-muted-foreground">Replying to your portfolio inquiry</p>
+                            </div>
+                        </div>
+                        <ScrollArea className="flex-1 p-6">
+                            {loadingMessages ? <LoadingAnimation /> : (
+                                <div className="space-y-6">
+                                    {Object.values(messages || {}).map((msg, index) => (
+                                        <div key={index} className={cn("flex items-end gap-2", msg.senderId === user?.uid ? 'justify-end' : 'justify-start')}>
+                                            {msg.senderId !== user?.uid && (
+                                                <Avatar className="h-8 w-8">
+                                                    <AvatarImage src={selectedConversation.participants[msg.senderId]?.photoURL} />
+                                                    <AvatarFallback>{getInitials(selectedConversation.participants[msg.senderId]?.name)}</AvatarFallback>
+                                                </Avatar>
+                                            )}
+                                            <div className={cn(
+                                                "max-w-md rounded-lg px-4 py-2",
+                                                msg.senderId === user?.uid ? "bg-primary text-primary-foreground" : "bg-secondary"
+                                            )}>
+                                                <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                                            </div>
+                                             {msg.senderId === user?.uid && (
+                                                <Avatar className="h-8 w-8">
+                                                    <AvatarImage src={user?.photoURL || ''} />
+                                                    <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
+                                                </Avatar>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
                             )}
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            {isAdmin && (
-                                <SidebarMenuButton asChild size="sm" isActive={isActive('/admin')} tooltip="Admin Dashboard" onClick={() => onLinkClick('/admin')}>
-                                    <Link href="/admin"><Shield className="mr-2"/>Admin Dashboard</Link>
-                                </SidebarMenuButton>
-                            )}
-                        </SidebarMenuItem>
-                    </>
+                        </ScrollArea>
+                        <div className="p-4 border-t bg-background">
+                            <div className="relative">
+                                <Textarea 
+                                    placeholder="Type your message..."
+                                    value={reply}
+                                    onChange={e => setReply(e.target.value)}
+                                    className="pr-16"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleSendMessage();
+                                        }
+                                    }}
+                                />
+                                <Button 
+                                    size="icon" 
+                                    className="absolute right-2 bottom-2" 
+                                    onClick={handleSendMessage}
+                                    disabled={isSending || !reply.trim()}
+                                >
+                                    {isSending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Send className="h-4 w-4" />}
+                                </Button>
+                            </div>
+                        </div>
+                     </div>
                 ) : (
-                    <>
-                         <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive('/')} tooltip="Courses" onClick={() => onLinkClick('/')}>
-                                <Link href="/">
-                                    <Home />
-                                    <span>Courses</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                         <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive('/programs')} tooltip="Certificate Programs" onClick={() => onLinkClick('/programs')}>
-                                <Link href="/programs">
-                                    <Library />
-                                    <span>Programs</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive('/bootcamps')} tooltip="Bootcamps" onClick={() => onLinkClick('/bootcamps')}>
-                                <Link href="/bootcamps">
-                                    <Rocket />
-                                    <span>Bootcamps</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive('/portal/hackathons')} tooltip="Hackathons" onClick={() => onLinkClick('/portal/hackathons')}>
-                                <Link href="/portal/hackathons">
-                                    <Trophy />
-                                    <span>Hackathons</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive('/portfolios')} tooltip="Hiring Center" onClick={() => onLinkClick('/portfolios')}>
-                                <Link href="/portfolios">
-                                    <PortfoliosIcon />
-                                    <span>Hiring Center</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive('/for-business')} tooltip="For Organizations" onClick={() => onLinkClick('/for-business')}>
-                                <Link href="/for-business">
-                                    <Building />
-                                    <span>Organization</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                           <SidebarMenuButton asChild size="sm" isActive={isActive('/blog')} tooltip="Blog" onClick={() => onLinkClick('/blog')}>
-                                <Link href="/blog"><Rss className="mr-2"/>Blog</Link>
-                           </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive('/about')} tooltip="About Us" onClick={() => onLinkClick('/about')}>
-                                <Link href="/about">
-                                    <Info />
-                                    <span>About Us</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive('/help')} tooltip="Help" onClick={() => onLinkClick('/help')}>
-                                <Link href="/help">
-                                    <HelpCircle />
-                                    <span>Help</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive('/contact')} tooltip="Contact Us" onClick={() => onLinkClick('/contact')}>
-                                <Link href="/contact">
-                                    <Mail />
-                                    <span>Contact</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </>
+                    <NoConversationSelected />
                 )}
-            </SidebarMenu>
-        </SidebarContent>
-        <SidebarFooter>
-             <div className="flex items-center gap-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-                <Tag className="h-3 w-3" />
-                <span>v{pkg.version}</span>
-            </div>
-        </SidebarFooter>
-    </Sidebar>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
