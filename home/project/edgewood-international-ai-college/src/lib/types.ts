@@ -1,5 +1,4 @@
 
-
 import { z } from 'zod';
 import type { Metadata as NextMetadata } from 'next';
 
@@ -468,3 +467,5 @@ export interface Conversation {
     readBy?: Record<string, boolean>; // Tracks read status for each participant
     messages?: Record<string, ConversationMessage>;
 }
+
+    
