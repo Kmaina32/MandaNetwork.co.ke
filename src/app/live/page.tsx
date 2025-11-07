@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -28,7 +27,7 @@ import {
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { getAllCalendarEvents, createNotification } from '@/lib/firebase-service';
 import type { CalendarEvent } from '@/lib/types';
-import { formatDistanceToNow, isToday } from 'date-fns';
+import { formatDistanceToNow, isToday, isPast } from 'date-fns';
 import { Video } from 'lucide-react';
 import { VideoOff } from 'lucide-react';
 import { NoLiveSession } from '@/components/NoLiveSession';
