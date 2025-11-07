@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -534,7 +533,7 @@ export default function ProfilePage() {
                                                 </Card>
                                             ))}
                                         </div>
-                                        <Button type="button" variant="outline" className="mt-4" onClick={() => appendProject({ id: uuidv4(), title: '', description: '', imageUrl: '', technologies: [] })}> <PlusCircle className="mr-2 h-4 w-4" /> Add Project </Button>
+                                        <Button type="button" variant="outline" className="mt-4" onClick={() => appendProject({ id: uuidv4(), title: '', description: '', imageUrl: 'https://placehold.co/600x400', technologies: [] })}> <PlusCircle className="mr-2 h-4 w-4" /> Add Project </Button>
                                     </div>
 
                                     <Separator />
