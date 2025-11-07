@@ -14,43 +14,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
+import { getAllBlogPosts } from '@/lib/firebase-service';
+import type { BlogPost } from '@/lib/types';
 
-// This is placeholder data. In a real app, you'd fetch this from a CMS or database.
-const placeholderPosts = [
-    {
-        id: '1',
-        title: 'The Ultimate Guide to Starting a Career in Data Science in Kenya',
-        description: 'Explore the steps, skills, and opportunities to become a data scientist in the Kenyan tech landscape.',
-        imageUrl: 'https://picsum.photos/seed/datascience/600/400',
-        author: 'Jane Doe',
-        date: new Date(2024, 7, 15).toISOString(),
-        category: 'Career Advice',
-    },
-    {
-        id: '2',
-        title: '5 Ways AI is Transforming Agriculture in East Africa',
-        description: 'From crop monitoring to supply chain optimization, discover how artificial intelligence is revolutionizing one of the region\'s most vital sectors.',
-        imageUrl: 'https://picsum.photos/seed/ai-agriculture/600/400',
-        author: 'John Omondi',
-        date: new Date(2024, 7, 10).toISOString(),
-        category: 'Artificial Intelligence',
-    },
-    {
-        id: '3',
-        title: 'A Beginner\'s Introduction to Python for Web Development',
-        description: 'Learn the basics of Python and how you can use powerful frameworks like Django and Flask to build modern web applications.',
-        imageUrl: 'https://picsum.photos/seed/python-web/600/400',
-        author: 'Aisha Juma',
-        date: new Date(2024, 7, 5).toISOString(),
-        category: 'Programming',
-    },
-];
-
-function BlogPostCard({ post }: { post: typeof placeholderPosts[0] }) {
+function BlogPostCard({ post }: { post: BlogPost }) {
   return (
     <Card className="flex flex-col h-full overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg">
       <CardHeader className="p-0">
-        <Link href={`/blog/${post.id}`}>
+        <Link href={`/blog/${post.slug}`}>
           <div className="relative w-full h-48">
             <Image
               src={post.imageUrl}
@@ -71,10 +42,10 @@ function BlogPostCard({ post }: { post: typeof placeholderPosts[0] }) {
       <CardFooter className="p-6 pt-0 flex justify-between items-center">
         <div className='text-xs text-muted-foreground'>
             <p>{post.author}</p>
-            <p>{format(new Date(post.date), 'PPP')}</p>
+            <p>{format(new Date(post.createdAt), 'PPP')}</p>
         </div>
          <Button asChild variant="outline">
-            <Link href={`/blog/${post.id}`}>Read More</Link>
+            <Link href={`/blog/${post.slug}`}>Read More</Link>
         </Button>
       </CardFooter>
     </Card>
@@ -82,12 +53,22 @@ function BlogPostCard({ post }: { post: typeof placeholderPosts[0] }) {
 }
 
 export default function BlogPage() {
+  const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate fetching data
-    const timer = setTimeout(() => setLoading(false), 500);
-    return () => clearTimeout(timer);
+    const fetchPosts = async () => {
+      setLoading(true);
+      try {
+        const fetchedPosts = await getAllBlogPosts();
+        setPosts(fetchedPosts.filter(p => p.isPublished));
+      } catch (error) {
+        console.error("Failed to fetch blog posts", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPosts();
   }, []);
 
   return (
@@ -114,9 +95,9 @@ export default function BlogPage() {
                 <div className="flex justify-center items-center py-10">
                   <LoadingAnimation />
                 </div>
-              ) : placeholderPosts.length > 0 ? (
+              ) : posts.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {placeholderPosts.map((post) => (
+                  {posts.map((post) => (
                     <BlogPostCard key={post.id} post={post} />
                   ))}
                 </div>
