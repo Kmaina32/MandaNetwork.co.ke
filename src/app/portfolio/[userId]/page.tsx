@@ -29,6 +29,31 @@ const ADMIN_UID = 'YlyqSWedlPfEqI9LlGzjN7zlRtC2';
 
 type CourseWithDetails = UserCourse & Partial<Course>;
 
+const techIconMap: Record<string, string> = {
+    react: 'logos:react',
+    nextjs: 'logos:nextjs-icon',
+    typescript: 'logos:typescript-icon',
+    javascript: 'logos:javascript',
+    python: 'logos:python',
+    firebase: 'logos:firebase',
+    tailwind: 'logos:tailwindcss-icon',
+    css: 'logos:css-3',
+    html: 'logos:html-5',
+    nodejs: 'logos:nodejs-icon',
+    docker: 'logos:docker-icon',
+    kubernetes: 'logos:kubernetes',
+    vue: 'logos:vue',
+    angular: 'logos:angular-icon',
+    svelte: 'logos:svelte-icon',
+    java: 'logos:java',
+    go: 'logos:go',
+};
+
+const getTechIcon = (tech: string) => {
+    const key = tech.toLowerCase().replace(/ /g, '');
+    return techIconMap[key] || 'lucide:file-code';
+};
+
 export default function PortfolioPage() {
     const params = useParams<{ userId: string }>();
     const router = useRouter();
@@ -223,7 +248,12 @@ export default function PortfolioPage() {
                                                     <h3 className="font-semibold">{project.title}</h3>
                                                     <p className="text-sm text-muted-foreground mt-1 flex-grow">{project.description}</p>
                                                     <div className="flex flex-wrap gap-2 mt-4">
-                                                        {project.technologies.map(tech => <Badge key={tech} variant="secondary">{tech}</Badge>)}
+                                                        {project.technologies.map(tech => (
+                                                            <Badge key={tech} variant="secondary" className="flex items-center gap-1.5">
+                                                                <Icon icon={getTechIcon(tech)} className="h-3.5 w-3.5" />
+                                                                {tech}
+                                                            </Badge>
+                                                        ))}
                                                     </div>
                                                 </div>
                                                 <CardFooter className="flex gap-2">
