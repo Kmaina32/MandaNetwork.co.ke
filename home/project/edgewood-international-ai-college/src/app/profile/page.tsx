@@ -4,7 +4,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,7 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, User as UserIcon, Camera, Upload, Eye, Building, Share2, PlusCircle, Trash2, Wand2 } from 'lucide-react';
+import { ArrowLeft, Loader2, User as UserIcon, Camera, Upload, Eye, Share2, PlusCircle, Trash2, Wand2 } from 'lucide-react';
 import { AppSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
@@ -32,10 +32,9 @@ import { Switch } from '@/components/ui/switch';
 import type { RegisteredUser, PortfolioProject } from '@/lib/types';
 import { Icon } from '@iconify/react';
 import { Separator } from '@/components/ui/separator';
-import { slugify } from '@/lib/utils';
 import { getPortfolioFeedback } from '@/app/actions';
+import { slugify } from '@/lib/utils';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
-
 
 const projectSchema = z.object({
   id: z.string(),
@@ -87,7 +86,7 @@ const splitDisplayName = (displayName: string | null | undefined): {firstName: s
     if (!displayName) return { firstName: '', middleName: '', lastName: '' };
     const parts = displayName.split(' ');
     const firstName = parts[0] || '';
-    const lastName = parts[parts.length - 1] || '';
+    const lastName = parts.length > 1 ? parts[parts.length - 1] : '';
     const middleName = parts.slice(1, -1).join(' ');
     return { firstName, middleName, lastName };
 }
@@ -194,7 +193,6 @@ export default function ProfilePage() {
     
     getCameraPermission();
 
-    // Cleanup function to stop video stream
     return () => {
         if (videoRef.current && videoRef.current.srcObject) {
             const stream = videoRef.current.srcObject as MediaStream;
@@ -225,7 +223,6 @@ export default function ProfilePage() {
         const downloadURL = await uploadImage(user.uid, file);
         await updateProfile(user, { photoURL: downloadURL });
         await saveUser(user.uid, { photoURL: downloadURL });
-        // Force a reload of the user to get the new photoURL
         await auth.currentUser?.reload();
         setUser(auth.currentUser);
 
@@ -255,7 +252,7 @@ export default function ProfilePage() {
         if (blob) {
             const file = new File([blob], 'capture.png', { type: 'image/png' });
             await handleProfilePictureChange(file);
-            setIsCameraDialogOpen(false); // Close dialog on success
+            setIsCameraDialogOpen(false);
         }
     }, 'image/png');
   }
@@ -403,8 +400,10 @@ export default function ProfilePage() {
                             </div>
 
                             <Separator />
+                            
+                            {/* ACCOUNT DETAILS */}
                             <h3 className="text-xl font-semibold">Account Details</h3>
-                            <div className='space-y-2'>
+                             <div className='space-y-2'>
                                 <Label htmlFor='email'>Email Address</Label>
                                 <Input id='email' value={user.email || ''} readOnly disabled />
                             </div>
@@ -416,20 +415,22 @@ export default function ProfilePage() {
                             <p className="text-xs text-muted-foreground pt-2">Please ensure this is your full, correct name as it will be used on your certificates.</p>
 
                             <Separator />
-                            <h3 className="text-xl font-semibold pt-4">Contact Information</h3>
-                            <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem> <FormLabel>Phone Number</FormLabel> <FormControl><Input placeholder="e.g., +254 712 345678" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
+                            
+                            {/* PORTFOLIO DETAILS */}
+                            <h3 className="text-xl font-semibold pt-4">Portfolio Details</h3>
+                            <FormField control={form.control} name="aboutMe" render={({ field }) => ( <FormItem> <FormLabel>About Me / Professional Summary</FormLabel> <FormControl><Textarea placeholder="A brief summary about your skills and career goals." {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
+
+                             <h4 className="font-semibold pt-4">Contact Information</h4>
+                             <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem> <FormLabel>Phone Number</FormLabel> <FormControl><Input placeholder="e.g., +254 712 345678" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <FormField control={form.control} name="poBox" render={({ field }) => ( <FormItem> <FormLabel>P.O. Box</FormLabel> <FormControl><Input placeholder="e.g., 12345-00100" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
                                 <FormField control={form.control} name="country" render={({ field }) => ( <FormItem> <FormLabel>Country</FormLabel> <FormControl><Input placeholder="e.g., Kenya" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
                             </div>
-
-                            <Separator />
-                            <h3 className="text-xl font-semibold pt-4">Portfolio Details</h3>
-                            <FormField control={form.control} name="aboutMe" render={({ field }) => ( <FormItem> <FormLabel>About Me / Professional Summary</FormLabel> <FormControl><Textarea placeholder="A brief summary about your skills and career goals." {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
                             
                             {/* Work Experience Section */}
+                            <Separator />
                             <div>
-                                <h4 className="font-semibold mb-2">Work Experience</h4>
+                                <h4 className="font-semibold mb-2 pt-4">Work Experience</h4>
                                 <div className="space-y-4">
                                     {workFields.map((field, index) => (
                                         <Card key={field.id} className="p-4 bg-secondary/50">
@@ -448,8 +449,9 @@ export default function ProfilePage() {
                             </div>
 
                             {/* Education Section */}
+                            <Separator />
                             <div>
-                                <h4 className="font-semibold mb-2">Education</h4>
+                                <h4 className="font-semibold mb-2 pt-4">Education</h4>
                                 <div className="space-y-4">
                                     {educationFields.map((field, index) => (
                                         <Card key={field.id} className="p-4 bg-secondary/50">
@@ -469,7 +471,7 @@ export default function ProfilePage() {
                             <Separator/>
 
                              <div>
-                                <h3 className="text-lg font-semibold mb-2">Featured Projects</h3>
+                                <h3 className="text-lg font-semibold mb-2 pt-4">Featured Projects</h3>
                                 <div className="space-y-4">
                                     {projectFields.map((field, index) => (
                                         <Card key={field.id} className="p-4 relative bg-secondary/50">
@@ -581,5 +583,3 @@ export default function ProfilePage() {
     </SidebarProvider>
   );
 }
-
-    
