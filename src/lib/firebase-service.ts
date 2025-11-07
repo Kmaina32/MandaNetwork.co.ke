@@ -1298,6 +1298,15 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
   return [];
 }
 
+export async function getBlogPostById(postId: string): Promise<BlogPost | null> {
+    const postRef = ref(db, `blog/${postId}`);
+    const snapshot = await get(postRef);
+    if (snapshot.exists()) {
+        return { id: postId, ...snapshot.val() };
+    }
+    return null;
+}
+
 export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> {
     const postsRef = query(ref(db, 'blog'), orderByChild('slug'), equalTo(slug));
     const snapshot = await get(postsRef);
@@ -1309,3 +1318,4 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> 
     return null;
 }
     
+
