@@ -1,4 +1,5 @@
 
+
 import { db, storage } from './firebase';
 import { ref, get, set, push, update, remove, query, orderByChild, equalTo, increment, limitToLast, onValue } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -992,6 +993,27 @@ export async function createHackathonSubmission(submissionData: Omit<HackathonSu
     return newRef.key!;
 }
 
+export async function awardLeaderboardPoints(userId: string, points: number): Promise<void> {
+    const leaderboardRef = ref(db, `leaderboard/${userId}`);
+    const leaderboardSnapshot = await get(leaderboardRef);
+    if (leaderboardSnapshot.exists()) {
+        await update(leaderboardRef, {
+            score: increment(points),
+        });
+    } else {
+        // If user is not on leaderboard, create an entry for them
+         const user = await getUserById(userId);
+        await set(leaderboardRef, {
+            userId: userId,
+            userName: user?.displayName || 'Anonymous',
+            userAvatar: user?.photoURL || '',
+            score: points,
+            hackathonCount: 0, // Assume 0 if they weren't on the board before
+        });
+    }
+}
+
+
 export async function getHackathonSubmissions(hackathonId: string): Promise<HackathonSubmission[]> {
     const submissionsRef = query(ref(db, 'hackathonSubmissions'), orderByChild('hackathonId'), equalTo(hackathonId));
     const snapshot = await get(submissionsRef);
@@ -1262,15 +1284,6 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
     return posts.reverse();
   }
   return [];
-}
-
-export async function getBlogPostById(postId: string): Promise<BlogPost | null> {
-    const postRef = ref(db, `blog/${postId}`);
-    const snapshot = await get(postRef);
-    if (snapshot.exists()) {
-        return { id: postId, ...snapshot.val() };
-    }
-    return null;
 }
 
 export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> {
