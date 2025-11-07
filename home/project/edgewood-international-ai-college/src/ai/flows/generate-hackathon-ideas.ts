@@ -7,7 +7,6 @@
 
 import { ai } from '@/ai/genkit-instance';
 import { z } from 'zod';
-import { googleAI } from '@genkit-ai/google-genai';
 
 export const GenerateHackathonIdeasInputSchema = z.object({
   theme: z.string().describe('The central theme for the hackathon ideas, e.g., "Fintech in Kenya".'),
@@ -47,8 +46,4 @@ The ideas should be innovative and appeal to a wide range of developers, from st
 
   const output = response.output;
   if (!output) {
-      throw new Error('Failed to generate hackathon ideas.');
-  }
-
-  return output;
-}
+      throw new Error('

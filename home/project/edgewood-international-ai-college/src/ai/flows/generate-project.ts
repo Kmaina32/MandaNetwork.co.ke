@@ -60,8 +60,4 @@ const generateProjectFlow = ai.defineFlow(
   async input => {
     const {output} = await prompt(input);
     if (!output) {
-      throw new Error('Could not generate a project.');
-    }
-    return output;
-  }
-);
+      throw new Error('Could not generate
