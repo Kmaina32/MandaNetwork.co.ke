@@ -22,6 +22,7 @@ import type { TextToSpeechOutput, TextToSpeechInput } from '@/ai/flows/text-to-s
 import type { StudentHelpInput, StudentHelpOutput } from '@/ai/flows/student-help';
 import type { GetPortfolioFeedbackInput, GetPortfolioFeedbackOutput } from '@/ai/flows/portfolio-advisor';
 import { createNotification, createProjectSubmission as saveProjectSubmission, createOrUpdateConversation, sendMessage } from '@/lib/firebase-service';
+import { checkHackathonParticipantAchievement } from '@/lib/achievements';
 
 // Each function dynamically imports its corresponding flow, ensuring that the AI logic
 // is only loaded on the server when the action is executed.
@@ -136,7 +137,11 @@ export async function generateFormalDocument(input: { docType: string; content: 
 
 export async function generateHackathonIdeas(input: GenerateHackathonIdeasInput): Promise<GenerateHackathonIdeasOutput> {
     const { generateHackathonIdeas } = await import('@/ai/flows/generate-hackathon-ideas');
-    return generateHackathonIdeas(input);
+    const result = await generateHackathonIdeas(input);
+    if(result.ideas.length > 0) {
+        await checkHackathonParticipantAchievement(input.count.toString());
+    }
+    return result;
 }
 
 export async function getPortfolioFeedback(input: GetPortfolioFeedbackInput): Promise<GetPortfolioFeedbackOutput> {
@@ -147,7 +152,6 @@ export async function getPortfolioFeedback(input: GetPortfolioFeedbackInput): Pr
 export async function sendContactMessage(payload: {
   studentId: string;
   studentName: string;
-  employerId: string;
   employerName: string;
   employerPhotoUrl: string;
   organizationName: string;
@@ -155,16 +159,19 @@ export async function sendContactMessage(payload: {
   phone: string;
   message: string;
 }) {
-  const { studentId, studentName, employerId, employerName, employerPhotoUrl, message } = payload;
+  const { studentId, studentName, employerName, employerPhotoUrl, organizationName, email, phone, message } = payload;
     
-  // This function now creates or updates a conversation instead of a simple notification
   await createOrUpdateConversation({
     studentId,
     studentName,
-    employerId,
     employerName,
     employerPhotoUrl,
+    organizationName,
     initialMessage: message,
+    employerDetails: {
+      email,
+      phone,
+    }
   });
 }
 
@@ -175,3 +182,5 @@ export async function sendChatMessage(conversationId: string, senderId: string, 
         timestamp: new Date().toISOString(),
     });
 }
+
+    

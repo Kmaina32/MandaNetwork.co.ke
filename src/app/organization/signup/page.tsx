@@ -1,9 +1,8 @@
 
-
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,10 +13,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Alert, AlertDescription, AlertTitle, AlertTriangle } from '@/components/ui/alert';
-import { Loader2, GitBranch, Building, ArrowLeft } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Loader2, GitBranch, Building, ArrowLeft, AlertTriangle } from 'lucide-react';
 import Image from 'next/image';
-import { getHeroData } from '@/lib/firebase-service';
+import { getHeroData, getInvitation } from '@/lib/firebase-service';
+import type { Invitation } from '@/lib/types';
 
 const formSchema = z.object({
   organizationName: z.string().min(2, { message: 'Organization name is required.' }),
@@ -29,13 +29,15 @@ const formSchema = z.object({
     .regex(/[0-9]/, { message: 'Password must contain at least one number.' }),
 });
 
-export default function OrganizationSignupPage() {
+function OrganizationSignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, signup, loading } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState('');
+  const [invitation, setInvitation] = useState<Invitation | null>(null);
 
   useEffect(() => {
     const fetchImage = async () => {
@@ -47,11 +49,25 @@ export default function OrganizationSignupPage() {
 
   useEffect(() => {
     if (!loading && user) {
-        // If a logged in user tries to access this page, send them away.
-        router.push('/organization/dashboard');
+      router.push('/organization/dashboard');
     }
   }, [user, loading, router]);
 
+  useEffect(() => {
+    const fetchInviteData = async () => {
+        const inviteId = searchParams.get('invite');
+        if (inviteId) {
+            const inviteData = await getInvitation(inviteId);
+            if (inviteData && inviteData.status === 'pending') {
+                setInvitation(inviteData);
+                form.setValue('email', inviteData.email);
+            } else {
+                 toast({ title: "Invalid Invitation", description: "This invitation link is either invalid or has expired.", variant: "destructive" });
+            }
+        }
+    }
+    fetchInviteData();
+  }, [searchParams, toast]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -66,13 +82,12 @@ export default function OrganizationSignupPage() {
         values.email,
         values.password,
         values.fullName,
-        values.organizationName // Pass organization name to signup function
+        values.organizationName
       );
       toast({
         title: 'Account & Organization Created!',
         description: "A verification email has been sent. Please check your inbox.",
       });
-      // Redirect to a specific org dashboard or unverified page
       router.push('/unverified'); 
     } catch (e: any) {
       if (e.code === 'auth/email-already-in-use' || e.message.includes('already exists')) {
@@ -195,3 +210,13 @@ export default function OrganizationSignupPage() {
     </div>
   );
 }
+
+export default function OrganizationSignupPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <OrganizationSignupForm />
+        </Suspense>
+    )
+}
+
+    

@@ -12,8 +12,10 @@
 import { ai } from '@/ai/genkit-instance';
 import { z } from 'genkit';
 import axios from 'axios';
+import { googleAI } from '@genkit-ai/googleai';
 
 const MpesaPaymentInputSchema = z.object({
+  userId: z.string().describe("The UID of the user making the payment."),
   phoneNumber: z.string().describe("The user's 10-digit phone number (e.g., 07xxxxxxxx)."),
   amount: z.number().describe("The amount to be charged."),
   courseId: z.string().describe("The ID of the course being purchased."),
@@ -26,10 +28,6 @@ const MpesaPaymentOutputSchema = z.object({
   checkoutRequestId: z.string().optional().describe("The CheckoutRequestID from M-Pesa, used to query the transaction status."),
 });
 export type MpesaPaymentOutput = z.infer<typeof MpesaPaymentOutputSchema>;
-
-// This is a placeholder. In a real app, you would have a callback URL
-// registered with Safaricom to receive the payment status.
-const CALLBACK_URL = "https://your-callback-url.com/mpesa/callback";
 
 function getTimestamp() {
   const now = new Date();
@@ -45,8 +43,6 @@ function getTimestamp() {
 
 
 async function getMpesaAccessToken(): Promise<string> {
-    // IMPORTANT: Store these credentials securely in environment variables.
-    // Do not hardcode them in your application.
     const consumerKey = process.env.MPESA_CONSUMER_KEY;
     const consumerSecret = process.env.MPESA_CONSUMER_SECRET;
 
@@ -82,15 +78,16 @@ const mpesaPaymentFlow = ai.defineFlow(
     inputSchema: MpesaPaymentInputSchema,
     outputSchema: MpesaPaymentOutputSchema,
   },
-  async ({ phoneNumber, amount, courseId }) => {
+  async ({ userId, phoneNumber, amount, courseId }) => {
     
     const shortCode = process.env.MPESA_TILL_NUMBER;
     const passkey = process.env.MPESA_PASSKEY;
+    const callbackUrl = process.env.MPESA_CALLBACK_URL;
 
-    if (!shortCode || !passkey) {
+    if (!shortCode || !passkey || !callbackUrl) {
         return {
             success: false,
-            message: 'M-Pesa Till Number or Passkey is not configured in environment variables.'
+            message: 'M-Pesa Till Number, Passkey, or Callback URL is not configured in environment variables.'
         }
     }
 
@@ -112,8 +109,8 @@ const mpesaPaymentFlow = ai.defineFlow(
             PartyA: formattedPhoneNumber,
             PartyB: shortCode,
             PhoneNumber: formattedPhoneNumber,
-            CallBackURL: `${CALLBACK_URL}?courseId=${courseId}`,
-            AccountReference: "UbuntuAcademy", // Replace with your company name
+            CallBackURL: `${callbackUrl}?courseId=${courseId}&userId=${userId}`,
+            AccountReference: "MandaNetwork",
             TransactionDesc: `Payment for ${courseId}`
         }, {
             headers: {
@@ -146,3 +143,5 @@ const mpesaPaymentFlow = ai.defineFlow(
     }
   }
 );
+
+    

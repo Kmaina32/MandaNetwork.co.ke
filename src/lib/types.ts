@@ -454,7 +454,6 @@ export interface ConversationMessage {
 export interface ConversationParticipant {
     name: string;
     photoURL: string;
-    isOnline?: boolean;
 }
 
 export interface Conversation {
@@ -462,6 +461,8 @@ export interface Conversation {
     participants: Record<string, ConversationParticipant>;
     lastMessage: ConversationMessage;
     updatedAt: string;
-    readBy?: Record<string, boolean>; // Tracks read status for each participant
+    readBy?: Record<string, boolean>;
     messages?: Record<string, ConversationMessage>;
 }
+
+    
