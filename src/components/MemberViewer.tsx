@@ -15,7 +15,6 @@ import { NoLiveSession } from '@/components/NoLiveSession';
 import { LiveReactions } from './LiveReactions';
 import { ReactionButton } from './ReactionButton';
 
-
 const ICE_SERVERS = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -25,7 +24,7 @@ const ICE_SERVERS = {
 
 type ConnectionState = 'new' | 'connecting' | 'connected' | 'failed' | 'closed';
 
-export function MemberViewer({ sessionId }: { sessionId: string }) {
+export function MemberViewer({ sessionId, isSessionActive }: { sessionId: string; isSessionActive: boolean }) {
     const { user } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
@@ -159,7 +158,7 @@ export function MemberViewer({ sessionId }: { sessionId: string }) {
         <>
             <div ref={videoContainerRef} className="aspect-video w-full h-full bg-black flex items-center justify-center relative rounded-lg border shadow-lg p-1">
                 <LiveReactions sessionId={sessionId} />
-                {liveSessionDetails ? (
+                {isSessionActive ? (
                     <>
                         <video ref={videoRef} className="w-full h-full object-contain rounded-md" autoPlay playsInline />
                         <SessionInfo title={liveSessionDetails?.title || 'Live Session'} description={liveSessionDetails?.description || 'Welcome to the class!'} />
@@ -176,7 +175,7 @@ export function MemberViewer({ sessionId }: { sessionId: string }) {
                 )}
             </div>
             
-            {liveSessionDetails && (
+            {isSessionActive && (
                  <div className="bg-background/80 mt-4 backdrop-blur-sm text-foreground p-3 rounded-lg flex items-center justify-center gap-4 text-sm shadow-md">
                     <ReactionButton sessionId={sessionId} />
                     <Button size="icon" variant={handRaised ? 'default' : 'secondary'} onClick={toggleHandRaised} className="rounded-full h-12 w-12 shadow-lg">

@@ -24,110 +24,7 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { getAllCalendarEvents, createNotification } from '@/lib/firebase-service';
-import type { CalendarEvent } from '@/lib/types';
-import { formatDistanceToNow, isToday, isPast } from 'date-fns';
-import { Video } from 'lucide-react';
-import { VideoOff } from 'lucide-react';
 import { NoLiveSession } from '@/components/NoLiveSession';
-
-function UpcomingSessionCard({ event, onGoLive }: { event: CalendarEvent, onGoLive: (event: CalendarEvent) => void }) {
-    const [timeLeft, setTimeLeft] = useState('');
-
-    useEffect(() => {
-        const updateTimer = () => {
-            const now = new Date();
-            const eventDate = new Date(event.date);
-            // Assuming event time is start of day, adjust if time is stored
-            eventDate.setHours(0,0,0,0);
-            if (isToday(eventDate)) {
-                 setTimeLeft("Today");
-            } else {
-                 setTimeLeft(formatDistanceToNow(eventDate, { addSuffix: true }));
-            }
-        };
-
-        updateTimer();
-        const timer = setInterval(updateTimer, 60000); // update every minute
-        return () => clearInterval(timer);
-    }, [event]);
-
-    return (
-        <Card className="bg-primary/5 border-primary/20">
-            <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                    <span>Upcoming Session</span>
-                </CardTitle>
-                <CardDescription>{event.title}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex justify-between items-center">
-                <span className="text-sm font-semibold text-primary">{timeLeft}</span>
-                <Button onClick={() => onGoLive(event)}>
-                    <Video className="mr-2 h-4 w-4"/>
-                    Start Session Now
-                </Button>
-            </CardContent>
-        </Card>
-    );
-}
-
-function NoSessionArea({ onGoLive }: { onGoLive: (event: CalendarEvent) => void }) {
-    const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([]);
-    const [isFetchingEvents, setIsFetchingEvents] = useState(true);
-
-    useEffect(() => {
-        const fetchEvents = async () => {
-            setIsFetchingEvents(true);
-            const allEvents = await getAllCalendarEvents();
-            const upcoming = allEvents
-                .filter(e => !isPast(new Date(e.date)))
-                .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-            setUpcomingEvents(upcoming);
-            setIsFetchingEvents(false);
-        };
-        fetchEvents();
-    }, []);
-    
-    const handleInstantSession = () => {
-        const instantEvent: CalendarEvent = {
-            id: `instant-${Date.now()}`,
-            title: 'Instant Live Session',
-            description: 'A spontaneous live session.',
-            date: new Date().toISOString()
-        };
-        onGoLive(instantEvent);
-    }
-
-    if (isFetchingEvents) {
-        return <div className="flex justify-center items-center h-full"><LoadingAnimation /></div>
-    }
-
-    if (upcomingEvents.length > 0 && isToday(new Date(upcomingEvents[0].date))) {
-        return <UpcomingSessionCard event={upcomingEvents[0]} onGoLive={onGoLive} />;
-    }
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>No Active Session</CardTitle>
-                <CardDescription>There is no live session currently running.</CardDescription>
-            </CardHeader>
-            <CardContent className="text-center py-10 border-2 border-dashed rounded-lg space-y-4">
-                <div className="flex justify-center gap-4">
-                    <Button variant="outline">
-                        <Calendar className="mr-2 h-4 w-4"/>
-                        Schedule Session
-                    </Button>
-                    <Button onClick={handleInstantSession}>
-                        <VideoOff className="mr-2 h-4 w-4"/>
-                        Start Session Now
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
 
 
 export default function LivePage() {
@@ -172,9 +69,9 @@ export default function LivePage() {
         <div className="flex flex-col h-full">
             <div className="flex-grow flex items-center justify-center relative">
                 {isHost ? (
-                    <AdminHostView sessionId={sessionId} />
+                    <AdminHostView sessionId={sessionId} isSessionActive={isSessionActive} />
                 ) : (
-                    <MemberViewer sessionId={sessionId} />
+                    <MemberViewer sessionId={sessionId} isSessionActive={isSessionActive} />
                 )}
             </div>
              <Sheet>
@@ -195,9 +92,9 @@ export default function LivePage() {
             <ResizablePanel defaultSize={70}>
                 <div className="flex flex-col h-full gap-4 pr-4">
                      {isHost ? (
-                        <AdminHostView sessionId={sessionId} />
+                        <AdminHostView sessionId={sessionId} isSessionActive={isSessionActive} />
                     ) : (
-                        <MemberViewer sessionId={sessionId} />
+                        <MemberViewer sessionId={sessionId} isSessionActive={isSessionActive} />
                     )}
                 </div>
             </ResizablePanel>
@@ -206,8 +103,6 @@ export default function LivePage() {
                  <div className="h-full flex flex-col pl-4 gap-6">
                     {isSessionActive ? (
                         <LiveChat sessionId={sessionId} />
-                    ) : isHost ? (
-                        <NoSessionArea onGoLive={(event) => console.log('start session')} />
                     ) : (
                          <div className="h-full flex items-center justify-center">
                             <NoLiveSession isLoading={false} hasPermission={true} />
