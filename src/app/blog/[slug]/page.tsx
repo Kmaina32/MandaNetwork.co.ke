@@ -12,14 +12,23 @@ import Image from 'next/image';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
-import { getBlogPostBySlug, getActiveAdvertisements } from '@/lib/firebase-service';
-import type { BlogPost, Advertisement } from '@/lib/types';
+import { getBlogPostBySlug, getActiveAdvertisements, getUserByDisplayName } from '@/lib/firebase-service';
+import type { BlogPost, Advertisement, RegisteredUser } from '@/lib/types';
 import { BlogPostContent } from '@/components/BlogPostContent';
+
+const getInitials = (name: string) => {
+    const names = name.split(' ');
+    if (names.length > 1) {
+        return `${names[0][0]}${names[names.length - 1][0]}`;
+    }
+    return name[0] || '';
+}
 
 export default function BlogPostPage() {
     const params = useParams<{ slug: string }>();
     const router = useRouter();
     const [post, setPost] = useState<BlogPost | null>(null);
+    const [author, setAuthor] = useState<RegisteredUser | null>(null);
     const [promoItems, setPromoItems] = useState<Advertisement[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -28,17 +37,21 @@ export default function BlogPostPage() {
             if (!params.slug) return;
             setLoading(true);
             try {
-                const [foundPost, activeAds] = await Promise.all([
-                    getBlogPostBySlug(params.slug as string),
-                    getActiveAdvertisements(),
-                ]);
+                const foundPost = await getBlogPostBySlug(params.slug as string);
 
                 if (!foundPost) {
                     notFound();
                     return;
                 }
                 setPost(foundPost);
+
+                const [activeAds, postAuthor] = await Promise.all([
+                    getActiveAdvertisements(),
+                    getUserByDisplayName(foundPost.author)
+                ]);
+                
                 setPromoItems(activeAds);
+                setAuthor(postAuthor);
 
             } catch(error) {
                 console.error("Failed to fetch data:", error);
@@ -89,8 +102,8 @@ export default function BlogPostPage() {
                          <div className="flex items-center gap-4 mt-6">
                             <div className="flex items-center gap-2">
                                 <Avatar className="h-10 w-10 border-2 border-primary">
-                                    {/* Placeholder for author avatar */}
-                                    <AvatarFallback>{post.author.charAt(0)}</AvatarFallback>
+                                    <AvatarImage src={author?.photoURL || ''} alt={post.author} />
+                                    <AvatarFallback>{getInitials(post.author)}</AvatarFallback>
                                 </Avatar>
                                 <span className="font-semibold">{post.author}</span>
                             </div>

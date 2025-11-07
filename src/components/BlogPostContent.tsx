@@ -12,41 +12,43 @@ interface BlogPostContentProps {
   promoItems: Advertisement[];
 }
 
+// This is a custom renderer for paragraphs.
+const ParagraphRenderer = ({ children, node, ...props }: any) => {
+    // We check if it's the right place to insert an ad.
+    // `props.index` is the index of the element in the markdown document.
+    // We'll insert an ad every 6th element (roughly every 3rd paragraph, as there are other elements).
+    const showAd = props.index > 0 && props.index % 6 === 0;
+    const adIndex = Math.floor(props.index / 6) - 1;
+    
+    const promoItem = props.promoItems[adIndex % props.promoItems.length];
+
+    if (showAd && promoItem) {
+      return (
+        <>
+          <p {...props}>{children}</p>
+          <div className="not-prose my-8">
+            <InContentAdCard item={promoItem} />
+          </div>
+        </>
+      );
+    }
+
+    return <p {...props}>{children}</p>;
+};
+
 export function BlogPostContent({ content, promoItems }: BlogPostContentProps) {
-  // Split content into paragraphs. Assuming paragraphs are separated by two newlines.
-  const paragraphs = content.split(/\n\s*\n/);
-  
-  // Don't show ads if there aren't enough paragraphs or promo items
-  if (paragraphs.length < 3 || promoItems.length === 0) {
+  if (promoItems.length === 0) {
     return <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>;
   }
 
-  let promoIndex = 0;
-  const adInterval = 3; // Show an ad every 3 paragraphs
-
   return (
-    <div>
-      {paragraphs.map((paragraph, index) => {
-        const showAd = (index + 1) % adInterval === 0 && index < paragraphs.length -1;
-        const promoItem = promoItems[promoIndex % promoItems.length];
-        
-        if (showAd) {
-           promoIndex++;
-        }
-
-        return (
-          <React.Fragment key={index}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {paragraph}
-            </ReactMarkdown>
-            {showAd && (
-                <div className="not-prose my-8">
-                    <InContentAdCard item={promoItem} />
-                </div>
-            )}
-          </React.Fragment>
-        );
-      })}
-    </div>
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        p: (props) => <ParagraphRenderer {...props} promoItems={promoItems} />
+      }}
+    >
+      {content}
+    </ReactMarkdown>
   );
 }

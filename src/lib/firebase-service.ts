@@ -1,5 +1,4 @@
 
-
 import { db, storage } from './firebase';
 import { ref, get, set, push, update, remove, query, orderByChild, equalTo, increment, limitToLast, onValue } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -154,6 +153,18 @@ export async function getUserByEmail(email: string): Promise<RegisteredUser | nu
     }
     return null;
 }
+
+export async function getUserByDisplayName(displayName: string): Promise<RegisteredUser | null> {
+    const usersRef = query(ref(db, 'users'), orderByChild('displayName'), equalTo(displayName));
+    const snapshot = await get(usersRef);
+    if (snapshot.exists()) {
+        const usersData = snapshot.val();
+        const uid = Object.keys(usersData)[0];
+        return { uid, ...usersData[uid] };
+    }
+    return null;
+}
+
 
 
 export async function enrollUserInCourse(userId: string, courseId: string): Promise<void> {
@@ -942,51 +953,6 @@ export async function registerUserForBootcamp(bootcampId: string, userId: string
     await set(bootcampRef, true);
 }
 
-// Hackathon Functions
-export async function createHackathon(hackathonData: Omit<Hackathon, 'id'>): Promise<string> {
-    const refPath = ref(db, 'hackathons');
-    const newRef = push(refPath);
-    await set(newRef, hackathonData);
-    return newRef.key!;
-}
-
-export async function getAllHackathons(): Promise<Hackathon[]> {
-    const dataRef = ref(db, 'hackathons');
-    const snapshot = await get(dataRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
-        }));
-    }
-    return [];
-}
-
-export async function getHackathonById(id: string): Promise<Hackathon | null> {
-    const dataRef = ref(db, `hackathons/${id}`);
-    const snapshot = await get(dataRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
-}
-
-export async function updateHackathon(id: string, hackathonData: Partial<Hackathon>): Promise<void> {
-    const dataRef = ref(db, `hackathons/${id}`);
-    await update(dataRef, hackathonData);
-}
-
-export async function deleteHackathon(id: string): Promise<void> {
-    const dataRef = ref(db, `hackathons/${id}`);
-    await remove(dataRef);
-}
-
-export async function registerForHackathon(hackathonId: string, userId: string): Promise<void> {
-    const dataRef = ref(db, `hackathons/${hackathonId}/participants/${userId}`);
-    await set(dataRef, true);
-}
-
 export async function getHackathonParticipants(hackathonId: string): Promise<RegisteredUser[]> {
     const dataRef = ref(db, `hackathons/${hackathonId}/participants`);
     const snapshot = await get(dataRef);
@@ -1318,4 +1284,47 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> 
     return null;
 }
     
+// Hackathon Functions
+export async function createHackathon(hackathonData: Omit<Hackathon, 'id'>): Promise<string> {
+    const refPath = ref(db, 'hackathons');
+    const newRef = push(refPath);
+    await set(newRef, hackathonData);
+    return newRef.key!;
+}
 
+export async function getAllHackathons(): Promise<Hackathon[]> {
+    const dataRef = ref(db, 'hackathons');
+    const snapshot = await get(dataRef);
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        return Object.keys(data).map(key => ({
+            id: key,
+            ...data[key]
+        }));
+    }
+    return [];
+}
+
+export async function getHackathonById(id: string): Promise<Hackathon | null> {
+    const dataRef = ref(db, `hackathons/${id}`);
+    const snapshot = await get(dataRef);
+    if (snapshot.exists()) {
+        return { id, ...snapshot.val() };
+    }
+    return null;
+}
+
+export async function updateHackathon(id: string, hackathonData: Partial<Hackathon>): Promise<void> {
+    const dataRef = ref(db, `hackathons/${id}`);
+    await update(dataRef, hackathonData);
+}
+
+export async function deleteHackathon(id: string): Promise<void> {
+    const dataRef = ref(db, `hackathons/${id}`);
+    await remove(dataRef);
+}
+
+export async function registerForHackathon(hackathonId: string, userId: string): Promise<void> {
+    const dataRef = ref(db, `hackathons/${hackathonId}/participants/${userId}`);
+    await set(dataRef, true);
+}
