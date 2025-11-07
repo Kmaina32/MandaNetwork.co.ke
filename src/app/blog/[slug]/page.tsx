@@ -12,30 +12,44 @@ import Image from 'next/image';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
-import { getBlogPostBySlug } from '@/lib/firebase-service';
-import type { BlogPost } from '@/lib/types';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { getBlogPostBySlug, getAllCourses, getAllBootcamps, getAllHackathons } from '@/lib/firebase-service';
+import type { BlogPost, Course, Bootcamp, Hackathon } from '@/lib/types';
+import { BlogPostContent } from '@/components/BlogPostContent';
 
 export default function BlogPostPage() {
     const params = useParams<{ slug: string }>();
     const router = useRouter();
     const [post, setPost] = useState<BlogPost | null>(null);
+    const [promoItems, setPromoItems] = useState<(Course | Bootcamp | Hackathon)[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchPost = async () => {
+        const fetchPostAndPromos = async () => {
             if (!params.slug) return;
             setLoading(true);
-            const foundPost = await getBlogPostBySlug(params.slug as string);
-            if (!foundPost) {
-                notFound();
-                return;
+            try {
+                const [foundPost, courses, bootcamps, hackathons] = await Promise.all([
+                    getBlogPostBySlug(params.slug as string),
+                    getAllCourses(),
+                    getAllBootcamps(),
+                    getAllHackathons(),
+                ]);
+
+                if (!foundPost) {
+                    notFound();
+                    return;
+                }
+                setPost(foundPost);
+                setPromoItems([...courses, ...bootcamps, ...hackathons]);
+
+            } catch(error) {
+                console.error("Failed to fetch data:", error);
+                // Handle error appropriately
+            } finally {
+                setLoading(false);
             }
-            setPost(foundPost);
-            setLoading(false);
         }
-        fetchPost();
+        fetchPostAndPromos();
     }, [params.slug]);
 
     if (loading) {
@@ -92,7 +106,7 @@ export default function BlogPostPage() {
 
                 <div className="container mx-auto px-4 md:px-6 py-12">
                     <div className="prose prose-lg dark:prose-invert max-w-3xl mx-auto">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content}</ReactMarkdown>
+                       <BlogPostContent content={post.content} promoItems={promoItems} />
                     </div>
                 </div>
             </article>
