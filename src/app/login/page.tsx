@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, GitBranch, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Loader2, GitBranch, ArrowLeft, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { getHeroData } from '@/lib/firebase-service';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
 
@@ -39,6 +38,7 @@ export default function LoginPage() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
 
   useEffect(() => {
@@ -110,7 +110,7 @@ export default function LoginPage() {
             </Button>
            <div className="grid gap-2 text-center">
               <Link href="/" className="flex items-center justify-center gap-2 font-bold text-2xl font-headline">
-                  <GitBranch className="h-7 w-7 text-yellow-500" />
+                  <GitBranch className="h-7 w-7 text-primary" />
                   <span>Manda Network</span>
               </Link>
           </div>
@@ -159,7 +159,12 @@ export default function LoginPage() {
                               </Link>
                             </div>
                           <FormControl>
-                              <Input type="password" placeholder="••••••••" {...field} />
+                            <div className="relative">
+                              <Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} />
+                              <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowPassword(!showPassword)}>
+                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </Button>
+                            </div>
                           </FormControl>
                           <FormMessage />
                           </FormItem>

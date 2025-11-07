@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -11,7 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, User as UserIcon, Camera, Upload, Eye, Building, Share2, PlusCircle, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, User as UserIcon, Camera, Upload, Eye, Building, Share2, PlusCircle, Trash2, KeyRound } from 'lucide-react';
 import { AppSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
@@ -19,7 +20,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { updateProfile } from 'firebase/auth';
 import { uploadImage, saveUser, getUserById } from '@/lib/firebase-service';
@@ -32,6 +33,7 @@ import type { RegisteredUser, PortfolioProject } from '@/lib/types';
 import { Icon } from '@iconify/react';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { ChangePasswordDialog } from '@/components/ChangePasswordDialog';
 
 
 const projectSchema = z.object({
@@ -101,6 +103,7 @@ export default function ProfilePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [dbUser, setDbUser] = useState<RegisteredUser | null>(null);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -308,6 +311,7 @@ export default function ProfilePage() {
   }
 
   return (
+    <>
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
@@ -543,15 +547,21 @@ export default function ProfilePage() {
                             </Tabs>
                         </CardContent>
                          <CardFooter className="flex flex-col sm:flex-row justify-between px-6 pt-6">
-                            <Button variant="outline" onClick={handleLogout}>Logout</Button>
-                            <div className="flex gap-2 mt-4 sm:mt-0">
-                                <Button asChild variant="secondary">
+                            <div className="flex gap-2 w-full sm:w-auto mb-4 sm:mb-0">
+                                <Button variant="outline" onClick={handleLogout} className="flex-1 sm:flex-initial">Logout</Button>
+                                <Button variant="outline" onClick={() => setIsPasswordDialogOpen(true)} className="flex-1 sm:flex-initial">
+                                  <KeyRound className="mr-2 h-4 w-4" />
+                                  Change Password
+                                </Button>
+                            </div>
+                            <div className="flex gap-2 w-full sm:w-auto">
+                                <Button asChild variant="secondary" className="flex-1 sm:flex-initial">
                                     <Link href={`/portfolio/${user.uid}`}>
                                         <Eye className="mr-2 h-4 w-4" />
-                                        View My Public Portfolio
+                                        View Public Portfolio
                                     </Link>
                                 </Button>
-                                <Button type="submit" disabled={isLoading}>
+                                <Button type="submit" disabled={isLoading} className="flex-1 sm:flex-initial">
                                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                     Save Changes
                                 </Button>
@@ -566,5 +576,7 @@ export default function ProfilePage() {
         </div>
       </SidebarInset>
     </SidebarProvider>
+    <ChangePasswordDialog isOpen={isPasswordDialogOpen} onClose={() => setIsPasswordDialogOpen(false)} />
+    </>
   );
 }

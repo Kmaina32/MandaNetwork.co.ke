@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, GitBranch, ArrowLeft, Shield, AlertTriangle } from 'lucide-react';
+import { Loader2, GitBranch, ArrowLeft, Shield, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { getHeroData, getInvitation, deleteInvitation } from '@/lib/firebase-service';
 import type { HeroData } from '@/lib/firebase-service';
 import { Separator } from '@/components/ui/separator';
@@ -56,6 +56,8 @@ function SignupFormComponent() {
   const [siteSettings, setSiteSettings] = useState<HeroData | null>(null);
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
+  const [showPassword, setShowPassword] = useState(false);
+
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -240,8 +242,13 @@ function SignupFormComponent() {
                       render={({ field }) => (
                           <FormItem>
                           <FormLabel>Password</FormLabel>
-                          <FormControl>
-                              <Input type="password" placeholder="••••••••" {...field} />
+                           <FormControl>
+                            <div className="relative">
+                              <Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} />
+                              <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowPassword(!showPassword)}>
+                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </Button>
+                            </div>
                           </FormControl>
                           <FormMessage />
                           </FormItem>
@@ -302,5 +309,3 @@ export default function SignupPage() {
         </Suspense>
     )
 }
-
-    

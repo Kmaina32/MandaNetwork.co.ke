@@ -22,6 +22,9 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   sendEmailVerification,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  updatePassword,
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { RegisteredUser, saveUser, getUserById, createOrganization, getOrganizationByOwnerId, Organization, getOrganizationMembers, logActivity } from '@/lib/firebase-service';
@@ -52,6 +55,7 @@ interface AuthContextType {
   sendPasswordReset: (email: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   sendVerificationEmail: () => Promise<void>;
+  changePassword: (currentPass: string, newPass: string) => Promise<void>;
   fetchUserData: (user: User) => Promise<void>;
 }
 
@@ -286,6 +290,15 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
   const sendPasswordReset = (email: string) => {
     return sendPasswordResetEmail(auth, email);
   };
+  
+  const changePassword = async (currentPass: string, newPass: string) => {
+    if (!user || !user.email) {
+      throw new Error("No user is currently signed in.");
+    }
+    const credential = EmailAuthProvider.credential(user.email, currentPass);
+    await reauthenticateWithCredential(user, credential);
+    await updatePassword(user, newPass);
+  }
 
   const value = {
     user,
@@ -305,6 +318,7 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
     sendPasswordReset,
     signInWithGoogle,
     sendVerificationEmail,
+    changePassword,
     fetchUserData
   };
 
