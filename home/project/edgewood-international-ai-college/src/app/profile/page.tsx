@@ -358,7 +358,7 @@ export default function ProfilePage() {
                                 </div>
                             </div>
                         <CardTitle className="text-2xl font-headline">My Profile</CardTitle>
-                        <CardDescription>View and manage your account details.</CardDescription>
+                        <CardDescription>View and manage your account details and portfolio.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-8">
                             <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden"/>
@@ -403,9 +403,8 @@ export default function ProfilePage() {
                             </div>
 
                             <Separator />
-
                             <h3 className="text-xl font-semibold">Account Details</h3>
-                             <div className='space-y-2'>
+                            <div className='space-y-2'>
                                 <Label htmlFor='email'>Email Address</Label>
                                 <Input id='email' value={user.email || ''} readOnly disabled />
                             </div>
@@ -553,7 +552,6 @@ export default function ProfilePage() {
                                     </CardContent>
                                 </Card>
                             )}
-
                         </CardContent>
                          <CardFooter className="flex flex-col sm:flex-row justify-between px-6 pt-6">
                             <Button variant="outline" onClick={handleLogout}>Logout</Button>
@@ -583,3 +581,5 @@ export default function ProfilePage() {
     </SidebarProvider>
   );
 }
+
+    
