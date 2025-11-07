@@ -32,7 +32,6 @@ import { Switch } from '@/components/ui/switch';
 import type { RegisteredUser, PortfolioProject } from '@/lib/types';
 import { Icon } from '@iconify/react';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { slugify } from '@/lib/utils';
 import { getPortfolioFeedback } from '@/app/actions';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
@@ -361,16 +360,16 @@ export default function ProfilePage() {
                         <CardTitle className="text-2xl font-headline">My Profile</CardTitle>
                         <CardDescription>View and manage your account details.</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-8">
                             <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden"/>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+                            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
                                     <Upload className="mr-2 h-4 w-4" />
                                     Upload Image
                             </Button>
                             <Dialog open={isCameraDialogOpen} onOpenChange={setIsCameraDialogOpen}>
                                 <DialogTrigger asChild>
-                                        <Button variant="outline" disabled={isUploading}>
+                                        <Button type="button" variant="outline" disabled={isUploading}>
                                             <Camera className="mr-2 h-4 w-4" />
                                             Take Photo
                                         </Button>
@@ -403,162 +402,158 @@ export default function ProfilePage() {
                             </Dialog>
                             </div>
 
-                            <Tabs defaultValue="account">
-                                <TabsList className="grid w-full grid-cols-3">
-                                    <TabsTrigger value="account">Account</TabsTrigger>
-                                    <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
-                                    <TabsTrigger value="advisor">AI Advisor</TabsTrigger>
-                                </TabsList>
-                                <TabsContent value="account" className="pt-6">
-                                     <div className="space-y-4">
-                                        <div className='space-y-2 mt-6'>
-                                            <Label htmlFor='email'>Email Address</Label>
-                                            <Input id='email' value={user.email || ''} readOnly disabled />
-                                        </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                                            <FormField control={form.control} name="firstName" render={({ field }) => ( <FormItem> <FormLabel>First Name</FormLabel> <FormControl><Input placeholder="Jomo" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
-                                            <FormField control={form.control} name="lastName" render={({ field }) => ( <FormItem> <FormLabel>Last Name</FormLabel> <FormControl><Input placeholder="Kenyatta" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
-                                        </div>
-                                        <div>
-                                            <FormField control={form.control} name="middleName" render={({ field }) => ( <FormItem> <FormLabel>Middle Name (Optional)</FormLabel> <FormControl><Input {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground pt-2">Please ensure this is your full, correct name as it will be used on your certificates.</p>
-                                        
-                                        <Separator />
-                                         <h3 className="text-lg font-semibold pt-4">Contact Information</h3>
-                                        <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem> <FormLabel>Phone Number</FormLabel> <FormControl><Input placeholder="e.g., +254 712 345678" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <FormField control={form.control} name="poBox" render={({ field }) => ( <FormItem> <FormLabel>P.O. Box</FormLabel> <FormControl><Input placeholder="e.g., 12345-00100" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
-                                            <FormField control={form.control} name="country" render={({ field }) => ( <FormItem> <FormLabel>Country</FormLabel> <FormControl><Input placeholder="e.g., Kenya" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
-                                        </div>
+                            <Separator />
 
-                                     </div>
-                                </TabsContent>
-                                <TabsContent value="portfolio" className="pt-6 space-y-6">
-                                    <FormField control={form.control} name="aboutMe" render={({ field }) => ( <FormItem> <FormLabel>About Me / Professional Summary</FormLabel> <FormControl><Textarea placeholder="A brief summary about your skills and career goals." {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
-                                     {/* Work Experience Section */}
-                                    <div>
-                                        <h4 className="font-semibold mb-2">Work Experience</h4>
-                                        <div className="space-y-4">
-                                            {workFields.map((field, index) => (
-                                                <Card key={field.id} className="p-4 bg-secondary/50">
-                                                    <div className="flex justify-end mb-2"> <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => removeWork(index)}><Trash2 className="h-4 w-4"/></Button> </div>
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                        <FormField control={form.control} name={`workExperience.${index}.jobTitle`} render={({field}) => (<FormItem><FormLabel>Job Title</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>)} />
-                                                        <FormField control={form.control} name={`workExperience.${index}.companyName`} render={({field}) => (<FormItem><FormLabel>Company</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>)} />
-                                                        <FormField control={form.control} name={`workExperience.${index}.startDate`} render={({field}) => (<FormItem><FormLabel>Start Date</FormLabel><FormControl><Input placeholder="e.g., Jan 2022" {...field}/></FormControl><FormMessage/></FormItem>)} />
-                                                        <FormField control={form.control} name={`workExperience.${index}.endDate`} render={({field}) => (<FormItem><FormLabel>End Date</FormLabel><FormControl><Input placeholder="Present" {...field}/></FormControl><FormMessage/></FormItem>)} />
-                                                    </div>
-                                                    <FormField control={form.control} name={`workExperience.${index}.description`} render={({field}) => (<FormItem className="mt-4"><FormLabel>Description</FormLabel><FormControl><Textarea {...field}/></FormControl><FormMessage/></FormItem>)} />
-                                                </Card>
-                                            ))}
-                                        </div>
-                                        <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => appendWork({ id: uuidv4(), jobTitle: '', companyName: '', startDate: '', endDate: 'Present', description: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Experience</Button>
-                                    </div>
+                            <h3 className="text-xl font-semibold">Account Details</h3>
+                             <div className='space-y-2'>
+                                <Label htmlFor='email'>Email Address</Label>
+                                <Input id='email' value={user.email || ''} readOnly disabled />
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <FormField control={form.control} name="firstName" render={({ field }) => ( <FormItem> <FormLabel>First Name</FormLabel> <FormControl><Input placeholder="Jomo" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
+                                <FormField control={form.control} name="lastName" render={({ field }) => ( <FormItem> <FormLabel>Last Name</FormLabel> <FormControl><Input placeholder="Kenyatta" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
+                            </div>
+                            <FormField control={form.control} name="middleName" render={({ field }) => ( <FormItem> <FormLabel>Middle Name (Optional)</FormLabel> <FormControl><Input {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
+                            <p className="text-xs text-muted-foreground pt-2">Please ensure this is your full, correct name as it will be used on your certificates.</p>
 
-                                    {/* Education Section */}
-                                    <div>
-                                        <h4 className="font-semibold mb-2">Education</h4>
-                                        <div className="space-y-4">
-                                            {educationFields.map((field, index) => (
-                                                <Card key={field.id} className="p-4 bg-secondary/50">
-                                                    <div className="flex justify-end mb-2"> <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => removeEducation(index)}><Trash2 className="h-4 w-4"/></Button> </div>
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                        <FormField control={form.control} name={`education.${index}.institution`} render={({field}) => (<FormItem><FormLabel>Institution</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>)} />
-                                                        <FormField control={form.control} name={`education.${index}.degree`} render={({field}) => (<FormItem><FormLabel>Degree/Certificate</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>)} />
-                                                        <FormField control={form.control} name={`education.${index}.fieldOfStudy`} render={({field}) => (<FormItem><FormLabel>Field of Study</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>)} />
-                                                        <FormField control={form.control} name={`education.${index}.graduationYear`} render={({field}) => (<FormItem><FormLabel>Graduation Year</FormLabel><FormControl><Input placeholder="e.g., 2024" {...field}/></FormControl><FormMessage/></FormItem>)} />
-                                                    </div>
-                                                </Card>
-                                            ))}
-                                        </div>
-                                        <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => appendEducation({ id: uuidv4(), institution: '', degree: '', fieldOfStudy: '', graduationYear: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Education</Button>
-                                    </div>
-                                    
-                                    <Separator/>
+                            <Separator />
+                            <h3 className="text-xl font-semibold pt-4">Contact Information</h3>
+                            <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem> <FormLabel>Phone Number</FormLabel> <FormControl><Input placeholder="e.g., +254 712 345678" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <FormField control={form.control} name="poBox" render={({ field }) => ( <FormItem> <FormLabel>P.O. Box</FormLabel> <FormControl><Input placeholder="e.g., 12345-00100" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
+                                <FormField control={form.control} name="country" render={({ field }) => ( <FormItem> <FormLabel>Country</FormLabel> <FormControl><Input placeholder="e.g., Kenya" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
+                            </div>
 
-                                    <div className="grid grid-cols-1 gap-4">
-                                    <FormField control={form.control} name="github" render={({ field }) => ( <FormItem> <FormLabel><div className="flex items-center gap-2"><Icon icon="mdi:github" className="h-5 w-5" /> GitHub URL</div></FormLabel> <FormControl><Input placeholder="https://github.com/username" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                                    <FormField control={form.control} name="gitlab" render={({ field }) => ( <FormItem> <FormLabel><div className="flex items-center gap-2"><Icon icon="mdi:gitlab" className="h-5 w-5" /> GitLab URL</div></FormLabel> <FormControl><Input placeholder="https://gitlab.com/username" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                                    <FormField control={form.control} name="bitbucket" render={({ field }) => ( <FormItem> <FormLabel><div className="flex items-center gap-2"><Icon icon="mdi:bitbucket" className="h-5 w-5" /> Bitbucket URL</div></FormLabel> <FormControl><Input placeholder="https://bitbucket.org/username" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                                    </div>
-                                    
-                                     <div>
-                                        <h3 className="font-semibold text-lg mb-2">Featured Projects</h3>
-                                        <div className="space-y-4">
-                                            {projectFields.map((field, index) => (
-                                                <Card key={field.id} className="p-4 relative bg-secondary/50">
-                                                    <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1" onClick={() => removeProject(index)}> <Trash2 className="h-4 w-4 text-destructive" /> </Button>
-                                                    <div className="grid grid-cols-1 gap-4">
-                                                        <FormField control={form.control} name={`projects.${index}.title`} render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                                        <FormField control={form.control} name={`projects.${index}.description`} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                                        <FormField control={form.control} name={`projects.${index}.imageUrl`} render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                                        <FormField control={form.control} name={`projects.${index}.liveUrl`} render={({ field }) => (<FormItem><FormLabel>Live URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                                        <FormField control={form.control} name={`projects.${index}.sourceUrl`} render={({ field }) => (<FormItem><FormLabel>Source URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                                        <FormField
-                                                            control={form.control}
-                                                            name={`projects.${index}.technologies`}
-                                                            render={({ field }) => (
-                                                                <FormItem>
-                                                                    <FormLabel>Technologies</FormLabel>
-                                                                    <FormControl>
-                                                                        <Input {...field} onChange={(e) => field.onChange(e.target.value.split(',').map(s => s.trim()))} value={Array.isArray(field.value) ? field.value.join(', ') : ''} />
-                                                                    </FormControl>
-                                                                    <FormDescription>
-                                                                        Enter technologies separated by a comma (e.g., React, Next.js, Firebase).
-                                                                    </FormDescription>
-                                                                    <FormMessage />
-                                                                </FormItem>
-                                                            )}
-                                                        />
-                                                    </div>
-                                                </Card>
-                                            ))}
-                                        </div>
-                                        <Button type="button" variant="outline" className="mt-4" onClick={() => appendProject({ id: uuidv4(), title: '', description: '', imageUrl: 'https://picsum.photos/seed/project/400/250', liveUrl: '', sourceUrl: '', technologies: [] })}> <PlusCircle className="mr-2 h-4 w-4" /> Add Project </Button>
-                                    </div>
-
-                                    <Separator />
-                                    <FormField control={form.control} name="public" render={({ field }) => ( <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4"> <div className="space-y-0.5"> <FormLabel className="text-base">Make Portfolio Public</FormLabel> <FormDescription> Allow employers and peers to view your completed courses and profile. </FormDescription> </div> <FormControl> <Switch checked={field.value} onCheckedChange={field.onChange} /> </FormControl> </FormItem> )}/>
-
-                                </TabsContent>
-                                 <TabsContent value="advisor" className="pt-6 space-y-6">
-                                    <Card>
-                                        <CardHeader>
-                                            <CardTitle>AI Portfolio Advisor</CardTitle>
-                                            <CardDescription>Get personalized feedback on how to improve your portfolio to attract employers.</CardDescription>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <Button type="button" onClick={handleGetFeedback} disabled={isGeneratingFeedback}>
-                                                {isGeneratingFeedback ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4"/>}
-                                                Get Feedback
-                                            </Button>
-                                        </CardContent>
-                                    </Card>
-                                    {isGeneratingFeedback && (
-                                        <div className="flex items-center justify-center py-8">
-                                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                                            <p className="ml-2 text-muted-foreground">The AI is analyzing your profile...</p>
-                                        </div>
-                                    )}
-                                    {feedback && (
-                                        <Card className="bg-secondary/50">
-                                            <CardHeader>
-                                                <CardTitle>Feedback from your AI Advisor</CardTitle>
-                                            </CardHeader>
-                                            <CardContent className="space-y-4">
-                                                <p>{feedback.overallFeedback}</p>
-                                                <div>
-                                                    <h4 className="font-semibold mb-2">Your Actionable Roadmap:</h4>
-                                                    <ul className="list-disc pl-5 space-y-2">
-                                                        {feedback.actionableSteps.map((step, index) => <li key={index}>{step}</li>)}
-                                                    </ul>
-                                                </div>
-                                            </CardContent>
+                            <Separator />
+                            <h3 className="text-xl font-semibold pt-4">Portfolio Details</h3>
+                            <FormField control={form.control} name="aboutMe" render={({ field }) => ( <FormItem> <FormLabel>About Me / Professional Summary</FormLabel> <FormControl><Textarea placeholder="A brief summary about your skills and career goals." {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
+                            
+                            {/* Work Experience Section */}
+                            <div>
+                                <h4 className="font-semibold mb-2">Work Experience</h4>
+                                <div className="space-y-4">
+                                    {workFields.map((field, index) => (
+                                        <Card key={field.id} className="p-4 bg-secondary/50">
+                                            <div className="flex justify-end mb-2"> <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => removeWork(index)}><Trash2 className="h-4 w-4"/></Button> </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <FormField control={form.control} name={`workExperience.${index}.jobTitle`} render={({field}) => (<FormItem><FormLabel>Job Title</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>)} />
+                                                <FormField control={form.control} name={`workExperience.${index}.companyName`} render={({field}) => (<FormItem><FormLabel>Company</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>)} />
+                                                <FormField control={form.control} name={`workExperience.${index}.startDate`} render={({field}) => (<FormItem><FormLabel>Start Date</FormLabel><FormControl><Input placeholder="e.g., Jan 2022" {...field}/></FormControl><FormMessage/></FormItem>)} />
+                                                <FormField control={form.control} name={`workExperience.${index}.endDate`} render={({field}) => (<FormItem><FormLabel>End Date</FormLabel><FormControl><Input placeholder="Present" {...field}/></FormControl><FormMessage/></FormItem>)} />
+                                            </div>
+                                            <FormField control={form.control} name={`workExperience.${index}.description`} render={({field}) => (<FormItem className="mt-4"><FormLabel>Description</FormLabel><FormControl><Textarea {...field}/></FormControl><FormMessage/></FormItem>)} />
                                         </Card>
-                                    )}
-                                </TabsContent>
-                            </Tabs>
+                                    ))}
+                                </div>
+                                <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => appendWork({ id: uuidv4(), jobTitle: '', companyName: '', startDate: '', endDate: 'Present', description: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Experience</Button>
+                            </div>
+
+                            {/* Education Section */}
+                            <div>
+                                <h4 className="font-semibold mb-2">Education</h4>
+                                <div className="space-y-4">
+                                    {educationFields.map((field, index) => (
+                                        <Card key={field.id} className="p-4 bg-secondary/50">
+                                            <div className="flex justify-end mb-2"> <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => removeEducation(index)}><Trash2 className="h-4 w-4"/></Button> </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <FormField control={form.control} name={`education.${index}.institution`} render={({field}) => (<FormItem><FormLabel>Institution</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>)} />
+                                                <FormField control={form.control} name={`education.${index}.degree`} render={({field}) => (<FormItem><FormLabel>Degree/Certificate</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>)} />
+                                                <FormField control={form.control} name={`education.${index}.fieldOfStudy`} render={({field}) => (<FormItem><FormLabel>Field of Study</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>)} />
+                                                <FormField control={form.control} name={`education.${index}.graduationYear`} render={({field}) => (<FormItem><FormLabel>Graduation Year</FormLabel><FormControl><Input placeholder="e.g., 2024" {...field}/></FormControl><FormMessage/></FormItem>)} />
+                                            </div>
+                                        </Card>
+                                    ))}
+                                </div>
+                                <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => appendEducation({ id: uuidv4(), institution: '', degree: '', fieldOfStudy: '', graduationYear: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Education</Button>
+                            </div>
+                            
+                            <Separator/>
+
+                             <div>
+                                <h3 className="text-lg font-semibold mb-2">Featured Projects</h3>
+                                <div className="space-y-4">
+                                    {projectFields.map((field, index) => (
+                                        <Card key={field.id} className="p-4 relative bg-secondary/50">
+                                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1" onClick={() => removeProject(index)}> <Trash2 className="h-4 w-4 text-destructive" /> </Button>
+                                            <div className="grid grid-cols-1 gap-4">
+                                                <FormField control={form.control} name={`projects.${index}.title`} render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                <FormField control={form.control} name={`projects.${index}.description`} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                <FormField control={form.control} name={`projects.${index}.imageUrl`} render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                <FormField control={form.control} name={`projects.${index}.liveUrl`} render={({ field }) => (<FormItem><FormLabel>Live URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                <FormField control={form.control} name={`projects.${index}.sourceUrl`} render={({ field }) => (<FormItem><FormLabel>Source URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                <FormField
+                                                    control={form.control}
+                                                    name={`projects.${index}.technologies`}
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Technologies</FormLabel>
+                                                            <FormControl>
+                                                                <Input {...field} onChange={(e) => field.onChange(e.target.value.split(',').map(s => s.trim()))} value={Array.isArray(field.value) ? field.value.join(', ') : ''} />
+                                                            </FormControl>
+                                                            <FormDescription>
+                                                                Enter technologies separated by a comma (e.g., React, Next.js, Firebase).
+                                                            </FormDescription>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </div>
+                                        </Card>
+                                    ))}
+                                </div>
+                                <Button type="button" variant="outline" className="mt-4" onClick={() => appendProject({ id: uuidv4(), title: '', description: '', imageUrl: 'https://picsum.photos/seed/project/400/250', liveUrl: '', sourceUrl: '', technologies: [] })}> <PlusCircle className="mr-2 h-4 w-4" /> Add Project </Button>
+                            </div>
+
+                            <Separator/>
+
+                            <h3 className="text-xl font-semibold pt-4">Social & Repository Links</h3>
+                             <div className="grid grid-cols-1 gap-4">
+                              <FormField control={form.control} name="github" render={({ field }) => ( <FormItem> <FormLabel><div className="flex items-center gap-2"><Icon icon="mdi:github" className="h-5 w-5" /> GitHub URL</div></FormLabel> <FormControl><Input placeholder="https://github.com/username" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                              <FormField control={form.control} name="gitlab" render={({ field }) => ( <FormItem> <FormLabel><div className="flex items-center gap-2"><Icon icon="mdi:gitlab" className="h-5 w-5" /> GitLab URL</div></FormLabel> <FormControl><Input placeholder="https://gitlab.com/username" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                              <FormField control={form.control} name="bitbucket" render={({ field }) => ( <FormItem> <FormLabel><div className="flex items-center gap-2"><Icon icon="mdi:bitbucket" className="h-5 w-5" /> Bitbucket URL</div></FormLabel> <FormControl><Input placeholder="https://bitbucket.org/username" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                            </div>
+
+                            <Separator />
+                            <h3 className="text-xl font-semibold pt-4">Settings</h3>
+                            <FormField control={form.control} name="public" render={({ field }) => ( <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4"> <div className="space-y-0.5"> <FormLabel className="text-base">Make Portfolio Public</FormLabel> <FormDescription> Allow employers and peers to view your completed courses and profile. </FormDescription> </div> <FormControl> <Switch checked={field.value} onCheckedChange={field.onChange} /> </FormControl> </FormItem> )}/>
+
+                            <Separator />
+                            <h3 className="text-xl font-semibold pt-4">AI Portfolio Advisor</h3>
+                             <Card className="bg-secondary/50">
+                                <CardHeader>
+                                    <CardTitle>Get Feedback</CardTitle>
+                                    <CardDescription>Get personalized feedback on how to improve your portfolio to attract employers.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <Button type="button" onClick={handleGetFeedback} disabled={isGeneratingFeedback}>
+                                        {isGeneratingFeedback ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Wand2 className="mr-2 h-4 w-4"/>}
+                                        Analyze My Profile
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                            {isGeneratingFeedback && (
+                                <div className="flex items-center justify-center py-8">
+                                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                                    <p className="ml-2 text-muted-foreground">The AI is analyzing your profile...</p>
+                                </div>
+                            )}
+                            {feedback && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Feedback from your AI Advisor</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <p>{feedback.overallFeedback}</p>
+                                        <div>
+                                            <h4 className="font-semibold mb-2">Your Actionable Roadmap:</h4>
+                                            <ul className="list-disc pl-5 space-y-2">
+                                                {feedback.actionableSteps.map((step, index) => <li key={index}>{step}</li>)}
+                                            </ul>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+
                         </CardContent>
                          <CardFooter className="flex flex-col sm:flex-row justify-between px-6 pt-6">
                             <Button variant="outline" onClick={handleLogout}>Logout</Button>
@@ -588,5 +583,3 @@ export default function ProfilePage() {
     </SidebarProvider>
   );
 }
-
-    
