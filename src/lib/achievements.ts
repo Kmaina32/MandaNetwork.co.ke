@@ -1,6 +1,4 @@
 
-'use server';
-
 import { db } from './firebase';
 import { ref, get, set, update } from 'firebase/database';
 import type { RegisteredUser, UserCourse, Submission } from './types';
