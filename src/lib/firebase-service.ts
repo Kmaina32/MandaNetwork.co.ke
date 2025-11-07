@@ -3,7 +3,7 @@
 import { db, storage } from './firebase';
 import { ref, get, set, push, update, remove, query, orderByChild, equalTo, increment, limitToLast, onValue } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, Conversation, ConversationMessage } from './types';
+import type { Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, Conversation, ConversationMessage, BlogPost } from './types';
 import { getRemoteConfig, fetchAndActivate, getString } from 'firebase/remote-config';
 import { app } from './firebase';
 import { slugify } from './utils';
@@ -1138,6 +1138,7 @@ export async function logActivity(userId: string, data: { type: 'signup' | 'enro
         userId,
         userName: user?.displayName || 'Unknown',
         userAvatar: user?.photoURL || '',
+        path: window.location.pathname, // Capture path for page visits
         ...data,
         timestamp: new Date().toISOString(),
     });
@@ -1256,4 +1257,55 @@ export async function createProjectSubmission(submissionData: Omit<ProjectSubmis
     return newSubmissionRef.key!;
 }
 
+// Blog Functions
+export async function createBlogPost(postData: Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  const postsRef = ref(db, 'blog');
+  const newPostRef = push(postsRef);
+  const now = new Date().toISOString();
+  const dataToSave: Omit<BlogPost, 'id'> = {
+    ...postData,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await set(newPostRef, dataToSave);
+  return newPostRef.key!;
+}
+
+export async function updateBlogPost(postId: string, postData: Partial<Omit<BlogPost, 'id' | 'createdAt'>>): Promise<void> {
+  const postRef = ref(db, `blog/${postId}`);
+  await update(postRef, {
+    ...postData,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export async function deleteBlogPost(postId: string): Promise<void> {
+  const postRef = ref(db, `blog/${postId}`);
+  await remove(postRef);
+}
+
+export async function getAllBlogPosts(): Promise<BlogPost[]> {
+  const postsRef = ref(db, 'blog');
+  const snapshot = await get(query(postsRef, orderByChild('createdAt')));
+  if (snapshot.exists()) {
+    const postsData = snapshot.val();
+    const posts = Object.keys(postsData).map(key => ({
+      id: key,
+      ...postsData[key]
+    }));
+    return posts.reverse();
+  }
+  return [];
+}
+
+export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> {
+    const postsRef = query(ref(db, 'blog'), orderByChild('slug'), equalTo(slug));
+    const snapshot = await get(postsRef);
+    if(snapshot.exists()) {
+        const data = snapshot.val();
+        const postId = Object.keys(data)[0];
+        return { id: postId, ...data[postId] };
+    }
+    return null;
+}
     
