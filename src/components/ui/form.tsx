@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -18,6 +17,9 @@ import { Label } from "@/components/ui/label"
 
 const Form = FormProvider
 
+// -----------------------------
+// Contexts
+// -----------------------------
 type FormFieldContextValue<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
@@ -29,6 +31,17 @@ const FormFieldContext = React.createContext<FormFieldContextValue>(
   {} as FormFieldContextValue
 )
 
+type FormItemContextValue = {
+  id: string
+}
+
+const FormItemContext = React.createContext<FormItemContextValue>(
+  {} as FormItemContextValue
+)
+
+// -----------------------------
+// Hooks
+// -----------------------------
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext)
   const itemContext = React.useContext(FormItemContext)
@@ -52,14 +65,9 @@ const useFormField = () => {
   }
 }
 
-type FormItemContextValue = {
-  id: string
-}
-
-const FormItemContext = React.createContext<FormItemContextValue>(
-  {} as FormItemContextValue
-)
-
+// -----------------------------
+// Components
+// -----------------------------
 const FormField = <
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
@@ -104,15 +112,41 @@ const FormLabel = React.forwardRef<
 })
 FormLabel.displayName = "FormLabel"
 
+// ✅ Updated FormControl – supports single or multiple children safely
 const FormControl = React.forwardRef<
-  React.ElementRef<typeof Slot>,
-  React.ComponentPropsWithoutRef<typeof Slot>
->(({ ...props }, ref) => {
+  HTMLElement,
+  React.HTMLAttributes<HTMLElement>
+>(({ children, ...props }, ref) => {
   const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
 
+  // If there’s only one child and it’s a valid React element,
+  // use Slot to preserve compatibility with ShadCN Input, etc.
+  const isSingleChild =
+    React.Children.count(children) === 1 &&
+    React.isValidElement(React.Children.only(children))
+
+  if (isSingleChild) {
+    return (
+      <Slot
+        ref={ref as any}
+        id={formItemId}
+        aria-describedby={
+          !error
+            ? `${formDescriptionId}`
+            : `${formDescriptionId} ${formMessageId}`
+        }
+        aria-invalid={!!error}
+        {...props}
+      >
+        {children}
+      </Slot>
+    )
+  }
+
+  // Otherwise, wrap multiple children inside a div
   return (
-    <Slot
-      ref={ref}
+    <div
+      ref={ref as any}
       id={formItemId}
       aria-describedby={
         !error
@@ -121,7 +155,9 @@ const FormControl = React.forwardRef<
       }
       aria-invalid={!!error}
       {...props}
-    />
+    >
+      {children}
+    </div>
   )
 })
 FormControl.displayName = "FormControl"
@@ -150,9 +186,7 @@ const FormMessage = React.forwardRef<
   const { error, formMessageId } = useFormField()
   const body = error ? String(error?.message) : children
 
-  if (!body) {
-    return null
-  }
+  if (!body) return null
 
   return (
     <p
@@ -167,6 +201,9 @@ const FormMessage = React.forwardRef<
 })
 FormMessage.displayName = "FormMessage"
 
+// -----------------------------
+// Exports
+// -----------------------------
 export {
   useFormField,
   Form,
