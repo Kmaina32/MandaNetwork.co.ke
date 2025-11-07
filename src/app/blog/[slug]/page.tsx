@@ -12,15 +12,15 @@ import Image from 'next/image';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
-import { getBlogPostBySlug, getAllCourses, getAllBootcamps, getAllHackathons } from '@/lib/firebase-service';
-import type { BlogPost, Course, Bootcamp, Hackathon } from '@/lib/types';
+import { getBlogPostBySlug, getActiveAdvertisements } from '@/lib/firebase-service';
+import type { BlogPost, Advertisement } from '@/lib/types';
 import { BlogPostContent } from '@/components/BlogPostContent';
 
 export default function BlogPostPage() {
     const params = useParams<{ slug: string }>();
     const router = useRouter();
     const [post, setPost] = useState<BlogPost | null>(null);
-    const [promoItems, setPromoItems] = useState<(Course | Bootcamp | Hackathon)[]>([]);
+    const [promoItems, setPromoItems] = useState<Advertisement[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -28,11 +28,9 @@ export default function BlogPostPage() {
             if (!params.slug) return;
             setLoading(true);
             try {
-                const [foundPost, courses, bootcamps, hackathons] = await Promise.all([
+                const [foundPost, activeAds] = await Promise.all([
                     getBlogPostBySlug(params.slug as string),
-                    getAllCourses(),
-                    getAllBootcamps(),
-                    getAllHackathons(),
+                    getActiveAdvertisements(),
                 ]);
 
                 if (!foundPost) {
@@ -40,7 +38,7 @@ export default function BlogPostPage() {
                     return;
                 }
                 setPost(foundPost);
-                setPromoItems([...courses, ...bootcamps, ...hackathons]);
+                setPromoItems(activeAds);
 
             } catch(error) {
                 console.error("Failed to fetch data:", error);

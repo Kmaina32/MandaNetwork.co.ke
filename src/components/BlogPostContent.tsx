@@ -4,12 +4,12 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { Course, Bootcamp, Hackathon } from '@/lib/types';
+import type { Advertisement } from '@/lib/types';
 import { InContentAdCard } from './InContentAdCard';
 
 interface BlogPostContentProps {
   content: string;
-  promoItems: (Course | Bootcamp | Hackathon)[];
+  promoItems: Advertisement[];
 }
 
 export function BlogPostContent({ content, promoItems }: BlogPostContentProps) {
