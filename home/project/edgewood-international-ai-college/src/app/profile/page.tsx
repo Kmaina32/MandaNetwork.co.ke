@@ -416,26 +416,26 @@ export default function ProfilePage() {
                                             <Input id='email' value={user.email || ''} readOnly disabled />
                                         </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                                            <FormField control={form.control} name="firstName" render={({ field }) => ( <FormItem> <FormLabel>First Name</FormLabel> <FormControl><div><Input placeholder="Jomo" {...field} /></div></FormControl> <FormMessage /> </FormItem> )}/>
-                                            <FormField control={form.control} name="lastName" render={({ field }) => ( <FormItem> <FormLabel>Last Name</FormLabel> <FormControl><div><Input placeholder="Kenyatta" {...field} /></div></FormControl> <FormMessage /> </FormItem> )}/>
+                                            <FormField control={form.control} name="firstName" render={({ field }) => ( <FormItem> <FormLabel>First Name</FormLabel> <FormControl><Input placeholder="Jomo" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
+                                            <FormField control={form.control} name="lastName" render={({ field }) => ( <FormItem> <FormLabel>Last Name</FormLabel> <FormControl><Input placeholder="Kenyatta" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
                                         </div>
                                         <div>
-                                            <FormField control={form.control} name="middleName" render={({ field }) => ( <FormItem> <FormLabel>Middle Name (Optional)</FormLabel> <FormControl><div><Input {...field} /></div></FormControl> <FormMessage /> </FormItem> )}/>
+                                            <FormField control={form.control} name="middleName" render={({ field }) => ( <FormItem> <FormLabel>Middle Name (Optional)</FormLabel> <FormControl><Input {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
                                         </div>
                                         <p className="text-xs text-muted-foreground pt-2">Please ensure this is your full, correct name as it will be used on your certificates.</p>
                                         
                                         <Separator />
                                          <h3 className="text-lg font-semibold pt-4">Contact Information</h3>
-                                        <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem> <FormLabel>Phone Number</FormLabel> <FormControl><div><Input placeholder="e.g., +254 712 345678" {...field} /></div></FormControl> <FormMessage /> </FormItem> )}/>
+                                        <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem> <FormLabel>Phone Number</FormLabel> <FormControl><Input placeholder="e.g., +254 712 345678" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <FormField control={form.control} name="poBox" render={({ field }) => ( <FormItem> <FormLabel>P.O. Box</FormLabel> <FormControl><div><Input placeholder="e.g., 12345-00100" {...field} /></div></FormControl> <FormMessage /> </FormItem> )}/>
-                                            <FormField control={form.control} name="country" render={({ field }) => ( <FormItem> <FormLabel>Country</FormLabel> <FormControl><div><Input placeholder="e.g., Kenya" {...field} /></div></FormControl> <FormMessage /> </FormItem> )}/>
+                                            <FormField control={form.control} name="poBox" render={({ field }) => ( <FormItem> <FormLabel>P.O. Box</FormLabel> <FormControl><Input placeholder="e.g., 12345-00100" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
+                                            <FormField control={form.control} name="country" render={({ field }) => ( <FormItem> <FormLabel>Country</FormLabel> <FormControl><Input placeholder="e.g., Kenya" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
                                         </div>
 
                                      </div>
                                 </TabsContent>
                                 <TabsContent value="portfolio" className="pt-6 space-y-6">
-                                    <FormField control={form.control} name="aboutMe" render={({ field }) => ( <FormItem> <FormLabel>About Me / Professional Summary</FormLabel> <FormControl><div><Textarea placeholder="A brief summary about your skills and career goals." {...field} /></div></FormControl> <FormMessage /> </FormItem> )}/>
+                                    <FormField control={form.control} name="aboutMe" render={({ field }) => ( <FormItem> <FormLabel>About Me / Professional Summary</FormLabel> <FormControl><Textarea placeholder="A brief summary about your skills and career goals." {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
                                      {/* Work Experience Section */}
                                     <div>
                                         <h4 className="font-semibold mb-2">Work Experience</h4>
@@ -444,12 +444,12 @@ export default function ProfilePage() {
                                                 <Card key={field.id} className="p-4 bg-secondary/50">
                                                     <div className="flex justify-end mb-2"> <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => removeWork(index)}><Trash2 className="h-4 w-4"/></Button> </div>
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                        <FormField control={form.control} name={`workExperience.${index}.jobTitle`} render={({field}) => (<FormItem><FormLabel>Job Title</FormLabel><FormControl><div><Input {...field}/></div></FormControl><FormMessage/></FormItem>)} />
-                                                        <FormField control={form.control} name={`workExperience.${index}.companyName`} render={({field}) => (<FormItem><FormLabel>Company</FormLabel><FormControl><div><Input {...field}/></div></FormControl><FormMessage/></FormItem>)} />
-                                                        <FormField control={form.control} name={`workExperience.${index}.startDate`} render={({field}) => (<FormItem><FormLabel>Start Date</FormLabel><FormControl><div><Input placeholder="e.g., Jan 2022" {...field}/></div></FormControl><FormMessage/></FormItem>)} />
-                                                        <FormField control={form.control} name={`workExperience.${index}.endDate`} render={({field}) => (<FormItem><FormLabel>End Date</FormLabel><FormControl><div><Input placeholder="Present" {...field}/></div></FormControl><FormMessage/></FormItem>)} />
+                                                        <FormField control={form.control} name={`workExperience.${index}.jobTitle`} render={({field}) => (<FormItem><FormLabel>Job Title</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>)} />
+                                                        <FormField control={form.control} name={`workExperience.${index}.companyName`} render={({field}) => (<FormItem><FormLabel>Company</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>)} />
+                                                        <FormField control={form.control} name={`workExperience.${index}.startDate`} render={({field}) => (<FormItem><FormLabel>Start Date</FormLabel><FormControl><Input placeholder="e.g., Jan 2022" {...field}/></FormControl><FormMessage/></FormItem>)} />
+                                                        <FormField control={form.control} name={`workExperience.${index}.endDate`} render={({field}) => (<FormItem><FormLabel>End Date</FormLabel><FormControl><Input placeholder="Present" {...field}/></FormControl><FormMessage/></FormItem>)} />
                                                     </div>
-                                                    <FormField control={form.control} name={`workExperience.${index}.description`} render={({field}) => (<FormItem className="mt-4"><FormLabel>Description</FormLabel><FormControl><div><Textarea {...field}/></div></FormControl><FormMessage/></FormItem>)} />
+                                                    <FormField control={form.control} name={`workExperience.${index}.description`} render={({field}) => (<FormItem className="mt-4"><FormLabel>Description</FormLabel><FormControl><Textarea {...field}/></FormControl><FormMessage/></FormItem>)} />
                                                 </Card>
                                             ))}
                                         </div>
@@ -464,10 +464,10 @@ export default function ProfilePage() {
                                                 <Card key={field.id} className="p-4 bg-secondary/50">
                                                     <div className="flex justify-end mb-2"> <Button type="button" variant="ghost" size="icon" className="text-destructive h-7 w-7" onClick={() => removeEducation(index)}><Trash2 className="h-4 w-4"/></Button> </div>
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                        <FormField control={form.control} name={`education.${index}.institution`} render={({field}) => (<FormItem><FormLabel>Institution</FormLabel><FormControl><div><Input {...field}/></div></FormControl><FormMessage/></FormItem>)} />
-                                                        <FormField control={form.control} name={`education.${index}.degree`} render={({field}) => (<FormItem><FormLabel>Degree/Certificate</FormLabel><FormControl><div><Input {...field}/></div></FormControl><FormMessage/></FormItem>)} />
-                                                        <FormField control={form.control} name={`education.${index}.fieldOfStudy`} render={({field}) => (<FormItem><FormLabel>Field of Study</FormLabel><FormControl><div><Input {...field}/></div></FormControl><FormMessage/></FormItem>)} />
-                                                        <FormField control={form.control} name={`education.${index}.graduationYear`} render={({field}) => (<FormItem><FormLabel>Graduation Year</FormLabel><FormControl><div><Input placeholder="e.g., 2024" {...field}/></div></FormControl><FormMessage/></FormItem>)} />
+                                                        <FormField control={form.control} name={`education.${index}.institution`} render={({field}) => (<FormItem><FormLabel>Institution</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>)} />
+                                                        <FormField control={form.control} name={`education.${index}.degree`} render={({field}) => (<FormItem><FormLabel>Degree/Certificate</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>)} />
+                                                        <FormField control={form.control} name={`education.${index}.fieldOfStudy`} render={({field}) => (<FormItem><FormLabel>Field of Study</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>)} />
+                                                        <FormField control={form.control} name={`education.${index}.graduationYear`} render={({field}) => (<FormItem><FormLabel>Graduation Year</FormLabel><FormControl><Input placeholder="e.g., 2024" {...field}/></FormControl><FormMessage/></FormItem>)} />
                                                     </div>
                                                 </Card>
                                             ))}
@@ -478,9 +478,9 @@ export default function ProfilePage() {
                                     <Separator/>
 
                                     <div className="grid grid-cols-1 gap-4">
-                                    <FormField control={form.control} name="github" render={({ field }) => ( <FormItem> <FormLabel><div className="flex items-center gap-2"><Icon icon="mdi:github" className="h-5 w-5" /> GitHub URL</div></FormLabel> <FormControl><div><Input placeholder="https://github.com/username" {...field} /></div></FormControl> <FormMessage /> </FormItem> )} />
-                                    <FormField control={form.control} name="gitlab" render={({ field }) => ( <FormItem> <FormLabel><div className="flex items-center gap-2"><Icon icon="mdi:gitlab" className="h-5 w-5" /> GitLab URL</div></FormLabel> <FormControl><div><Input placeholder="https://gitlab.com/username" {...field} /></div></FormControl> <FormMessage /> </FormItem> )} />
-                                    <FormField control={form.control} name="bitbucket" render={({ field }) => ( <FormItem> <FormLabel><div className="flex items-center gap-2"><Icon icon="mdi:bitbucket" className="h-5 w-5" /> Bitbucket URL</div></FormLabel> <FormControl><div><Input placeholder="https://bitbucket.org/username" {...field} /></div></FormControl> <FormMessage /> </FormItem> )} />
+                                    <FormField control={form.control} name="github" render={({ field }) => ( <FormItem> <FormLabel><div className="flex items-center gap-2"><Icon icon="mdi:github" className="h-5 w-5" /> GitHub URL</div></FormLabel> <FormControl><Input placeholder="https://github.com/username" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                                    <FormField control={form.control} name="gitlab" render={({ field }) => ( <FormItem> <FormLabel><div className="flex items-center gap-2"><Icon icon="mdi:gitlab" className="h-5 w-5" /> GitLab URL</div></FormLabel> <FormControl><Input placeholder="https://gitlab.com/username" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                                    <FormField control={form.control} name="bitbucket" render={({ field }) => ( <FormItem> <FormLabel><div className="flex items-center gap-2"><Icon icon="mdi:bitbucket" className="h-5 w-5" /> Bitbucket URL</div></FormLabel> <FormControl><Input placeholder="https://bitbucket.org/username" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
                                     </div>
                                     
                                      <div>
@@ -490,20 +490,20 @@ export default function ProfilePage() {
                                                 <Card key={field.id} className="p-4 relative bg-secondary/50">
                                                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1" onClick={() => removeProject(index)}> <Trash2 className="h-4 w-4 text-destructive" /> </Button>
                                                     <div className="grid grid-cols-1 gap-4">
-                                                        <FormField control={form.control} name={`projects.${index}.title`} render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><div><Input {...field} /></div></FormControl><FormMessage /></FormItem>)} />
-                                                        <FormField control={form.control} name={`projects.${index}.description`} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><div><Textarea {...field} /></div></FormControl><FormMessage /></FormItem>)} />
-                                                        <FormField control={form.control} name={`projects.${index}.imageUrl`} render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><div><Input {...field} /></div></FormControl><FormMessage /></FormItem>)} />
-                                                        <FormField control={form.control} name={`projects.${index}.liveUrl`} render={({ field }) => (<FormItem><FormLabel>Live URL</FormLabel><FormControl><div><Input {...field} /></div></FormControl><FormMessage /></FormItem>)} />
-                                                        <FormField control={form.control} name={`projects.${index}.sourceUrl`} render={({ field }) => (<FormItem><FormLabel>Source URL</FormLabel><FormControl><div><Input {...field} /></div></FormControl><FormMessage /></FormItem>)} />
+                                                        <FormField control={form.control} name={`projects.${index}.title`} render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                        <FormField control={form.control} name={`projects.${index}.description`} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                        <FormField control={form.control} name={`projects.${index}.imageUrl`} render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                        <FormField control={form.control} name={`projects.${index}.liveUrl`} render={({ field }) => (<FormItem><FormLabel>Live URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                        <FormField control={form.control} name={`projects.${index}.sourceUrl`} render={({ field }) => (<FormItem><FormLabel>Source URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                                                         <FormField
                                                             control={form.control}
                                                             name={`projects.${index}.technologies`}
                                                             render={({ field }) => (
                                                                 <FormItem>
                                                                     <FormLabel>Technologies</FormLabel>
-                                                                    <FormControl><div>
+                                                                    <FormControl>
                                                                         <Input {...field} onChange={(e) => field.onChange(e.target.value.split(',').map(s => s.trim()))} value={Array.isArray(field.value) ? field.value.join(', ') : ''} />
-                                                                    </div></FormControl>
+                                                                    </FormControl>
                                                                     <FormDescription>
                                                                         Enter technologies separated by a comma (e.g., React, Next.js, Firebase).
                                                                     </FormDescription>
@@ -563,12 +563,14 @@ export default function ProfilePage() {
                          <CardFooter className="flex flex-col sm:flex-row justify-between px-6 pt-6">
                             <Button variant="outline" onClick={handleLogout}>Logout</Button>
                             <div className="flex gap-2 mt-4 sm:mt-0">
-                                <Button asChild variant="secondary">
-                                    <Link href={`/portfolio/${dbUser.slug}`}>
-                                        <Eye className="mr-2 h-4 w-4" />
-                                        View Public Portfolio
-                                    </Link>
-                                </Button>
+                                {dbUser?.slug &&
+                                  <Button asChild variant="secondary">
+                                      <Link href={`/portfolio/${dbUser.slug}`}>
+                                          <Eye className="mr-2 h-4 w-4" />
+                                          View Public Portfolio
+                                      </Link>
+                                  </Button>
+                                }
                                 <Button type="submit" disabled={isLoading}>
                                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                     Save Changes
@@ -586,5 +588,3 @@ export default function ProfilePage() {
     </SidebarProvider>
   );
 }
-
-    
