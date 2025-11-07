@@ -1,9 +1,9 @@
 
 
 import { db, storage } from './firebase';
-import { ref, get, set, push, update, remove, query, orderByChild, equalTo, increment, limitToLast } from 'firebase/database';
+import { ref, get, set, push, update, remove, query, orderByChild, equalTo, increment, limitToLast, onValue } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity } from './types';
+import type { Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, Conversation, ConversationMessage } from './types';
 import { getRemoteConfig, fetchAndActivate, getString } from 'firebase/remote-config';
 import { app } from './firebase';
 import { slugify } from './utils';
@@ -20,6 +20,7 @@ export interface HeroData {
     slideshowSpeed: number;
     imageBrightness: number;
     recaptchaEnabled: boolean;
+    onboardingEnabled: boolean;
     theme?: string;
     animationsEnabled?: boolean;
     orgHeroTitle?: string;
@@ -30,10 +31,12 @@ export interface HeroData {
     programsImageUrl?: string;
     bootcampsImageUrl?: string;
     hackathonsImageUrl?: string;
+    portfoliosImageUrl?: string;
     adsEnabled?: boolean;
     adInterval?: number;
     activityTrackingEnabled?: boolean;
     aiProvider?: 'gemini' | 'openai' | 'anthropic';
+    customModelId?: string;
 }
 
 export interface TutorSettings {
@@ -239,9 +242,11 @@ export async function getHeroData(): Promise<HeroData> {
     programsImageUrl: 'https://picsum.photos/1200/400',
     bootcampsImageUrl: 'https://picsum.photos/1200/400',
     hackathonsImageUrl: 'https://picsum.photos/1200/400',
+    portfoliosImageUrl: 'https://picsum.photos/1200/400',
     slideshowSpeed: 5,
     imageBrightness: 60,
     recaptchaEnabled: true,
+    onboardingEnabled: true,
     theme: 'default',
     animationsEnabled: true,
     orgHeroTitle: 'Manda Network for Business',
@@ -253,6 +258,7 @@ export async function getHeroData(): Promise<HeroData> {
     adInterval: 30,
     activityTrackingEnabled: false,
     aiProvider: 'gemini' as const,
+    customModelId: '',
   };
 
   const dbData = snapshot.exists() ? snapshot.val() : {};
@@ -1152,3 +1158,102 @@ export async function getActivityLogs(limit: number): Promise<UserActivity[]> {
     }
     return [];
 }
+
+// Conversation/Messaging Functions
+export async function createOrUpdateConversation(payload: { studentId: string, employerName: string, employerPhotoUrl: string, organizationName: string, initialMessage: string, employerDetails: { email: string, phone: string } }): Promise<string> {
+    const { studentId, employerName, employerPhotoUrl, organizationName, initialMessage, employerDetails } = payload;
+    // For simplicity, we'll use a composite key for now. A real app might use a separate /conversations root.
+    const conversationId = `${studentId}_${slugify(employerName)}`;
+    const conversationRef = ref(db, `conversations/${conversationId}`);
+    
+    const now = new Date().toISOString();
+    
+    const message: ConversationMessage = {
+        senderId: 'employer', // Differentiate from the student
+        text: initialMessage,
+        timestamp: now,
+    };
+    
+    const conversationData = {
+        participants: {
+            [studentId]: {
+                name: (await getUserById(studentId))?.displayName || 'Student',
+                photoURL: (await getUserById(studentId))?.photoURL || ''
+            },
+            'employer': {
+                name: employerName,
+                photoURL: employerPhotoUrl,
+            }
+        },
+        lastMessage: message,
+        updatedAt: now,
+        readBy: { [studentId]: false, 'employer': true },
+        employerDetails: employerDetails,
+        organizationName: organizationName,
+    };
+
+    await update(conversationRef, conversationData);
+    const messagesRef = ref(db, `conversations/${conversationId}/messages`);
+    const newMessageRef = push(messagesRef);
+    await set(newMessageRef, message);
+    
+    await createNotification({
+        userId: studentId,
+        title: `New Message from ${employerName}`,
+        body: initialMessage.substring(0, 100) + '...',
+        link: '/messages'
+    });
+
+    return conversationId;
+}
+
+export async function sendMessage(conversationId: string, message: ConversationMessage): Promise<void> {
+    const messagesRef = ref(db, `conversations/${conversationId}/messages`);
+    const conversationRef = ref(db, `conversations/${conversationId}`);
+    const newMessageRef = push(messagesRef);
+    await set(newMessageRef, message);
+    await update(conversationRef, {
+        lastMessage: message,
+        updatedAt: new Date().toISOString(),
+    });
+}
+
+export function getConversationsForUser(userId: string, callback: (conversations: Conversation[]) => void): () => void {
+    const conversationsRef = query(ref(db, 'conversations'), orderByChild(`participants/${userId}`), equalTo(null)); // This is a trick to query keys
+    return onValue(conversationsRef, (snapshot) => {
+        const convos: Conversation[] = [];
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            Object.keys(data).forEach(key => {
+                if (key.startsWith(userId)) {
+                    convos.push({ id: key, ...data[key] });
+                }
+            });
+        }
+        callback(convos.sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
+    });
+}
+
+export function getMessagesForConversation(conversationId: string, callback: (messages: ConversationMessage[]) => void): () => void {
+    const messagesRef = query(ref(db, `conversations/${conversationId}/messages`), limitToLast(50));
+    return onValue(messagesRef, (snapshot) => {
+        const messages: ConversationMessage[] = [];
+        if(snapshot.exists()) {
+            const data = snapshot.val();
+            Object.keys(data).forEach(key => {
+                messages.push({ ...data[key] });
+            });
+        }
+        callback(messages);
+    });
+}
+
+// Portfolio Project Submission
+export async function createProjectSubmission(submissionData: Omit<ProjectSubmission, 'id'>): Promise<string> {
+    const projectSubmissionsRef = ref(db, `projectSubmissions`);
+    const newSubmissionRef = push(projectSubmissionsRef);
+    await set(newSubmissionRef, submissionData);
+    return newSubmissionRef.key!;
+}
+
+    

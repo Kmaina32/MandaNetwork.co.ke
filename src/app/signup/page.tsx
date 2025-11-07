@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -45,7 +45,7 @@ const GoogleIcon = () => (
     </svg>
 )
 
-export default function SignupPage() {
+function SignupFormComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { signup, signInWithGoogle, user, loading } = useAuth();
@@ -57,6 +57,11 @@ export default function SignupPage() {
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
   
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { firstName: '', middleName: '', lastName: '', email: '', password: '' },
+  });
+
   useEffect(() => {
     if (!loading && user) {
       router.push('/dashboard');
@@ -77,7 +82,7 @@ export default function SignupPage() {
         }
     }
     fetchInviteData();
-  }, [searchParams, toast]);
+  }, [searchParams, toast, form]);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -95,12 +100,6 @@ export default function SignupPage() {
         });
     }
   }, [siteSettings]);
-
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: { firstName: '', middleName: '', lastName: '', email: '', password: '' },
-  });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
@@ -295,3 +294,13 @@ export default function SignupPage() {
     </div>
   );
 }
+
+export default function SignupPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <SignupFormComponent />
+        </Suspense>
+    )
+}
+
+    

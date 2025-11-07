@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, GitBranch, Building, ArrowLeft, AlertTriangle } from 'lucide-react';
 import Image from 'next/image';
-import { getHeroData, getInvitation } from '@/lib/firebase-service';
+import { getHeroData, getInvitation, deleteInvitation } from '@/lib/firebase-service';
 import type { Invitation } from '@/lib/types';
 
 const formSchema = z.object({
@@ -42,7 +42,7 @@ function OrganizationSignupForm() {
   useEffect(() => {
     const fetchImage = async () => {
       const data = await getHeroData();
-      setImageUrl(data.orgSignupImageUrl);
+      setImageUrl(data.orgSignupImageUrl || '');
     }
     fetchImage();
   }, []);
@@ -52,6 +52,11 @@ function OrganizationSignupForm() {
       router.push('/organization/dashboard');
     }
   }, [user, loading, router]);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { organizationName: '', fullName: '', email: '', password: '' },
+  });
 
   useEffect(() => {
     const fetchInviteData = async () => {
@@ -67,12 +72,7 @@ function OrganizationSignupForm() {
         }
     }
     fetchInviteData();
-  }, [searchParams, toast]);
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: { organizationName: '', fullName: '', email: '', password: '' },
-  });
+  }, [searchParams, toast, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
@@ -133,6 +133,15 @@ function OrganizationSignupForm() {
                           <AlertDescription>{error}</AlertDescription>
                       </Alert>
                       )}
+                       {invitation && (
+                        <Alert className="mb-4">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>You've been invited!</AlertTitle>
+                            <AlertDescription>
+                                You are joining the <strong>{invitation.organizationName}</strong> organization.
+                            </AlertDescription>
+                        </Alert>
+                       )}
                       <FormField
                         control={form.control}
                         name="organizationName"
@@ -166,7 +175,7 @@ function OrganizationSignupForm() {
                             <FormItem>
                             <FormLabel>Your Email (Admin Account)</FormLabel>
                             <FormControl>
-                                <Input placeholder="jomo@example.com" {...field} />
+                                <Input placeholder="jomo@example.com" {...field} disabled={!!invitation} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>

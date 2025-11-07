@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -87,11 +88,12 @@ export default function MessagesPage() {
   // Filter and sort messages
   const filteredAndSortedMessages = messages
     .filter(msg => {
+      const body = msg.body as any; // Type assertion
       const matchesSearch = 
-        msg.body.employerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        msg.body.organizationName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        msg.body.message?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        msg.body.email?.toLowerCase().includes(searchQuery.toLowerCase());
+        body.employerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        body.organizationName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        body.message?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        body.email?.toLowerCase().includes(searchQuery.toLowerCase());
       
       const matchesFilter = filterUnread ? !msg.read : true;
       
@@ -317,7 +319,7 @@ export default function MessagesPage() {
                                                         />
                                                         <Avatar className="h-10 w-10 flex-shrink-0">
                                                             <AvatarFallback className="bg-primary/10">
-                                                                {msg.body.employerName?.[0]?.toUpperCase() || 'E'}
+                                                                {(msg.body as any).employerName?.[0]?.toUpperCase() || 'E'}
                                                             </AvatarFallback>
                                                         </Avatar>
                                                         <div className="flex-1 min-w-0">
@@ -325,7 +327,7 @@ export default function MessagesPage() {
                                                                 <div className="flex-1">
                                                                     <div className="flex items-center gap-2 mb-1">
                                                                         <p className="font-semibold text-sm">
-                                                                            {msg.body.employerName}
+                                                                            {(msg.body as any).employerName}
                                                                         </p>
                                                                         {!msg.read && (
                                                                             <Badge variant="secondary" className="h-5 px-2 text-xs">
@@ -334,7 +336,7 @@ export default function MessagesPage() {
                                                                         )}
                                                                     </div>
                                                                     <p className="text-sm text-muted-foreground">
-                                                                        {msg.body.organizationName}
+                                                                        {(msg.body as any).organizationName}
                                                                     </p>
                                                                     <p className="text-xs text-muted-foreground mt-1">
                                                                         {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
@@ -342,20 +344,20 @@ export default function MessagesPage() {
                                                                 </div>
                                                                 <div className="flex flex-col sm:items-end gap-1 text-sm">
                                                                     <a 
-                                                                        href={`mailto:${msg.body.email}`} 
+                                                                        href={`mailto:${(msg.body as any).email}`} 
                                                                         className="text-primary hover:underline text-sm"
                                                                         onClick={() => !msg.read && markAsRead(msg.id)}
                                                                     >
-                                                                        {msg.body.email}
+                                                                        {(msg.body as any).email}
                                                                     </a>
-                                                                    {msg.body.phone && (
-                                                                        <p className="text-muted-foreground text-sm">{msg.body.phone}</p>
+                                                                    {(msg.body as any).phone && (
+                                                                        <p className="text-muted-foreground text-sm">{(msg.body as any).phone}</p>
                                                                     )}
                                                                 </div>
                                                             </div>
                                                             <div className="mt-3 pt-3 border-t">
                                                                 <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                                                                    {msg.body.message}
+                                                                    {(msg.body as any).message}
                                                                 </p>
                                                             </div>
                                                             <div className="flex gap-2 mt-4">
@@ -363,7 +365,7 @@ export default function MessagesPage() {
                                                                     variant="default"
                                                                     size="sm"
                                                                     onClick={() => {
-                                                                        window.location.href = `mailto:${msg.body.email}?subject=Re: Job Inquiry&body=Hi ${msg.body.employerName},%0D%0A%0D%0A`;
+                                                                        window.location.href = `mailto:${(msg.body as any).email}?subject=Re: Job Inquiry&body=Hi ${(msg.body as any).employerName},%0D%0A%0D%0A`;
                                                                         if (!msg.read) markAsRead(msg.id);
                                                                     }}
                                                                 >
@@ -469,3 +471,5 @@ export default function MessagesPage() {
     </SidebarProvider>
   );
 }
+
+    

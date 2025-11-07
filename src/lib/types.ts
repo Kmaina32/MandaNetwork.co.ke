@@ -1,4 +1,5 @@
 
+
 import { z } from 'zod';
 import type { Metadata as NextMetadata } from 'next';
 
@@ -174,6 +175,8 @@ export interface Notification {
     createdAt: string;
     cohort?: string;
     userId?: string; // For targeted notifications
+    archived?: boolean;
+    read?: boolean;
     actions?: Array<{
         title: string;
         action: 'accept_org_invite';
