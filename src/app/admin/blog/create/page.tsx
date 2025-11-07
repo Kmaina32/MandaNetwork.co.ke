@@ -22,7 +22,7 @@ import { useAuth } from '@/hooks/use-auth';
 
 const blogPostSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters.'),
-  slug: z.string(),
+  slug: z.string().optional(),
   description: z.string().min(10, 'Description is required.'),
   imageUrl: z.string().url('Must be a valid image URL.'),
   author: z.string().min(2, 'Author name is required.'),
@@ -60,7 +60,11 @@ export default function CreateBlogPostPage() {
   const onSubmit = async (values: z.infer<typeof blogPostSchema>) => {
     setIsLoading(true);
     try {
-      await createBlogPost(values);
+      const dataToSave = {
+        ...values,
+        slug: slugify(values.title), // Ensure slug is always generated
+      };
+      await createBlogPost(dataToSave);
       toast({
         title: 'Post Created!',
         description: `Your new blog post "${values.title}" has been saved.`,
@@ -123,7 +127,7 @@ export default function CreateBlogPostPage() {
                       <FormItem>
                         <FormLabel>Slug (URL)</FormLabel>
                         <FormControl>
-                          <Input placeholder="auto-generated-from-title" {...field} />
+                          <Input placeholder="auto-generated-from-title" {...field} disabled />
                         </FormControl>
                          <p className="text-sm text-muted-foreground">This is the URL-friendly version of the title.</p>
                         <FormMessage />
