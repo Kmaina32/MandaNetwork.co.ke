@@ -21,12 +21,9 @@ import { useToast } from '@/hooks/use-toast';
 import { RegisteredUser } from '@/lib/types';
 import { sendContactMessage } from '@/app/actions';
 import { Input } from './ui/input';
+import { useAuth } from '@/hooks/use-auth';
 
 const contactFormSchema = z.object({
-  employerName: z.string().min(2, 'Please enter your name.'),
-  organizationName: z.string().min(2, 'Please enter your company name.'),
-  email: z.string().email(),
-  phone: z.string().min(10, 'Please enter a valid phone number.'),
   message: z.string().min(20, 'Message must be at least 20 characters long.'),
 });
 
@@ -39,29 +36,34 @@ interface ContactStudentDialogProps {
 }
 
 export function ContactStudentDialog({ student, isOpen, onClose }: ContactStudentDialogProps) {
+  const { user, organization } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(contactFormSchema),
     defaultValues: {
-      employerName: '',
-      organizationName: '',
-      email: '',
-      phone: '',
       message: '',
     },
   });
 
   const onSubmit = async (values: ContactFormValues) => {
+    if (!user) {
+        toast({ title: "Authentication Error", description: "You must be logged in to contact students.", variant: "destructive" });
+        return;
+    }
+    
     setIsLoading(true);
     try {
       await sendContactMessage({
         studentId: student.uid,
-        employerName: values.employerName,
-        organizationName: values.organizationName,
-        email: values.email,
-        phone: values.phone,
+        studentName: student.displayName || 'the student',
+        employerId: user.uid,
+        employerName: user.displayName || 'An Employer',
+        employerPhotoUrl: user.photoURL || '',
+        organizationName: organization?.name || 'their organization',
+        email: user.email || 'Not provided',
+        phone: 'Not provided', // You might want to add this to the employer's profile
         message: values.message,
       });
 
@@ -89,59 +91,11 @@ export function ContactStudentDialog({ student, isOpen, onClose }: ContactStuden
         <DialogHeader>
           <DialogTitle>Contact {student.displayName}</DialogTitle>
           <DialogDescription>
-            Your message will be sent as a notification. Please provide your contact details so they can reply.
+            Your message will be sent to the student. They will see your name and organization.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-               <FormField
-                    control={form.control}
-                    name="employerName"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Your Name</FormLabel>
-                            <FormControl><Input placeholder="Jomo Kenyatta" {...field} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="organizationName"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Your Company Name</FormLabel>
-                            <FormControl><Input placeholder="Acme Inc." {...field} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            </div>
-             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Your Email</FormLabel>
-                            <FormControl><Input type="email" placeholder="you@company.com" {...field} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Your Phone Number</FormLabel>
-                            <FormControl><Input placeholder="07XX XXX XXX" {...field} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-             </div>
             <FormField
               control={form.control}
               name="message"

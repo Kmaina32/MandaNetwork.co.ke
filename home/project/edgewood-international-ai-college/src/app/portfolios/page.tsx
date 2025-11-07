@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { getPublicProfiles, getHeroData } from '@/lib/firebase-service';
+import { getPublicProfiles, getHeroData, createNotification } from '@/lib/firebase-service';
 import type { RegisteredUser, Metadata } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -16,7 +16,8 @@ import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { Input } from '@/components/ui/input';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
-
+import { ProfileCompletionDialog } from '@/components/shared/ProfileCompletionDialog';
+import { useToast } from '@/hooks/use-toast';
 
 const getInitials = (name: string | null | undefined) => {
     if (!name) return 'U';
@@ -47,10 +48,12 @@ export default function PortfoliosPage() {
     const [heroData, setHeroData] = useState<{ portfoliosImageUrl?: string }>({});
     const [loading, setLoading] = useState(true);
     const [selectedStudent, setSelectedStudent] = useState<RegisteredUser | null>(null);
+    const [dialogState, setDialogState] = useState<{ type: 'contact' | 'completion'; student: RegisteredUser | null }>({ type: 'contact', student: null });
+
     const autoplayPlugin = useRef(Autoplay({ delay: 5000, stopOnInteraction: true }));
     const { isOrganizationAdmin, isAdmin } = useAuth();
     const isEmployer = isOrganizationAdmin || isAdmin;
-
+    const { toast } = useToast();
 
     useEffect(() => {
         const fetchPageData = async () => {
@@ -70,6 +73,31 @@ export default function PortfoliosPage() {
         };
         fetchPageData();
     }, []);
+    
+    const isProfileComplete = (student: RegisteredUser) => {
+        return student.displayName && student.displayName !== 'New Member' &&
+               student.portfolio?.aboutMe &&
+               student.portfolio?.socialLinks?.github;
+    };
+
+    const handleContactClick = (student: RegisteredUser) => {
+        if (isProfileComplete(student)) {
+            setDialogState({ type: 'contact', student: student });
+        } else {
+            createNotification({
+                userId: student.uid,
+                title: "Complete Your Profile!",
+                body: "An employer tried to contact you, but your portfolio is incomplete. Update it now to be discovered!",
+                link: "/profile",
+            });
+            toast({
+                title: "Profile Incomplete",
+                description: "This student needs to complete their profile before they can be contacted. We've sent them a notification.",
+                duration: 7000
+            });
+        }
+    };
+
 
     return (
         <>
@@ -160,7 +188,7 @@ export default function PortfoliosPage() {
                                                 View Portfolio
                                             </Link>
                                         </Button>
-                                        <Button variant="outline" className="w-full" onClick={() => setSelectedStudent(profile)}>
+                                        <Button variant="outline" className="w-full" onClick={() => handleContactClick(profile)}>
                                             <Mail className="mr-2 h-4 w-4"/>
                                             Contact
                                         </Button>
@@ -175,11 +203,11 @@ export default function PortfoliosPage() {
                     )}
                 </section>
             </main>
-            {selectedStudent && (
+            {dialogState.type === 'contact' && dialogState.student && (
                  <ContactStudentDialog 
-                    student={selectedStudent}
-                    isOpen={!!selectedStudent}
-                    onClose={() => setSelectedStudent(null)}
+                    student={dialogState.student}
+                    isOpen={true}
+                    onClose={() => setDialogState({ type: 'contact', student: null })}
                  />
             )}
         </>

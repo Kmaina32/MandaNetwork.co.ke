@@ -5,7 +5,7 @@
 // between server and client code. All functions exported from a 'use server' file must be async.
 
 import type { LearningPathInput, LearningPathOutput } from '@/ai/flows/career-coach';
-import type { ContentStrategyOutput, CardPaymentInput, PayPalPaymentInput, ApiKey, ProjectSubmission, Conversation } from '@/lib/types';
+import type { ContentStrategyOutput, CardPaymentInput, PayPalPaymentInput, ApiKey, ProjectSubmission, Conversation, Notification } from '@/lib/types';
 import type { CourseTutorInput, CourseTutorOutput } from '@/ai/flows/course-tutor';
 import type { GenerateApiKeyInput } from '@/ai/flows/generate-api-key';
 import type { GenerateCourseContentInput, GenerateCourseContentOutput } from '@/ai/flows/generate-course-content';
@@ -175,4 +175,8 @@ export async function sendChatMessage(conversationId: string, senderId: string, 
         text,
         timestamp: new Date().toISOString(),
     });
+}
+
+export async function createNotificationAction(data: Omit<Notification, 'id' | 'createdAt'>) {
+    return createNotification(data);
 }
