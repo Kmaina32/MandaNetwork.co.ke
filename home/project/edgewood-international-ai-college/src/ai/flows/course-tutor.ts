@@ -12,7 +12,6 @@
 import { ai } from '@/ai/genkit-instance';
 import {z} from 'genkit';
 import { textToSpeech } from './text-to-speech';
-import { googleAI } from '@genkit-ai/google-genai';
 
 const HistoryItemSchema = z.object({
   role: z.enum(['user', 'model']),

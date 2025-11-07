@@ -11,9 +11,13 @@ import { getHeroData } from '@/lib/firebase-service';
 
 const plugins: Plugin<any>[] = [];
 
-let aiProvider = process.env.AI_PROVIDER;
+let aiProvider: string | undefined;
 
 async function configurePlugins() {
+    // Try to get provider from environment variables first
+    aiProvider = process.env.AI_PROVIDER;
+
+    // If not set, fetch from the database
     if (!aiProvider) {
         try {
             const settings = await getHeroData();
@@ -28,31 +32,26 @@ async function configurePlugins() {
         case 'openai':
             if (process.env.OPENAI_API_KEY) {
                 plugins.push(openAI());
+                 console.log("Using OpenAI as the AI provider.");
             } else {
-                 console.warn("AI_PROVIDER is 'openai' but OPENAI_API_KEY is not set. AI features will be disabled.");
+                 console.warn("AI_PROVIDER is 'openai' but OPENAI_API_KEY is not set. Falling back to Gemini.");
+                 plugins.push(googleAI());
             }
             break;
         case 'anthropic':
             if (process.env.ANTHROPIC_API_KEY) {
                 plugins.push(anthropic());
+                console.log("Using Anthropic as the AI provider.");
             } else {
-                console.warn("AI_PROVIDER is 'anthropic' but ANTHROPIC_API_KEY is not set. AI features will be disabled.");
+                console.warn("AI_PROVIDER is 'anthropic' but ANTHROPIC_API_KEY is not set. Falling back to Gemini.");
+                plugins.push(googleAI());
             }
             break;
-        case 'custom':
-             if (process.env.CUSTOM_LLM_ENDPOINT) {
-                // IMPORTANT: This is a placeholder for your custom LLM integration.
-                // You would typically use a custom Genkit plugin to connect to your own model API.
-                // For example: `plugins.push(myCustomLlmPlugin({ endpoint: process.env.CUSTOM_LLM_ENDPOINT }))`
-                console.log(`Configuring custom LLM provider with endpoint: ${process.env.CUSTOM_LLM_ENDPOINT}`);
-             } else {
-                 console.warn("AI_PROVIDER is 'custom' but CUSTOM_LLM_ENDPOINT is not set. AI features will be disabled.");
-             }
-             break;
         case 'gemini':
         default:
             if (process.env.GEMINI_API_KEY) {
                 plugins.push(googleAI());
+                console.log("Using Google Gemini as the AI provider.");
             } else {
                 console.warn("AI_PROVIDER is 'gemini' but GEMINI_API_KEY is not set. All AI features will be disabled.");
             }

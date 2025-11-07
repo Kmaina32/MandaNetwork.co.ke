@@ -59,6 +59,7 @@
     "firebase-functions": "^5.0.1",
     "framer-motion": "^11.2.10",
     "genkit": "1.18.0",
+    "genkitx/anthropic": "1.18.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.2",
     "lucide-react": "^0.475.0",

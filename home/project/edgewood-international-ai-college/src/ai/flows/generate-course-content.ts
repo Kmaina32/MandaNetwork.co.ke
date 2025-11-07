@@ -11,7 +11,6 @@
 
 import { ai } from '@/ai/genkit-instance';
 import {z} from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
 import { listCoursesTool } from '../tools/course-catalog';
 import { PortfolioProject } from '@/lib/types';
 

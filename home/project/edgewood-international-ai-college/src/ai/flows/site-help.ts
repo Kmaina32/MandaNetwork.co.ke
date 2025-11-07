@@ -11,7 +11,6 @@
 
 import { ai } from '@/ai/genkit-instance';
 import {z} from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
 
 const SiteHelpInputSchema = z.object({
   question: z.string().describe('The question the user is asking about the site.'),
