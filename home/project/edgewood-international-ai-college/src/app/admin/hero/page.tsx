@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -51,6 +52,7 @@ const heroFormSchema = z.object({
   orgSignupImageUrl: z.string().url('Please enter a valid URL.'),
   activityTrackingEnabled: z.boolean().default(false),
   aiProvider: z.enum(['gemini', 'openai', 'anthropic']).default('gemini'),
+  customModelId: z.string().optional(),
 });
 
 export default function AdminHeroPage() {
@@ -85,6 +87,7 @@ export default function AdminHeroPage() {
       orgSignupImageUrl: '',
       activityTrackingEnabled: false,
       aiProvider: 'gemini',
+      customModelId: '',
     },
   });
 
@@ -118,6 +121,7 @@ export default function AdminHeroPage() {
           onboardingEnabled: dbData.onboardingEnabled !== false,
           activityTrackingEnabled: dbData.activityTrackingEnabled || false,
           aiProvider: dbData.aiProvider || 'gemini',
+          customModelId: dbData.customModelId || '',
         });
 
       } catch (error) {
@@ -239,6 +243,22 @@ export default function AdminHeroPage() {
                                 </Select>
                                 <FormDescription>
                                     Select the primary AI service to power all generative features.
+                                </FormDescription>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="customModelId"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Custom Model ID (Optional)</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Enter your fine-tuned model ID" {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                    If you have a fine-tuned model, enter its ID here to use it across the platform.
                                 </FormDescription>
                                 <FormMessage />
                                 </FormItem>

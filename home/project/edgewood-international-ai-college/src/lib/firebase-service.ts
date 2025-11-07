@@ -35,6 +35,7 @@ export interface HeroData {
     adInterval?: number;
     activityTrackingEnabled?: boolean;
     aiProvider?: 'gemini' | 'openai' | 'anthropic';
+    customModelId?: string; // Fine-tuned model ID
     onboardingEnabled?: boolean;
 }
 
@@ -268,6 +269,7 @@ export async function getHeroData(): Promise<HeroData> {
     activityTrackingEnabled: false,
     aiProvider: 'gemini' as const,
     onboardingEnabled: true,
+    customModelId: ''
   };
 
   const dbData = snapshot.exists() ? snapshot.val() : {};
