@@ -13,12 +13,10 @@ import type { GenerateExamInput, GenerateExamOutput } from '@/ai/flows/generate-
 import type { GradeShortAnswerExamInput, GradeShortAnswerExamOutput } from '@/ai/flows/grade-short-answer-exam';
 import type { MpesaPaymentInput, MpesaPaymentOutput } from '@/ai/flows/mpesa-payment';
 import type { SiteHelpInput, SiteHelpOutput } from '@/ai/flows/site-help';
-import type { SpeechToTextOutput } from '@/ai/flows/speech-to-text';
 import type { GenerateProjectInput, GenerateProjectOutput } from '@/ai/flows/generate-project';
 import type { CreateOrgInviteInput as SendOrgInviteInput, CreateOrgInviteOutput as SendOrgInviteOutput } from '@/ai/flows/send-org-invite';
 import type { GenerateFormalDocumentInput, GenerateFormalDocumentOutput } from '@/ai/flows/generate-document';
 import type { GenerateHackathonIdeasInput, GenerateHackathonIdeasOutput } from '@/ai/flows/generate-hackathon-ideas';
-import type { TextToSpeechOutput, TextToSpeechInput } from '@/ai/flows/text-to-speech';
 import type { StudentHelpInput, StudentHelpOutput } from '@/ai/flows/student-help';
 import type { GetPortfolioFeedbackInput, GetPortfolioFeedbackOutput } from '@/ai/flows/portfolio-advisor';
 import { createNotification, createProjectSubmission as saveProjectSubmission, createOrUpdateConversation, sendMessage, awardLeaderboardPoints } from '@/lib/firebase-service';
@@ -107,20 +105,9 @@ export async function siteHelp(input: SiteHelpInput): Promise<SiteHelpOutput> {
   return siteHelp(input);
 }
 
-export async function speechToText(input: { audioDataUri: string }): Promise<SpeechToTextOutput> {
-  const { speechToText } = await import('@/ai/flows/speech-to-text');
-  // @ts-ignore
-  return speechToText(input);
-}
-
 export async function studentHelp(input: StudentHelpInput): Promise<StudentHelpOutput> {
   const { studentHelp } = await import('@/ai/flows/student-help');
   return studentHelp(input);
-}
-
-export async function textToSpeech(input: TextToSpeechInput): Promise<TextToSpeechOutput> {
-    const { textToSpeechFlow } = await import('@/ai/flows/text-to-speech');
-    return textToSpeechFlow(input);
 }
 
 export async function sendOrganizationInvite(input: SendOrgInviteInput): Promise<SendOrgInviteOutput> {
