@@ -9,15 +9,106 @@ import type { Hackathon, HackathonSubmission } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, GitBranch, Github, ExternalLink, User } from 'lucide-react';
+import { Loader2, ArrowLeft, GitBranch, Github, ExternalLink, User, Award } from 'lucide-react';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { awardPoints } from '@/app/actions';
+
 
 const getInitials = (name: string) => {
     const names = name.split(' ');
     return names.length > 1 ? `${names[0][0]}${names[names.length - 1][0]}` : names[0]?.[0] || 'U';
 };
+
+const pointAwardSchema = z.object({
+  points: z.coerce.number().int().min(1, "Points must be at least 1."),
+});
+
+function SubmissionCard({ sub }: { sub: HackathonSubmission }) {
+    const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    const form = useForm<z.infer<typeof pointAwardSchema>>({
+        resolver: zodResolver(pointAwardSchema),
+        defaultValues: { points: 10 },
+    });
+    
+    const onAwardPoints = async (values: z.infer<typeof pointAwardSchema>) => {
+        setIsSubmitting(true);
+        try {
+            await awardPoints(sub.userId, values.points);
+            toast({
+                title: 'Points Awarded!',
+                description: `${values.points} points have been awarded to ${sub.userName}.`
+            });
+            form.reset();
+        } catch (error) {
+            console.error("Failed to award points:", error);
+            toast({ title: 'Error', description: 'Could not award points.', variant: 'destructive'});
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
+
+    return (
+        <Card className="flex flex-col">
+            <CardHeader>
+                <CardTitle>{sub.projectName}</CardTitle>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground pt-1">
+                    <User className="h-4 w-4"/>
+                    <span>{sub.userName}</span>
+                    <span>&bull;</span>
+                    <span>{format(new Date(sub.submittedAt), 'PPP')}</span>
+                </div>
+            </CardHeader>
+            <CardContent className="flex-grow">
+                <p className="text-sm text-muted-foreground line-clamp-4">{sub.description}</p>
+            </CardContent>
+             <CardFooter className="flex flex-col items-start gap-4">
+                 <div className="flex justify-start gap-2 w-full">
+                     <Button asChild size="sm" variant="outline">
+                        <a href={sub.githubUrl} target="_blank" rel="noreferrer" title="GitHub Repo">
+                            <Github className="mr-2 h-4 w-4" />
+                            Code
+                        </a>
+                    </Button>
+                     <Button asChild size="sm">
+                        <a href={sub.liveUrl} target="_blank" rel="noreferrer" title="Live Demo">
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            Live Demo
+                        </a>
+                    </Button>
+                 </div>
+                 <Form {...form}>
+                     <form onSubmit={form.handleSubmit(onAwardPoints)} className="flex items-end gap-2 w-full">
+                        <FormField
+                            control={form.control}
+                            name="points"
+                            render={({ field }) => (
+                                <FormItem className="flex-grow">
+                                    <FormLabel className="text-xs">Award Points</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" placeholder="e.g., 50" {...field} />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+                        <Button type="submit" size="sm" disabled={isSubmitting}>
+                            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin"/> : <Award className="h-4 w-4" />}
+                        </Button>
+                     </form>
+                 </Form>
+            </CardFooter>
+        </Card>
+    )
+}
 
 export default function HackathonSubmissionsPage() {
     const params = useParams<{ id: string }>();
@@ -83,34 +174,7 @@ export default function HackathonSubmissionsPage() {
                 {submissions.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                         {submissions.map(sub => (
-                             <Card key={sub.id} className="flex flex-col">
-                                <CardHeader>
-                                    <CardTitle>{sub.projectName}</CardTitle>
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground pt-1">
-                                        <User className="h-4 w-4"/>
-                                        <span>{sub.userName}</span>
-                                        <span>&bull;</span>
-                                        <span>{format(new Date(sub.submittedAt), 'PPP')}</span>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="flex-grow">
-                                    <p className="text-sm text-muted-foreground line-clamp-4">{sub.description}</p>
-                                </CardContent>
-                                <CardFooter className="flex justify-end gap-2">
-                                     <Button asChild size="sm" variant="outline">
-                                        <a href={sub.githubUrl} target="_blank" rel="noreferrer" title="GitHub Repo">
-                                            <Github className="mr-2 h-4 w-4" />
-                                            Code
-                                        </a>
-                                    </Button>
-                                     <Button asChild size="sm">
-                                        <a href={sub.liveUrl} target="_blank" rel="noreferrer" title="Live Demo">
-                                            <ExternalLink className="mr-2 h-4 w-4" />
-                                            Live Demo
-                                        </a>
-                                    </Button>
-                                </CardFooter>
-                            </Card>
+                             <SubmissionCard key={sub.id} sub={sub} />
                         ))}
                     </div>
                 ) : (

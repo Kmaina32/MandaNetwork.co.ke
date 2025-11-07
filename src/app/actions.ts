@@ -21,7 +21,7 @@ import type { GenerateHackathonIdeasInput, GenerateHackathonIdeasOutput } from '
 import type { TextToSpeechOutput, TextToSpeechInput } from '@/ai/flows/text-to-speech';
 import type { StudentHelpInput, StudentHelpOutput } from '@/ai/flows/student-help';
 import type { GetPortfolioFeedbackInput, GetPortfolioFeedbackOutput } from '@/ai/flows/portfolio-advisor';
-import { createNotification, createProjectSubmission as saveProjectSubmission, createOrUpdateConversation, sendMessage } from '@/lib/firebase-service';
+import { createNotification, createProjectSubmission as saveProjectSubmission, createOrUpdateConversation, sendMessage, awardLeaderboardPoints } from '@/lib/firebase-service';
 import { checkHackathonParticipantAchievement } from '@/lib/achievements';
 
 // Each function dynamically imports its corresponding flow, ensuring that the AI logic
@@ -144,6 +144,10 @@ export async function generateHackathonIdeas(input: GenerateHackathonIdeasInput)
     return result;
 }
 
+export async function awardPoints(userId: string, points: number): Promise<void> {
+    await awardLeaderboardPoints(userId, points);
+}
+
 export async function getPortfolioFeedback(input: GetPortfolioFeedbackInput): Promise<GetPortfolioFeedbackOutput> {
     const { getPortfolioFeedback } = await import('@/ai/flows/portfolio-advisor');
     return getPortfolioFeedback(input);
@@ -152,20 +156,19 @@ export async function getPortfolioFeedback(input: GetPortfolioFeedbackInput): Pr
 export async function sendContactMessage(payload: {
   studentId: string;
   studentName: string;
-  employerName: string;
-  employerPhotoUrl: string;
+  employerPhotoUrl?: string;
   organizationName: string;
   email: string;
   phone: string;
   message: string;
 }) {
-  const { studentId, studentName, employerName, employerPhotoUrl, organizationName, email, phone, message } = payload;
+  const { studentId, studentName, employerPhotoUrl, organizationName, email, phone, message } = payload;
     
   await createOrUpdateConversation({
     studentId,
     studentName,
-    employerName,
-    employerPhotoUrl,
+    employerName: payload.employerName,
+    employerPhotoUrl: employerPhotoUrl || '',
     organizationName,
     initialMessage: message,
     employerDetails: {
@@ -182,5 +185,3 @@ export async function sendChatMessage(conversationId: string, senderId: string, 
         timestamp: new Date().toISOString(),
     });
 }
-
-    
