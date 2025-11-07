@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -25,6 +26,7 @@ import {
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { format } from 'date-fns';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 export default function AdminBootcampsPage() {
   const { user, isSuperAdmin } = useAuth();
@@ -110,8 +112,7 @@ export default function AdminBootcampsPage() {
             <CardContent>
               {loading ? (
                 <div className="flex justify-center items-center py-10">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                  <p className="ml-2">Loading bootcamps...</p>
+                  <LoadingAnimation />
                 </div>
               ) : (
                 <Table>

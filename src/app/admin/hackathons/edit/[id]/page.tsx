@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -18,6 +19,7 @@ import { ArrowLeft, Loader2, Trophy, Calendar as CalendarIcon } from 'lucide-rea
 import { getHackathonById, updateHackathon } from '@/lib/firebase-service';
 import type { Hackathon } from '@/lib/types';
 import { FormDatePicker } from '@/components/ui/form-datepicker';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 const hackathonFormSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters'),
@@ -115,7 +117,7 @@ export default function EditHackathonPage() {
             <CardContent>
               {isFetching ? (
                 <div className="flex justify-center items-center py-10">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  <LoadingAnimation />
                 </div>
               ) : (
                 <Form {...form}>

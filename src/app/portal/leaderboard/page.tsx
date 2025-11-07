@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 const getInitials = (name: string | null | undefined) => {
     if (!name) return 'U';
@@ -47,7 +49,7 @@ export default function LeaderboardPage() {
     }, [user, authLoading, router]);
 
     if (authLoading || loading) {
-        return <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>
+        return <div className="flex justify-center items-center h-full"><LoadingAnimation /></div>
     }
 
     return (

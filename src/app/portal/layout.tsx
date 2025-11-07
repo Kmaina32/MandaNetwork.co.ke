@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useAuth } from '@/hooks/use-auth';
@@ -9,6 +10,7 @@ import { Loader2 } from 'lucide-react';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { PortalSidebar } from '@/components/PortalSidebar';
 import { useEffect } from 'react';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 export default function PortalLayout({
   children,
@@ -28,8 +30,7 @@ export default function PortalLayout({
   if (loading || !user) {
      return (
         <div className="flex h-screen items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin" />
-            <p className="ml-2">Loading Portal...</p>
+            <LoadingAnimation />
         </div>
      )
   }

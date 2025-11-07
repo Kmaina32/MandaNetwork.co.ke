@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -15,6 +16,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { format, isPast } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { PaymentModal } from '@/components/PaymentModal';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 export default function HackathonDetailPage() {
   const params = useParams<{ id: string }>();
@@ -83,10 +85,7 @@ export default function HackathonDetailPage() {
   if (loading || authLoading) {
     return (
         <div className="flex justify-center items-center min-h-screen px-4">
-            <div className="flex items-center">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                <p className="ml-2 text-sm sm:text-base">Loading hackathon details...</p>
-            </div>
+            <LoadingAnimation />
         </div>
     )
   }

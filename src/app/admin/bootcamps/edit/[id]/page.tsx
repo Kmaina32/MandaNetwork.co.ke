@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -24,6 +25,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { useAuth } from '@/hooks/use-auth';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 const bootcampFormSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters'),
@@ -120,7 +122,7 @@ export default function EditBootcampPage() {
   if (authLoading || !isSuperAdmin) {
       return (
            <div className="flex justify-center items-center h-screen">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <LoadingAnimation />
             </div>
       )
   }
@@ -146,7 +148,7 @@ export default function EditBootcampPage() {
             <CardContent>
               {isFetching ? (
                 <div className="flex justify-center items-center py-10">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  <LoadingAnimation />
                 </div>
               ) : (
                 <Form {...form}>

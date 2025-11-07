@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 type AnalyticsData = {
   totalUsers: number;
@@ -173,8 +174,7 @@ export default function AdminDashboardPage() {
         
         {loading ? (
            <div className="flex justify-center items-center py-10">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                <p className="ml-2">Loading dashboard...</p>
+                <LoadingAnimation />
             </div>
         ) : !analyticsData ? (
              <p className="text-destructive text-center py-10">Failed to load dashboard data.</p>
