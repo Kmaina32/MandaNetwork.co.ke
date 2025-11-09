@@ -79,15 +79,28 @@ export default function AdminPaymentsPage() {
                <ArrowLeft className="h-4 w-4" />
                Back to Admin Dashboard
             </Link>
+            
+            <div className="flex items-center gap-4 mb-8">
+                <CreditCard className="h-8 w-8" />
+                <div>
+                    <h1 className="text-3xl font-bold font-headline">Manage Payments</h1>
+                    <p className="text-muted-foreground">View transaction history for all course enrollments.</p>
+                </div>
+            </div>
+
+            <Card className="mb-8">
+                <CardHeader>
+                    <CardTitle>Accepted Payment Methods</CardTitle>
+                    <CardDescription>To configure these, update your environment variables or smart contract settings.</CardDescription>
+                </CardHeader>
+                 <CardContent>
+                   <PaymentIcons />
+                </CardContent>
+            </Card>
+
             <Card>
                 <CardHeader>
-                    <div className="flex items-center gap-4">
-                        <CreditCard className="h-8 w-8" />
-                        <div>
-                            <CardTitle>Manage Payments</CardTitle>
-                            <CardDescription>View transaction history for all course enrollments.</CardDescription>
-                        </div>
-                    </div>
+                    <CardTitle>Transaction History</CardTitle>
                 </CardHeader>
                 <CardContent>
                    {loading ? (
@@ -136,14 +149,6 @@ export default function AdminPaymentsPage() {
                         </TableBody>
                       </Table>
                     )}
-                </CardContent>
-            </Card>
-            <Card className="mt-8">
-                <CardHeader>
-                    <CardTitle>Accepted Payment Methods</CardTitle>
-                </CardHeader>
-                 <CardContent>
-                   <PaymentIcons />
                 </CardContent>
             </Card>
         </div>
