@@ -14,22 +14,22 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const teamMembers = [
     {
-        name: "Ciara",
-        role: "Founder & CEO",
-        avatar: "/avatars/female-1.png",
-        description: "Visionary leader with a passion for leveraging technology to democratize education across Kenya."
-    },
-    {
-        name: "Jomo",
-        role: "Lead Instructor",
+        name: "George Kairu Maina",
+        role: "Founder & CTO",
         avatar: "/avatars/male-1.png",
-        description: "An expert in data science and AI, dedicated to creating world-class, practical course content."
+        description: "The visionary architect behind our platform, driving the technical strategy to democratize education."
     },
     {
-        name: "Amani",
-        role: "Community Manager",
-        avatar: "/avatars/female-2.png",
-        description: "Fosters a vibrant and supportive learning community for all Manda Network students."
+        name: "Nathan Kabare",
+        role: "Director of Marketing",
+        avatar: "/avatars/male-2.png",
+        description: "Leads our growth and brand strategy, connecting with learners and partners across Kenya."
+    },
+    {
+        name: "Joel K",
+        role: "Operations Director",
+        avatar: "/avatars/male-3.png",
+        description: "Ensures the smooth day-to-day running of the platform, focusing on student success and operational excellence."
     }
 ]
 
