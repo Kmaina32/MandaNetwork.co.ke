@@ -16,12 +16,25 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
+import { Label } from '@/components/ui/label';
+import { getReferralsByAffiliate } from '@/lib/firebase-service';
+import type { Referral } from '@/lib/types';
+import { format } from 'date-fns';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function AffiliateDashboardPage() {
     const { user, dbUser, loading: authLoading } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
+    const [referrals, setReferrals] = useState<Referral[]>([]);
 
     const affiliateLink = user && dbUser?.affiliateId ? `${window.location.origin}/signup?ref=${dbUser.affiliateId}` : '';
 
@@ -29,16 +42,24 @@ export default function AffiliateDashboardPage() {
         if (!authLoading) {
             if (!user) {
                 router.push('/login?redirect=/dashboard/affiliate');
+            } else if (dbUser?.affiliateId) {
+                getReferralsByAffiliate(dbUser.affiliateId).then(data => {
+                    setReferrals(data);
+                    setLoading(false);
+                });
             } else {
-                setLoading(false);
+                 setLoading(false);
             }
         }
-    }, [user, authLoading, router]);
+    }, [user, authLoading, router, dbUser]);
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(affiliateLink);
         toast({ title: "Link Copied!", description: "Your affiliate link has been copied." });
     };
+
+    const totalEarnings = referrals.reduce((sum, ref) => sum + ref.commissionAmount, 0);
+    const totalClicks = dbUser?.affiliateStats?.clicks || 0;
 
     if (authLoading || loading) {
         return <div className="flex h-screen items-center justify-center"><LoadingAnimation /></div>;
@@ -84,7 +105,7 @@ export default function AffiliateDashboardPage() {
                                         <LinkIcon className="h-4 w-4 text-muted-foreground" />
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="text-2xl font-bold">0</div>
+                                        <div className="text-2xl font-bold">{totalClicks}</div>
                                         <p className="text-xs text-muted-foreground">Total clicks on your link</p>
                                     </CardContent>
                                 </Card>
@@ -94,7 +115,7 @@ export default function AffiliateDashboardPage() {
                                         <Users className="h-4 w-4 text-muted-foreground" />
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="text-2xl font-bold">0</div>
+                                        <div className="text-2xl font-bold">{referrals.length}</div>
                                         <p className="text-xs text-muted-foreground">Users who signed up via your link</p>
                                     </CardContent>
                                 </Card>
@@ -104,7 +125,7 @@ export default function AffiliateDashboardPage() {
                                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="text-2xl font-bold">Ksh 0</div>
+                                        <div className="text-2xl font-bold">Ksh {totalEarnings.toLocaleString()}</div>
                                         <p className="text-xs text-muted-foreground">20% commission on first purchase</p>
                                     </CardContent>
                                 </Card>
@@ -113,12 +134,35 @@ export default function AffiliateDashboardPage() {
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Referral History</CardTitle>
-                                    <CardDescription>A list of users who signed up using your link.</CardDescription>
+                                    <CardDescription>A list of successful referrals and your commission.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-center py-10 text-muted-foreground border-2 border-dashed rounded-lg">
-                                        <p>No referrals yet. Share your link to get started!</p>
-                                    </div>
+                                    {referrals.length > 0 ? (
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Referred User</TableHead>
+                                                    <TableHead>Purchase Amount</TableHead>
+                                                    <TableHead>Your Commission</TableHead>
+                                                    <TableHead>Date</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {referrals.map(ref => (
+                                                    <TableRow key={ref.id}>
+                                                        <TableCell>{ref.referredUserName}</TableCell>
+                                                        <TableCell>Ksh {ref.purchaseAmount.toLocaleString()}</TableCell>
+                                                        <TableCell className="font-semibold text-primary">Ksh {ref.commissionAmount.toLocaleString()}</TableCell>
+                                                        <TableCell>{format(new Date(ref.createdAt), 'PPP')}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    ) : (
+                                        <div className="text-center py-10 text-muted-foreground border-2 border-dashed rounded-lg">
+                                            <p>No referrals yet. Share your link to get started!</p>
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                         </div>
