@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -8,11 +7,12 @@ import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+import { ethers } from 'ethers';
 
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, User as UserIcon, Camera, Upload, Eye, Building, Share2, PlusCircle, Trash2, KeyRound } from 'lucide-react';
+import { ArrowLeft, Loader2, User as UserIcon, Camera, Upload, Eye, Building, Share2, PlusCircle, Trash2, KeyRound, Wallet } from 'lucide-react';
 import { AppSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
@@ -104,6 +104,7 @@ export default function ProfilePage() {
   const [isUploading, setIsUploading] = useState(false);
   const [dbUser, setDbUser] = useState<RegisteredUser | null>(null);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -206,7 +207,7 @@ export default function ProfilePage() {
     if (!name) return 'U';
     const names = name.split(' ');
     if (names.length > 1 && names[1]) {
-      return `${names[0][0]}${names[names.length - 1][0]}`;
+      return `${'names[0][0]'}${names[names.length - 1][0]}`;
     }
     return names[0]?.[0] || 'U';
   };
@@ -257,6 +258,35 @@ export default function ProfilePage() {
         }
     }, 'image/png');
   }
+
+  const handleConnectWallet = async () => {
+    if (typeof window.ethereum === 'undefined') {
+        toast({
+            variant: "destructive",
+            title: "Wallet Not Found",
+            description: "Please install a browser wallet like MetaMask to connect.",
+        });
+        return;
+    }
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        const signer = await provider.getSigner();
+        const address = await signer.getAddress();
+        setWalletAddress(address);
+        toast({
+            title: "Wallet Connected",
+            description: `Connected to address: ${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
+        });
+    } catch (error) {
+        console.error("Failed to connect wallet", error);
+        toast({
+            variant: "destructive",
+            title: "Connection Failed",
+            description: "User denied account access or another error occurred.",
+        });
+    }
+  };
 
   const onSubmit = async (values: ProfileFormValues) => {
     if (!user) return;
@@ -380,6 +410,22 @@ export default function ProfilePage() {
                                 </DialogContent>
                             </Dialog>
                             </div>
+
+                             {walletAddress ? (
+                                <Alert>
+                                    <Wallet className="h-4 w-4" />
+                                    <AlertTitle>Wallet Connected!</AlertTitle>
+                                    <AlertDescriptionComponent className="text-xs break-all">
+                                        Your wallet address: {walletAddress}
+                                    </AlertDescriptionComponent>
+                                </Alert>
+                            ) : (
+                                <Button variant="outline" className="w-full" onClick={handleConnectWallet}>
+                                    <Wallet className="mr-2 h-4 w-4" />
+                                    Connect Wallet
+                                </Button>
+                            )}
+
 
                             <Tabs defaultValue="account">
                                 <TabsList className="grid w-full grid-cols-2">
