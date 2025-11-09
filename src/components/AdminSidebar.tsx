@@ -287,7 +287,7 @@ export function AdminSidebar() {
             <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/payments')} tooltip="Payments">
               <Link href="/admin/payments">
                 <CreditCard className="h-4 w-4 mr-2" />
-                Payments
+                Billing
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
