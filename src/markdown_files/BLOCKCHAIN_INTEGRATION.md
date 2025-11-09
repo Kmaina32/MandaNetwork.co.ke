@@ -1,3 +1,4 @@
+
 # Manda Network - Blockchain Integration Conceptual Framework
 
 This document provides a high-level architectural overview for integrating a token-based economy and smart contract automation into the Manda Network platform. This is a conceptual guide and not a technical implementation specification.
