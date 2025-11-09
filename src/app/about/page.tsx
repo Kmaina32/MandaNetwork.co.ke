@@ -101,7 +101,7 @@ export default function AboutPage() {
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                 {teamMembers.map(member => (
                                     <div key={member.name} className="flex flex-col items-center">
-                                        <Avatar className="w-24 h-24 mb-4 border-4 border-primary/20">
+                                        <Avatar className="w-40 h-40 mb-4 border-4 border-primary/20">
                                             <AvatarImage src={member.avatar} alt={member.name} />
                                             <AvatarFallback>{member.name.substring(0,2)}</AvatarFallback>
                                         </Avatar>
