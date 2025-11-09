@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import ReactDOM from 'react-dom';
 
 import { Button } from "@/components/ui/button";
 import { useToast } from '@/hooks/use-toast';
@@ -58,12 +59,10 @@ function PdfRenderer({ content, docType, forwardRef }: { content: string, docTyp
       ))}
        <style jsx global>{`
             .pdf-render-area {
-                position: fixed;
+                position: absolute;
                 top: 0;
                 left: 0;
-                opacity: 0;
-                pointer-events: none;
-                z-index: -1;
+                z-index: 9999;
                 background-color: white;
                 color: black;
                 font-family: 'PT Sans', sans-serif;
@@ -135,7 +134,6 @@ export function DocumentEditor({ docType }: { docType: DocType }) {
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const pdfRef = useRef<HTMLDivElement>(null);
   const isVisualFramework = docType === 'VISUAL_FRAMEWORK';
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
 
@@ -182,62 +180,72 @@ export function DocumentEditor({ docType }: { docType: DocType }) {
   }
 
   const handleDownload = async () => {
-    if (!pdfRef.current) return;
     setIsDownloading(true);
     toast({ title: 'Generating PDF...', description: 'This may take a moment.' });
-
-    const pdf = new jsPDF('p', 'pt', 'a4');
-    const elements = Array.from(pdfRef.current.children) as HTMLElement[];
     
+    // Create a temporary container for rendering
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+
     try {
-        for (let i = 0; i < elements.length; i++) {
-            if (i > 0) pdf.addPage();
-            
-            const canvas = await html2canvas(elements[i], { scale: 2, backgroundColor: '#ffffff' });
-            const imgData = canvas.toDataURL('image/png');
-            
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const canvasWidth = canvas.width;
-            const canvasHeight = canvas.height;
-            
-            if (canvasWidth === 0 || canvasHeight === 0) {
-                 throw new Error("Canvas has zero dimensions.");
-            }
-            
-            const ratio = canvasWidth / canvasHeight;
+        await new Promise<void>((resolve) => {
+             ReactDOM.render(
+                <PdfRenderer content={content} docType={docType} forwardRef={(el) => {
+                    if (el) {
+                        setTimeout(async () => {
+                            const pdf = new jsPDF('p', 'pt', 'a4');
+                            const elements = Array.from(el.children) as HTMLElement[];
+                            
+                            for (let i = 0; i < elements.length; i++) {
+                                if (i > 0) pdf.addPage();
+                                
+                                const canvas = await html2canvas(elements[i], { scale: 2, backgroundColor: '#ffffff' });
+                                const imgData = canvas.toDataURL('image/png');
+                                
+                                const pdfWidth = pdf.internal.pageSize.getWidth();
+                                const pdfHeight = pdf.internal.pageSize.getHeight();
+                                const canvasWidth = canvas.width;
+                                const canvasHeight = canvas.height;
 
-            let finalWidth = pdfWidth;
-            let finalHeight = pdfWidth / ratio;
-            
-            if (finalHeight > pdfHeight) {
-                finalHeight = pdfHeight;
-                finalWidth = finalHeight * ratio;
-            }
-            
-            const x = (pdfWidth - finalWidth) / 2;
-            const y = (pdfHeight - finalHeight) / 2;
+                                if (canvasWidth === 0 || canvasHeight === 0) {
+                                    throw new Error("Canvas has zero dimensions.");
+                                }
+                                
+                                const ratio = canvasWidth / canvasHeight;
+                                let finalWidth = pdfWidth;
+                                let finalHeight = pdfWidth / ratio;
+                                
+                                if (finalHeight > pdfHeight) {
+                                    finalHeight = pdfHeight;
+                                    finalWidth = finalHeight * ratio;
+                                }
+                                
+                                const x = (pdfWidth - finalWidth) / 2;
+                                const y = (pdfHeight - finalHeight) / 2;
 
-            if (isFinite(x) && isFinite(y) && isFinite(finalWidth) && isFinite(finalHeight) && finalWidth > 0 && finalHeight > 0) {
-                pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
-            } else {
-                throw new Error("Invalid dimensions for PDF generation.");
-            }
-        }
-        pdf.save(`${docType}.pdf`);
+                                pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
+                            }
+                            pdf.save(`${docType}.pdf`);
+                            resolve();
+                        }, 100); // Small delay to ensure rendering
+                    }
+                }} />,
+                container
+            );
+        });
+
     } catch (error: any) {
         console.error("PDF generation failed:", error);
         toast({ title: 'PDF Generation Error', description: error.message || 'Could not generate the PDF.', variant: 'destructive' });
     } finally {
+        // Cleanup
+        ReactDOM.unmountComponentAtNode(container);
+        document.body.removeChild(container);
         setIsDownloading(false);
     }
   };
   
   return (
-    <>
-      <div className="hidden">
-        <PdfRenderer content={content} docType={docType} forwardRef={pdfRef} />
-      </div>
       <div className="space-y-4 h-full flex flex-col">
            <div className="flex justify-end">
             <Button variant="outline" size="sm" onClick={() => setViewMode(viewMode === 'edit' ? 'preview' : 'edit')}>
@@ -282,6 +290,5 @@ export function DocumentEditor({ docType }: { docType: DocType }) {
           </Button>
         </div>
       </div>
-    </>
   );
 }

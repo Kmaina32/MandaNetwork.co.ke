@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Footer } from "@/components/shared/Footer";
-import { ArrowLeft, Wallet } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { DocumentEditor, DocType } from '@/components/shared/DocumentEditor';
 import { useRouter } from 'next/navigation';
@@ -32,7 +32,7 @@ export default function AdminBlockchainPage() {
           <Card className="flex-grow flex flex-col">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Wallet className="h-6 w-6" />
+                  <Icon icon="mdi:bitcoin" className="h-6 w-6" />
                   Blockchain Integration Guide
                 </CardTitle>
                 <CardDescription>

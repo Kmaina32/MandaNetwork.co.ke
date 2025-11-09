@@ -39,7 +39,6 @@ import {
   Megaphone,
   Rss,
   Trophy,
-  Wallet,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -263,7 +262,7 @@ export function AdminSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/blockchain')} tooltip="Blockchain">
               <Link href="/admin/blockchain">
-                <Wallet className="h-4 w-4 mr-2" />
+                <Icon icon="mdi:bitcoin" className="h-4 w-4 mr-2" />
                 Blockchain
               </Link>
             </SidebarMenuButton>
