@@ -3,7 +3,7 @@
 import { db, storage } from './firebase';
 import { ref, get, set, push, update, remove, query, orderByChild, equalTo, increment, limitToLast, onValue } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, Conversation, ConversationMessage, BlogPost } from './types';
+import type { Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, Conversation, ConversationMessage, BlogPost, Referral } from './types';
 import { getRemoteConfig, fetchAndActivate, getString } from 'firebase/remote-config';
 import { app } from './firebase';
 import { slugify } from './utils';
@@ -187,6 +187,31 @@ export async function enrollUserInCourse(userId: string, courseId: string, payme
                 courseId: courseId
             }
         });
+
+        // Affiliate logic
+        const user = await getUserById(userId);
+        if (user?.referredBy && !user.hasMadeFirstPurchase && course.price > 0) {
+            await saveUser(userId, { hasMadeFirstPurchase: true });
+            
+            const commissionAmount = course.price * 0.20; // 20% commission
+            const referralsRef = ref(db, 'referrals');
+            const newReferralRef = push(referralsRef);
+            await set(newReferralRef, {
+                affiliateId: user.referredBy,
+                referredUserId: userId,
+                referredUserName: user.displayName,
+                purchaseAmount: course.price,
+                commissionAmount: commissionAmount,
+                createdAt: new Date().toISOString(),
+            });
+
+            // Also update the affiliate's stats
+            const affiliateStatsRef = ref(db, `users/${user.referredBy}/affiliateStats`);
+            await update(affiliateStatsRef, {
+                earnings: increment(commissionAmount),
+                referrals: increment(1)
+            });
+        }
     }
 }
 
@@ -1287,6 +1312,16 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
   return [];
 }
 
+export async function getBlogPostById(id: string): Promise<BlogPost | null> {
+    const postRef = ref(db, `blog/${id}`);
+    const snapshot = await get(postRef);
+    if (snapshot.exists()) {
+        return { id, ...snapshot.val() };
+    }
+    return null;
+}
+
+
 export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> {
     const postsRef = query(ref(db, 'blog'), orderByChild('slug'), equalTo(slug));
     const snapshot = await get(postsRef);
@@ -1341,4 +1376,112 @@ export async function deleteHackathon(id: string): Promise<void> {
 export async function registerForHackathon(hackathonId: string, userId: string): Promise<void> {
     const dataRef = ref(db, `hackathons/${hackathonId}/participants/${userId}`);
     await set(dataRef, true);
+}
+
+export async function getHackathonParticipants(hackathonId: string): Promise<RegisteredUser[]> {
+    const dataRef = ref(db, `hackathons/${hackathonId}/participants`);
+    const snapshot = await get(dataRef);
+    if (snapshot.exists()) {
+        const participantIds = Object.keys(snapshot.val());
+        const userPromises = participantIds.map(uid => getUserById(uid));
+        const users = (await Promise.all(userPromises)).filter(Boolean) as RegisteredUser[];
+        return users;
+    }
+    return [];
+}
+
+export async function createHackathonSubmission(submissionData: Omit<HackathonSubmission, 'id'>): Promise<string> {
+    const refPath = ref(db, 'hackathonSubmissions');
+    const newRef = push(refPath);
+    await set(newRef, submissionData);
+
+    // Leaderboard logic
+    const leaderboardRef = ref(db, `leaderboard/${submissionData.userId}`);
+    const leaderboardSnapshot = await get(leaderboardRef);
+    if (leaderboardSnapshot.exists()) {
+        await update(leaderboardRef, {
+            score: increment(10), // +10 points for submission
+            hackathonCount: increment(1)
+        });
+    } else {
+        const user = await getUserById(submissionData.userId);
+        await set(leaderboardRef, {
+            userId: submissionData.userId,
+            userName: user?.displayName || 'Anonymous',
+            userAvatar: user?.photoURL || '',
+            score: 10,
+            hackathonCount: 1,
+        });
+    }
+
+    return newRef.key!;
+}
+
+export async function awardLeaderboardPoints(userId: string, points: number): Promise<void> {
+    const leaderboardRef = ref(db, `leaderboard/${userId}`);
+    const leaderboardSnapshot = await get(leaderboardRef);
+    if (leaderboardSnapshot.exists()) {
+        await update(leaderboardRef, {
+            score: increment(points),
+        });
+    } else {
+        // If user is not on leaderboard, create an entry for them
+         const user = await getUserById(userId);
+        await set(leaderboardRef, {
+            userId: userId,
+            userName: user?.displayName || 'Anonymous',
+            userAvatar: user?.photoURL || '',
+            score: points,
+            hackathonCount: 0, // Assume 0 if they weren't on the board before
+        });
+    }
+}
+
+
+export async function getHackathonSubmissions(hackathonId: string): Promise<HackathonSubmission[]> {
+    const submissionsRef = query(ref(db, 'hackathonSubmissions'), orderByChild('hackathonId'), equalTo(hackathonId));
+    const snapshot = await get(submissionsRef);
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        return Object.keys(data).map(key => ({
+            id: key,
+            ...data[key]
+        }));
+    }
+    return [];
+}
+
+export async function getHackathonSubmissionsByUser(userId: string): Promise<HackathonSubmission[]> {
+    const submissionsRef = query(ref(db, 'hackathonSubmissions'), orderByChild('userId'), equalTo(userId));
+    const snapshot = await get(submissionsRef);
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        return Object.keys(data).map(key => ({
+            id: key,
+            ...data[key]
+        }));
+    }
+    return [];
+}
+
+export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
+    const leaderboardRef = query(ref(db, 'leaderboard'), orderByChild('score'));
+    const snapshot = await get(leaderboardRef);
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        const entries: LeaderboardEntry[] = Object.values(data);
+        return entries.sort((a,b) => b.score - a.score);
+    }
+    return [];
+}
+
+// Affiliate Program Functions
+export async function getReferralsByAffiliate(affiliateId: string): Promise<Referral[]> {
+    const referralsRef = query(ref(db, 'referrals'), orderByChild('affiliateId'), equalTo(affiliateId));
+    const snapshot = await get(referralsRef);
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
+    }
+    return [];
 }

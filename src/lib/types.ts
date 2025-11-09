@@ -350,6 +350,11 @@ export interface RegisteredUser {
     affiliateId?: string;
     referredBy?: string; // UID of the affiliate
     hasMadeFirstPurchase?: boolean;
+    affiliateStats?: {
+        clicks: number;
+        referrals: number;
+        earnings: number;
+    }
 }
 
 export interface PermissionRequest {
@@ -473,9 +478,24 @@ export interface Conversation {
     messages?: Record<string, ConversationMessage>;
 }
 
+export interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  author: string;
+  category: string;
+  content: string;
+  isPublished: boolean;
+  createdAt: string; // ISO String
+  updatedAt: string; // ISO String
+}
+
 // Affiliate Program Types
 export interface Referral {
     id: string;
+    affiliateId: string;
     referredUserId: string;
     referredUserName: string;
     purchaseAmount: number;
@@ -485,5 +505,6 @@ export interface Referral {
 
 export interface AffiliateStats {
     clicks: number;
-    referrals: Referral[];
+    referrals: number;
+    earnings: number;
 }
