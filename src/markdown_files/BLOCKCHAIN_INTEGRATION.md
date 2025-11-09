@@ -1,3 +1,4 @@
+
 # Manda Network - Blockchain Integration Conceptual Framework
 
 This document provides a high-level architectural overview for integrating a token-based economy and smart contract automation into the Manda Network platform. This is a conceptual guide and not a technical implementation specification.
@@ -119,7 +120,95 @@ Once deployed, your token contract will have a permanent address on the blockcha
 
 ---
 
-## 4. Next Steps & Considerations
+## 4. Frontend Web3 Integration
+
+This part explains how your Next.js application would communicate with the blockchain and your deployed smart contracts.
+
+### Step 1: Install a Web3 Library
+
+You need a library to interact with the Ethereum blockchain. The most popular one is **Ethers.js**.
+
+```bash
+npm install ethers
+```
+
+### Step 2: Connect to the User's Wallet
+
+You need to create a function that detects the user's browser wallet (like MetaMask) and asks for permission to connect.
+
+```javascript
+import { ethers } from 'ethers';
+
+async function connectWallet() {
+  // Check if MetaMask or another wallet is installed
+  if (typeof window.ethereum === 'undefined') {
+    alert('Please install MetaMask!');
+    return;
+  }
+
+  try {
+    // Request account access
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    const address = await signer.getAddress();
+    
+    console.log('Connected Account:', address);
+    return { provider, signer, address };
+  } catch (error) {
+    console.error('User rejected connection:', error);
+  }
+}
+```
+
+### Step 3: Interact with Your Smart Contracts
+
+Once connected, you can create instances of your smart contracts in your code to call their functions. To do this, you need two things:
+1.  **Contract Address:** The address your contract was deployed to in Step 3 of the previous section.
+2.  **Contract ABI (Application Binary Interface):** This is a JSON file generated during compilation that describes your contract's functions.
+
+Here is a conceptual example of how you might create a "Pay with MDT" button in a React component.
+
+```javascript
+import { ethers } from 'ethers';
+import { MandaTokenABI, CourseEnrollmentABI } from './abis'; // You would import your ABIs
+
+const MANDA_TOKEN_ADDRESS = 'YOUR_MDT_CONTRACT_ADDRESS';
+const ENROLLMENT_CONTRACT_ADDRESS = 'YOUR_ENROLLMENT_CONTRACT_ADDRESS';
+
+function PurchaseButton({ courseId, priceInMdt }) {
+  const handlePurchase = async () => {
+    const { provider, signer } = await connectWallet();
+    if (!provider || !signer) return;
+
+    // Create contract instances
+    const mandaTokenContract = new ethers.Contract(MANDA_TOKEN_ADDRESS, MandaTokenABI, signer);
+    const enrollmentContract = new ethers.Contract(ENROLLMENT_CONTRACT_ADDRESS, CourseEnrollmentABI, signer);
+
+    try {
+      // 1. Approve the enrollment contract to spend your tokens
+      const approveTx = await mandaTokenContract.approve(ENROLLMENT_CONTRACT_ADDRESS, priceInMdt);
+      await approveTx.wait(); // Wait for the transaction to be mined
+
+      // 2. Call the purchase function on the enrollment contract
+      const purchaseTx = await enrollmentContract.purchaseCourse(courseId);
+      await purchaseTx.wait(); // Wait for the purchase to be mined
+
+      alert('Purchase successful!');
+      // The backend listener will now detect the event and grant course access.
+
+    } catch (error) {
+      console.error('Transaction failed:', error);
+      alert('Purchase failed. Check the console for details.');
+    }
+  };
+
+  return <button onClick={handlePurchase}>Pay with MDT</button>;
+}
+```
+
+This flow demonstrates the core logic: connect to a wallet, get the user's permission to spend tokens, and then execute the main transaction.
+
+## 5. Next Steps & Considerations
 
 -   **Choice of Blockchain:** A low-cost, high-speed chain like Polygon, Arbitrum, or Optimism would be essential to make micro-transactions feasible.
 -   **Security:** All smart contracts must undergo a professional security audit before deployment.
