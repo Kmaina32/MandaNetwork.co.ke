@@ -1,4 +1,3 @@
-
 # How to Set Up Your Telegram Bot and Channel
 
 This guide will walk you through the process of creating a Telegram bot, getting your API token, creating a channel, and finding the necessary IDs to integrate with the Manda Network platform.

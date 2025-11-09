@@ -25,11 +25,12 @@ This document contains the core content and narrative for our investor pitch dec
 
 ### **Slide 3: The Solution**
 
-- **Headline:** Manda Network: Your A.I.-Powered Learning Partner.
+- **Headline:** Manda Network: Your A.I.-Powered Career Partner.
 - **What We Do:** We provide high-quality, affordable, and hyper-relevant online courses in technology, data science, and artificial intelligence.
-- **Our Unique Edge:** We leverage the power of A.I. at every stage of the learning process:
-    1.  **A.I.-Generated Content:** To create up-to-date, world-class courses in a fraction of the time.
-    2.  **A.I. Tutoring:** A personalized A.I. tutor ("Gina") available 24/7 to guide and support every student.
+- **Our Unique Edge:** We leverage A.I. to bridge the gap between education and employment:
+    1.  **A.I. Course Generation:** To create up-to-date, world-class courses in a fraction of the time.
+    2.  **A.I. Tutoring ("Gina"):** A personalized A.I. tutor available 24/7 to guide and support every student.
+    3.  **A.I. Career Services:** An AI Career Coach to build learning paths and a Portfolio Advisor to prepare students for the job market.
 
 ---
 
@@ -37,16 +38,17 @@ This document contains the core content and narrative for our investor pitch dec
 
 - **Market Size:** The global e-learning market is projected to reach $1 trillion by 2028. The African e-learning market is the fastest-growing in the world.
 - **Government Push:** The Kenyan government's digital transformation agenda is creating massive demand for a digitally skilled workforce.
-- **A.I. Tipping Point:** Generative A.I. (like Gemini) has made it possible to deliver personalized, high-quality education at an unprecedented scale and low cost.
+- **A.I. Tipping Point:** Generative A.I. (like Gemini) has made it possible to deliver personalized, high-quality education and career services at an unprecedented scale and low cost.
 
 ---
 
 ### **Slide 5: Our Product**
 
 - **Demonstration:** A brief walkthrough of the platform, highlighting:
-    - The sleek, user-friendly course player.
-    - An interaction with "Gina," the A.I. tutor.
-    - The admin dashboard, showing how a new course can be generated in minutes.
+    - The sleek, user-friendly course player and the AI Tutor "Gina".
+    - The AI Career Coach generating a personalized course plan.
+    - The AI Portfolio Advisor providing actionable feedback on a student's profile.
+    - The vibrant Hackathon portal for competitive, hands-on learning.
 
 ---
 
@@ -57,19 +59,19 @@ This document contains the core content and narrative for our investor pitch dec
     - **Per-Course Fee:** Affordable, one-time payments for full course access and certification (e.g., via M-Pesa).
 - **B2B (Corporate Training):**
     - **Cohort Training:** Customized training programs for businesses looking to upskill their teams.
-    - **License Sales:** Bulk licenses for our course library.
+    - **License Sales:** Bulk licenses for our course library and team management dashboard.
 
 ---
 
 ### **Slide 7: Go-to-Market Strategy**
 
-- **Phase 1: Digital First**
+- **Phase 1: Digital First & Community Building**
     - Targeted social media marketing (LinkedIn, Twitter).
     - SEO and content marketing (blog posts, tutorials) to establish thought leadership.
-    - Partnerships with Kenyan tech influencers and bloggers.
-- **Phase 2: Community and B2B**
-    - Partnering with tech hubs, universities, and NGOs.
+    - Hosting online hackathons to drive engagement and user acquisition.
+- **Phase 2: B2B and Academic Partnerships**
     - Direct sales outreach to corporations and SMEs.
+    - Partnering with universities and colleges to supplement their curriculum.
 
 ---
 
@@ -84,8 +86,8 @@ This document contains the core content and narrative for our investor pitch dec
 
 - **We are seeking:** $250,000 in pre-seed funding.
 - **Use of Funds:**
-    - **40%:** Product Development (scaling the platform, mobile app).
-    - **35%:** Marketing and Sales (customer acquisition).
+    - **40%:** Product Development (scaling the platform, mobile app, building more AI tools).
+    - **35%:** Marketing and Sales (customer acquisition and B2B outreach).
     - **25%:** Content and Curriculum Expansion.
 
 ---
@@ -372,67 +374,158 @@ graph TD
 
     subgraph SERVER [Server-Side (Next.js)]
         E --> F[Server Components];
-        E --> G[Server Actions];
+        F --> G[Server Actions];
     end
 
     subgraph BACKEND [Backend Services]
         H[Firebase Auth]
         I[Firebase Realtime DB]
         J[Genkit AI Flows]
+        K[Firebase Storage]
     end
 
     G --> H;
     G --> I;
     G --> J;
-
-    F --> I;
-
-    subgraph AIML [AI/ML (Genkit)]
-        J --> K[Google AI Platform];
+    G --> K;
+    
+    subgraph AI_MODELS [AI/ML (Genkit)]
+        J --> L[Google AI Platform];
     end
 
     style CLIENT fill:#D6EAF8,stroke:#333,stroke-width:2px
     style SERVER fill:#D1F2EB,stroke:#333,stroke-width:2px
     style BACKEND fill:#FCF3CF,stroke:#333,stroke-width:2px
-    style AIML fill:#FDEDEC,stroke:#333,stroke-width:2px
+    style AI_MODELS fill:#FDEDEC,stroke:#333,stroke-width:2px
+\`\`\`
+
+## Security Visual Framework
+
+This diagram illustrates the security layers, from user authentication to database access rules.
+
+\`\`\`mermaid
+graph LR
+    A[User] -->|HTTPS| B(Next.js Frontend);
+
+    subgraph FIREBASE [Firebase]
+        C[Firebase Authentication]
+        D[Firebase Realtime DB]
+        E[Database Security Rules]
+    end
+
+    B -->|Login/Signup| C;
+    C -->|"Auth Token (JWT)"| B;
+    B -->|"Server Actions"| F[Next.js Backend];
+    F -->|"Authenticated Requests"| D;
+    D -- Enforces --> E;
+    E -- Defines Access --> D;
+
+    style FIREBASE fill:#FDEBD0,stroke:#F39C12,stroke-width:2px
 \`\`\`
 
 ## Database Framework
 
+This diagram shows a more detailed version of the Firebase Realtime Database schema and relationships.
+
 \`\`\`mermaid
 erDiagram
+    USERS ||--o{ USER_COURSES : "has"
+    USERS ||--o{ SUBMISSIONS : "submits"
+    USERS ||--o{ HACKATHON_SUBMISSIONS : "submits"
+    USERS ||--o{ LEARNING_GOALS : "has"
+    USERS ||--o{ ACHIEVEMENTS : "earns"
+    USERS }o--|| ORGANIZATIONS : "is member of"
+
+    COURSES ||--o{ USER_COURSES : "is subject of"
+    COURSES ||--o{ MODULES : "contains"
+    COURSES ||--o{ EXAM_QUESTIONS : "has"
+    COURSES ||--o{ PROJECT : "has"
+    
+    MODULES ||--o{ LESSONS : "contains"
+    
+    HACKATHONS ||--o{ HACKATHON_SUBMISSIONS : "has"
+    
     USERS {
-        string uid PK "User ID"
-        string email
+        string uid PK
         string displayName
-        bool isAdmin
+        string email
         string organizationId FK
+    }
+    
+    USER_COURSES {
+        string userId PK
+        string courseId PK
+        int progress
+        bool completed
     }
 
     COURSES {
-        string courseId PK "Course ID"
+        string courseId PK
         string title
-        string description
-        array modules
+        string category
+    }
+
+    MODULES {
+        string moduleId PK
+        string courseId FK
+        string title
+    }
+    
+    LESSONS {
+        string lessonId PK
+        string moduleId FK
+        string title
+    }
+    
+    EXAM_QUESTIONS {
+        string questionId PK
+        string courseId FK
+        string text
+    }
+
+    PROJECT {
+        string projectId PK
+        string courseId FK
+        string title
     }
 
     SUBMISSIONS {
-        string submissionId PK "Submission ID"
+        string submissionId PK
         string userId FK
         string courseId FK
-        string submittedAt
         bool graded
     }
 
+    HACKATHONS {
+        string hackathonId PK
+        string title
+        string startDate
+    }
+    
+    HACKATHON_SUBMISSIONS {
+        string submissionId PK
+        string hackathonId FK
+        string userId FK
+        string projectName
+    }
+    
     ORGANIZATIONS {
-        string orgId PK "Organization ID"
+        string orgId PK
         string name
         string ownerId FK
     }
 
-    USERS ||--o{ SUBMISSIONS : submits
-    COURSES ||--o{ SUBMISSIONS : for
-    USERS }|--|| ORGANIZATIONS : belongs-to
+    LEARNING_GOALS {
+        string goalId PK
+        string userId FK
+        string text
+    }
+    
+    ACHIEVEMENTS {
+        string achievementId PK
+        string userId FK
+        string name
+    }
 \`\`\`
 `;
 
@@ -532,4 +625,76 @@ These features create a more interconnected and gamified experience within the M
 
 **20. Cross-Course Skill Tracking:**
 -   **Description:** A system that tracks skills across all completed courses and visualizes the student's proficiency level in different domains (e.g., "Python: Advanced", "UI/UX Design: Intermediate").
+`;
+
+export const TELEGRAM_SETUP = `
+# How to Set Up Your Telegram Bot and Channel
+
+This guide will walk you through the process of creating a Telegram bot, getting your API token, creating a channel, and finding the necessary IDs to integrate with the Manda Network platform.
+
+## Part 1: Create a Telegram Bot & Get API Token
+
+The primary way to interact with the Telegram API is through a bot. You'll create one using Telegram's own "BotFather".
+
+1.  **Start a chat with BotFather:**
+    *   Open your Telegram app and search for the user \`BotFather\` (it will have a blue checkmark).
+    *   Start a chat with it and type \`/start\`.
+
+2.  **Create a new bot:**
+    *   Send the command \`/newbot\` to BotFather.
+    *   It will ask you for a **name** for your bot. This is a friendly name that will be displayed in chats (e.g., \`Manda Network Bot\`).
+    *   Next, it will ask for a **username**. This must be unique and end in \`bot\` (e.g., \`MandaNetworkBot\` or \`manda_network_bot\`).
+
+3.  **Copy your API Token:**
+    *   Once you've chosen a unique username, BotFather will congratulate you and provide you with an **API token**.
+    *   This token is a long string of characters and numbers, like \`1234567890:ABC-DEF1234ghIkl-zyx57W2v1u123456789\`.
+    *   **This token is very important and should be kept secret.** Copy it immediately.
+
+4.  **Save your API Token:**
+    *   Open the \`.env\` file in the root of your project.
+    *   Add a new line and save your token there:
+        \`\`\`env
+        TELEGRAM_BOT_TOKEN="YOUR_API_TOKEN_HERE"
+        \`\`\`
+
+## Part 2: Create a Channel and Get the Channel ID
+
+This channel is where your bot will post notifications for your users.
+
+1.  **Create a New Channel:**
+    *   In Telegram, go to "New Message" and select "New Channel".
+    *   Give your channel a name (e.g., "Manda Network Announcements") and an optional description.
+    *   **Crucially, set the channel type to "Public"**. This makes it easy to get the channel ID.
+    *   Create a simple, memorable public link (e.g., \`t.me/MandaAnnouncements\`). The part after \`t.me/\` is your channel's username.
+
+2.  **Add Your Bot as an Administrator:**
+    *   Open your newly created channel's info page.
+    *   Go to "Administrators" > "Add Admin".
+    *   Search for your bot's username (e.g., \`MandaNetworkBot\`).
+    *   Select your bot and grant it permissions. At a minimum, it needs the "Post Messages" permission.
+
+3.  **Get the Channel ID:**
+    *   For **public channels**, the ID is simply the username, prefixed with an \`@\` symbol.
+    *   For example, if your public link is \`t.me/MandaAnnouncements\`, your Channel ID is \`@MandaAnnouncements\`.
+
+4.  **Save your Channel ID:**
+    *   Open your \`.env\` file again.
+    *   Add another new line and save your channel ID:
+        \`\`\`env
+        TELEGRAM_CHANNEL_ID="@YourChannelUsername"
+        \`\`\`
+
+## Part 3: Final Configuration
+
+Your \`.env\` file should now contain these new lines (along with your other variables):
+
+\`\`\`env
+# ... other variables
+
+# Telegram Integration
+TELEGRAM_BOT_TOKEN="1234567890:ABC-DEF1234ghIkl-zyx57W2v1u123456789"
+TELEGRAM_CHANNEL_ID="@MandaAnnouncements"
+\`\`\`
+
+Once you have completed these steps and saved your \`.env\` file, the application will be ready to use these credentials for the Telegram integration features we build.
 `;

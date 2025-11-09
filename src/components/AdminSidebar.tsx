@@ -45,6 +45,7 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import pkg from '../../package.json';
+import { Icon } from '@iconify/react';
 
 export function AdminSidebar() {
   const pathname = usePathname();
@@ -234,6 +235,19 @@ export function AdminSidebar() {
               <Link href="/admin/calendar">
                 <Calendar className="h-4 w-4 mr-2" />
                 Calendar
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          
+          {/* Integrations Section */}
+          <p className="text-xs font-semibold text-muted-foreground px-2 mb-1 mt-3 group-data-[collapsible=icon]:hidden">
+            Integrations
+          </p>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/telegram')} tooltip="Telegram">
+              <Link href="/admin/telegram">
+                <Icon icon="logos:telegram" className="h-4 w-4 mr-2" />
+                Telegram
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
