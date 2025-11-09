@@ -23,7 +23,7 @@ These components would live on a public blockchain. An EVM-compatible chain like
 
 1.  **MandaToken (MDT) - ERC-20 Smart Contract:**
     *   **Type:** A standard ERC-20 token.
-    *   **Total Supply:** A fixed supply would be minted at creation (e.g., 100,000,000 MDT). A portion would be held by the platform treasury for rewards.
+    *   **Total Supply:** A fixed supply would be minted at creation (e.g., 100,000,000 MDT). A portion would be held by the **platform treasury wallet** for rewards and operations.
     *   **Utility:**
         *   **Payments:** Used by students to pay for courses.
         *   **Rewards:** Distributed to students for completing courses, achieving high exam scores, or participating in community events.
@@ -34,13 +34,13 @@ These components would live on a public blockchain. An EVM-compatible chain like
     *   **Key Logic:**
         *   Holds a mapping of `courseId` to `priceInMDT`.
         *   Has a `purchaseCourse(courseId)` function that a student calls.
-        *   This function triggers a `transferFrom` on the MDT contract, moving tokens from the student's wallet to the platform's treasury wallet.
+        *   This function triggers a `transferFrom` on the MDT contract, moving tokens from the student's wallet to the **platform's treasury wallet**.
         *   Upon successful transfer, it emits an `Enrolled(studentAddress, courseId)` event. This event is the crucial link to our off-chain backend.
 
 ### Off-Chain Components (Current Application)
 
 1.  **Frontend (Next.js):**
-    *   **Wallet Integration:** Use a library like `Ethers.js` or `Web3.js` to connect to the user's browser wallet (e.g., MetaMask).
+    *   **Wallet Integration:** Use a library like `Ethers.js` to connect to the user's browser wallet (e.g., MetaMask).
     *   **UI Changes:**
         *   Display course prices in both KES and MDT.
         *   Show the user's MDT balance in their profile.
@@ -134,7 +134,7 @@ npm install ethers
 
 ### Step 2: Connect to the User's Wallet
 
-You need to create a function that detects the user's browser wallet (like MetaMask) and asks for permission to connect.
+You need to create a function that detects the user's browser wallet (like MetaMask) and asks for permission to connect. This function retrieves the **user's unique wallet address**, not a contract ID.
 
 ```javascript
 import { ethers } from 'ethers';
@@ -150,10 +150,10 @@ async function connectWallet() {
     // Request account access
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = await provider.getSigner();
-    const address = await signer.getAddress();
+    const userWalletAddress = await signer.getAddress();
     
-    console.log('Connected Account:', address);
-    return { provider, signer, address };
+    console.log('Connected User Wallet:', userWalletAddress);
+    return { provider, signer, address: userWalletAddress };
   } catch (error) {
     console.error('User rejected connection:', error);
   }
