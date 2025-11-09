@@ -51,9 +51,14 @@ These components would live on a public blockchain. An EVM-compatible chain like
     *   **Enrollment Logic:** When the listener detects an `Enrolled` event for a specific student and course, it triggers a function to update the Firebase Realtime Database, granting that student access to the course (i.e., adding the course to their `purchasedCourses` list).
     *   **Token Distribution:** Admin-triggered functions (or automated cloud functions) would be needed to send MDT rewards from the treasury to students' wallets upon course completion.
 
+3.  **Admin Faucet Management:**
+    *   An administrative interface will be created within the admin dashboard.
+    *   From this page, the platform owner can connect their wallet (which holds the total supply of MDT) and call the `fundFaucet` function on the `MandaToken` contract.
+    *   This allows the owner to securely transfer a specified amount of MDT into the contract itself, creating a reserve from which the public faucet can distribute tokens.
+
 ---
 
-## 3. How to Build Your Crypto (A Conceptual Guide)
+## 4. How to Build Your Crypto (A Conceptual Guide)
 
 Creating a cryptocurrency like MandaToken (MDT) involves writing and deploying a "smart contract" to a blockchain. Below is a simplified, high-level guide to the process.
 
@@ -120,7 +125,7 @@ Once deployed, your token contract will have a permanent address on the blockcha
 
 ---
 
-## 4. Frontend Web3 Integration
+## 5. Frontend Web3 Integration
 
 This part explains how your Next.js application would communicate with the blockchain and your deployed smart contracts.
 
@@ -217,7 +222,7 @@ function PurchaseButton({ courseId, priceInMdt }) {
 
 This flow demonstrates the core logic: connect to a wallet, get the user's permission to spend tokens, and then execute the main transaction.
 
-## 5. Next Steps & Considerations
+## 6. Next Steps & Considerations
 
 -   **Choice of Blockchain:** A low-cost, high-speed chain like Polygon, Arbitrum, or Optimism would be essential to make micro-transactions feasible.
 -   **Security:** All smart contracts must undergo a professional security audit before deployment.
