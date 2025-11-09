@@ -15,7 +15,7 @@ import type { Course, UserCourse } from '@/lib/types';
 import { getUserCourses, getAllCourses } from '@/lib/firebase-service';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 type PurchaseHistoryItem = UserCourse & Partial<Course>;
@@ -85,7 +85,7 @@ export default function PurchaseHistoryPage() {
                         <div className="mx-auto bg-secondary p-3 rounded-full w-fit">
                             <CreditCard className="h-8 w-8 text-secondary-foreground" />
                         </div>
-                        <CardTitle className="mt-4 text-2xl font-headline">Purchase History</CardTitle>
+                        <CardTitle className="mt-4 text-2xl font-headline">Billing</CardTitle>
                         <CardDescription>A record of your course enrollments and payments.</CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -98,19 +98,22 @@ export default function PurchaseHistoryPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {history.length > 0 ? history.map((item) => (
-                            <TableRow key={item.courseId}>
-                              <TableCell className="font-medium">{item.title}</TableCell>
-                              <TableCell>{format(new Date(item.enrollmentDate), 'PPP')}</TableCell>
-                              <TableCell className="text-right">
-                                {item.price !== undefined ? (
-                                    item.price > 0 ? `Ksh ${item.price.toLocaleString()}` : <Badge variant="secondary">Free</Badge>
-                                ) : (
-                                    'N/A'
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          )) : (
+                          {history.length > 0 ? history.map((item) => {
+                            const enrollmentDate = new Date(item.enrollmentDate);
+                            return (
+                                <TableRow key={item.courseId}>
+                                <TableCell className="font-medium">{item.title}</TableCell>
+                                <TableCell>{isValid(enrollmentDate) ? format(enrollmentDate, 'PPP') : 'N/A'}</TableCell>
+                                <TableCell className="text-right">
+                                    {item.price !== undefined ? (
+                                        item.price > 0 ? `Ksh ${item.price.toLocaleString()}` : <Badge variant="secondary">Free</Badge>
+                                    ) : (
+                                        'N/A'
+                                    )}
+                                </TableCell>
+                                </TableRow>
+                            )
+                          }) : (
                             <TableRow>
                                 <TableCell colSpan={3} className="text-center text-muted-foreground py-10">
                                     You have not purchased any courses yet.
