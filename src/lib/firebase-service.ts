@@ -980,359 +980,7 @@ export async function registerUserForBootcamp(bootcampId: string, userId: string
     await set(bootcampRef, true);
 }
 
-export async function getHackathonParticipants(hackathonId: string): Promise<RegisteredUser[]> {
-    const dataRef = ref(db, `hackathons/${hackathonId}/participants`);
-    const snapshot = await get(dataRef);
-    if (snapshot.exists()) {
-        const participantIds = Object.keys(snapshot.val());
-        const userPromises = participantIds.map(uid => getUserById(uid));
-        const users = (await Promise.all(userPromises)).filter(Boolean) as RegisteredUser[];
-        return users;
-    }
-    return [];
-}
 
-export async function createHackathonSubmission(submissionData: Omit<HackathonSubmission, 'id'>): Promise<string> {
-    const refPath = ref(db, 'hackathonSubmissions');
-    const newRef = push(refPath);
-    await set(newRef, submissionData);
-
-    // Leaderboard logic
-    const leaderboardRef = ref(db, `leaderboard/${submissionData.userId}`);
-    const leaderboardSnapshot = await get(leaderboardRef);
-    if (leaderboardSnapshot.exists()) {
-        await update(leaderboardRef, {
-            score: increment(10), // +10 points for submission
-            hackathonCount: increment(1)
-        });
-    } else {
-        const user = await getUserById(submissionData.userId);
-        await set(leaderboardRef, {
-            userId: submissionData.userId,
-            userName: user?.displayName || 'Anonymous',
-            userAvatar: user?.photoURL || '',
-            score: 10,
-            hackathonCount: 1,
-        });
-    }
-
-    return newRef.key!;
-}
-
-export async function awardLeaderboardPoints(userId: string, points: number): Promise<void> {
-    const leaderboardRef = ref(db, `leaderboard/${userId}`);
-    const leaderboardSnapshot = await get(leaderboardRef);
-    if (leaderboardSnapshot.exists()) {
-        await update(leaderboardRef, {
-            score: increment(points),
-        });
-    } else {
-        // If user is not on leaderboard, create an entry for them
-         const user = await getUserById(userId);
-        await set(leaderboardRef, {
-            userId: userId,
-            userName: user?.displayName || 'Anonymous',
-            userAvatar: user?.photoURL || '',
-            score: points,
-            hackathonCount: 0, // Assume 0 if they weren't on the board before
-        });
-    }
-}
-
-
-export async function getHackathonSubmissions(hackathonId: string): Promise<HackathonSubmission[]> {
-    const submissionsRef = query(ref(db, 'hackathonSubmissions'), orderByChild('hackathonId'), equalTo(hackathonId));
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
-        }));
-    }
-    return [];
-}
-
-export async function getHackathonSubmissionsByUser(userId: string): Promise<HackathonSubmission[]> {
-    const submissionsRef = query(ref(db, 'hackathonSubmissions'), orderByChild('userId'), equalTo(userId));
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
-        }));
-    }
-    return [];
-}
-
-export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
-    const leaderboardRef = query(ref(db, 'leaderboard'), orderByChild('score'));
-    const snapshot = await get(leaderboardRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        const entries: LeaderboardEntry[] = Object.values(data);
-        return entries.sort((a,b) => b.score - a.score);
-    }
-    return [];
-}
-
-// Learning Goals
-export async function createLearningGoal(userId: string, text: string): Promise<string> {
-    const goalsRef = ref(db, `users/${userId}/learningGoals`);
-    const newGoalRef = push(goalsRef);
-    await set(newGoalRef, {
-        text,
-        completed: false,
-        createdAt: new Date().toISOString(),
-    });
-    return newGoalRef.key!;
-}
-
-export async function updateLearningGoal(userId: string, goalId: string, data: Partial<Omit<LearningGoal, 'id'>>): Promise<void> {
-    const goalRef = ref(db, `users/${userId}/learningGoals/${goalId}`);
-    await update(goalRef, data);
-}
-
-export async function deleteLearningGoal(userId: string, goalId: string): Promise<void> {
-    const goalRef = ref(db, `users/${userId}/learningGoals/${goalId}`);
-    await remove(goalRef);
-}
-
-// Advertisements
-export async function createAdvertisement(adData: Omit<Advertisement, 'id'>): Promise<string> {
-    const adsRef = ref(db, 'advertisements');
-    const newAdRef = push(adsRef);
-    await set(newAdRef, adData);
-    return newAdRef.key!;
-}
-
-export async function getAllAdvertisements(): Promise<Advertisement[]> {
-    const adsRef = ref(db, 'advertisements');
-    const snapshot = await get(adsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    }
-    return [];
-}
-
-export async function getActiveAdvertisements(): Promise<Advertisement[]> {
-    const allAds = await getAllAdvertisements();
-    return allAds.filter(ad => ad.isActive);
-}
-
-
-export async function getAdvertisementById(id: string): Promise<Advertisement | null> {
-    const adRef = ref(db, `advertisements/${id}`);
-    const snapshot = await get(adRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
-}
-
-export async function updateAdvertisement(id: string, adData: Partial<Advertisement>): Promise<void> {
-    const adRef = ref(db, `advertisements/${id}`);
-    await update(adRef, adData);
-}
-
-export async function deleteAdvertisement(id: string): Promise<void> {
-    const adRef = ref(db, `advertisements/${id}`);
-    await remove(adRef);
-}
-
-
-// Activity Logging
-export async function logActivity(userId: string, data: { type: 'signup' | 'enrollment' | 'page_visit'; details: any }): Promise<void> {
-    const user = await getUserById(userId);
-    const logRef = ref(db, 'userActivity');
-    const newLogRef = push(logRef);
-    await set(newLogRef, {
-        userId,
-        userName: user?.displayName || 'Unknown',
-        userAvatar: user?.photoURL || '',
-        path: window.location.pathname, // Capture path for page visits
-        ...data,
-        timestamp: new Date().toISOString(),
-    });
-}
-
-export async function clearActivityData(): Promise<void> {
-    const logRef = ref(db, 'userActivity');
-    await remove(logRef);
-}
-
-export async function getActivityLogs(limit: number): Promise<UserActivity[]> {
-    const logRef = query(ref(db, 'userActivity'), limitToLast(limit));
-    const snapshot = await get(logRef);
-    if(snapshot.exists()) {
-        const data = snapshot.val();
-        const logs = Object.keys(data).map(key => ({ id: key, ...data[key] }));
-        return logs.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    }
-    return [];
-}
-
-// Conversation/Messaging Functions
-export async function createOrUpdateConversation(payload: { studentId: string, employerName: string, employerPhotoUrl: string, organizationName: string, initialMessage: string, employerDetails: { email: string, phone: string } }): Promise<string> {
-    const { studentId, employerName, employerPhotoUrl, organizationName, initialMessage, employerDetails } = payload;
-    // For simplicity, we'll use a composite key for now. A real app might use a separate /conversations root.
-    const conversationId = `${studentId}_${slugify(employerName)}`;
-    const conversationRef = ref(db, `conversations/${conversationId}`);
-    
-    const now = new Date().toISOString();
-    
-    const message: ConversationMessage = {
-        senderId: 'employer', // Differentiate from the student
-        text: initialMessage,
-        timestamp: now,
-    };
-    
-    const conversationData = {
-        participants: {
-            [studentId]: {
-                name: (await getUserById(studentId))?.displayName || 'Student',
-                photoURL: (await getUserById(studentId))?.photoURL || ''
-            },
-            'employer': {
-                name: employerName,
-                photoURL: employerPhotoUrl,
-            }
-        },
-        lastMessage: message,
-        updatedAt: now,
-        readBy: { [studentId]: false, 'employer': true },
-        employerDetails: employerDetails,
-        organizationName: organizationName,
-    };
-
-    await update(conversationRef, conversationData);
-    const messagesRef = ref(db, `conversations/${conversationId}/messages`);
-    const newMessageRef = push(messagesRef);
-    await set(newMessageRef, message);
-    
-    await createNotification({
-        userId: studentId,
-        title: `New Message from ${employerName}`,
-        body: initialMessage.substring(0, 100) + '...',
-        link: '/messages'
-    });
-
-    return conversationId;
-}
-
-export async function sendMessage(conversationId: string, message: ConversationMessage): Promise<void> {
-    const messagesRef = ref(db, `conversations/${conversationId}/messages`);
-    const conversationRef = ref(db, `conversations/${conversationId}`);
-    const newMessageRef = push(messagesRef);
-    await set(newMessageRef, message);
-    await update(conversationRef, {
-        lastMessage: message,
-        updatedAt: new Date().toISOString(),
-    });
-}
-
-export function getConversationsForUser(userId: string, callback: (conversations: Conversation[]) => void): () => void {
-    const conversationsRef = query(ref(db, 'conversations'), orderByChild(`participants/${userId}`), equalTo(null)); // This is a trick to query keys
-    return onValue(conversationsRef, (snapshot) => {
-        const convos: Conversation[] = [];
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            Object.keys(data).forEach(key => {
-                if (key.startsWith(userId)) {
-                    convos.push({ id: key, ...data[key] });
-                }
-            });
-        }
-        callback(convos.sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
-    });
-}
-
-export function getMessagesForConversation(conversationId: string, callback: (messages: ConversationMessage[]) => void): () => void {
-    const messagesRef = query(ref(db, `conversations/${conversationId}/messages`), limitToLast(50));
-    return onValue(messagesRef, (snapshot) => {
-        const messages: ConversationMessage[] = [];
-        if(snapshot.exists()) {
-            const data = snapshot.val();
-            Object.keys(data).forEach(key => {
-                messages.push({ ...data[key] });
-            });
-        }
-        callback(messages);
-    });
-}
-
-// Portfolio Project Submission
-export async function createProjectSubmission(submissionData: Omit<ProjectSubmission, 'id'>): Promise<string> {
-    const projectSubmissionsRef = ref(db, `projectSubmissions`);
-    const newSubmissionRef = push(projectSubmissionsRef);
-    await set(newSubmissionRef, submissionData);
-    return newSubmissionRef.key!;
-}
-
-// Blog Functions
-export async function createBlogPost(postData: Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
-  const postsRef = ref(db, 'blog');
-  const newPostRef = push(postsRef);
-  const now = new Date().toISOString();
-  const dataToSave: Omit<BlogPost, 'id'> = {
-    ...postData,
-    createdAt: now,
-    updatedAt: now,
-  };
-  await set(newPostRef, dataToSave);
-  return newPostRef.key!;
-}
-
-export async function updateBlogPost(postId: string, postData: Partial<Omit<BlogPost, 'id' | 'createdAt'>>): Promise<void> {
-  const postRef = ref(db, `blog/${postId}`);
-  await update(postRef, {
-    ...postData,
-    updatedAt: new Date().toISOString(),
-  });
-}
-
-export async function deleteBlogPost(postId: string): Promise<void> {
-  const postRef = ref(db, `blog/${postId}`);
-  await remove(postRef);
-}
-
-export async function getAllBlogPosts(): Promise<BlogPost[]> {
-  const postsRef = ref(db, 'blog');
-  const snapshot = await get(query(postsRef, orderByChild('createdAt')));
-  if (snapshot.exists()) {
-    const postsData = snapshot.val();
-    const posts = Object.keys(postsData).map(key => ({
-      id: key,
-      ...postsData[key]
-    }));
-    return posts.reverse();
-  }
-  return [];
-}
-
-export async function getBlogPostById(id: string): Promise<BlogPost | null> {
-    const postRef = ref(db, `blog/${id}`);
-    const snapshot = await get(postRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
-}
-
-
-export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> {
-    const postsRef = query(ref(db, 'blog'), orderByChild('slug'), equalTo(slug));
-    const snapshot = await get(postsRef);
-    if(snapshot.exists()) {
-        const data = snapshot.val();
-        const postId = Object.keys(data)[0];
-        return { id: postId, ...data[postId] };
-    }
-    return null;
-}
-    
 // Hackathon Functions
 export async function createHackathon(hackathonData: Omit<Hackathon, 'id'>): Promise<string> {
     const refPath = ref(db, 'hackathons');
@@ -1484,4 +1132,238 @@ export async function getReferralsByAffiliate(affiliateId: string): Promise<Refe
         return Object.keys(data).map(key => ({ id: key, ...data[key] }));
     }
     return [];
+}
+
+// Blog functions
+export async function getBlogPostById(id: string): Promise<BlogPost | null> {
+    const postRef = ref(db, `blog/${id}`);
+    const snapshot = await get(postRef);
+    if (snapshot.exists()) {
+        return { id, ...snapshot.val() };
+    }
+    return null;
+}
+export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> {
+    const postsRef = query(ref(db, 'blog'), orderByChild('slug'), equalTo(slug));
+    const snapshot = await get(postsRef);
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        const postId = Object.keys(data)[0];
+        return { id: postId, ...data[postId] };
+    }
+    return null;
+}
+
+
+// ... (keep the rest of the functions like createBlogPost, updateBlogPost, deleteBlogPost, getAllBlogPosts)
+export async function createBlogPost(postData: Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  const postsRef = ref(db, 'blog');
+  const newPostRef = push(postsRef);
+  const now = new Date().toISOString();
+  const dataToSave: Omit<BlogPost, 'id'> = {
+    ...postData,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await set(newPostRef, dataToSave);
+  return newPostRef.key!;
+}
+
+export async function updateBlogPost(postId: string, postData: Partial<Omit<BlogPost, 'id' | 'createdAt'>>): Promise<void> {
+  const postRef = ref(db, `blog/${postId}`);
+  await update(postRef, {
+    ...postData,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export async function deleteBlogPost(postId: string): Promise<void> {
+  const postRef = ref(db, `blog/${postId}`);
+  await remove(postRef);
+}
+
+export async function getAllBlogPosts(): Promise<BlogPost[]> {
+  const postsRef = ref(db, 'blog');
+  const snapshot = await get(query(postsRef, orderByChild('createdAt')));
+  if (snapshot.exists()) {
+    const postsData = snapshot.val();
+    const posts = Object.keys(postsData).map(key => ({
+      id: key,
+      ...postsData[key]
+    }));
+    return posts.reverse();
+  }
+  return [];
+}
+
+
+// Activity Logging
+export async function logActivity(userId: string, data: { type: 'signup' | 'enrollment' | 'page_visit'; details: any }): Promise<void> {
+    const user = await getUserById(userId);
+    const logRef = ref(db, 'userActivity');
+    const newLogRef = push(logRef);
+    await set(newLogRef, {
+        userId,
+        userName: user?.displayName || 'Unknown',
+        userAvatar: user?.photoURL || '',
+        path: window.location.pathname, // Capture path for page visits
+        ...data,
+        timestamp: new Date().toISOString(),
+    });
+}
+
+export async function clearActivityData(): Promise<void> {
+    const logRef = ref(db, 'userActivity');
+    await remove(logRef);
+}
+
+export async function getActivityLogs(limit: number): Promise<UserActivity[]> {
+    const logRef = query(ref(db, 'userActivity'), limitToLast(limit));
+    const snapshot = await get(logRef);
+    if(snapshot.exists()) {
+        const data = snapshot.val();
+        const logs = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+        return logs.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    }
+    return [];
+}
+
+// Conversation/Messaging Functions
+export async function createOrUpdateConversation(payload: { studentId: string, employerName: string, employerPhotoUrl: string, organizationName: string, initialMessage: string, employerDetails: { email: string, phone: string } }): Promise<string> {
+    const { studentId, employerName, employerPhotoUrl, organizationName, initialMessage, employerDetails } = payload;
+    // For simplicity, we'll use a composite key for now. A real app might use a separate /conversations root.
+    const conversationId = `${studentId}_${slugify(employerName)}`;
+    const conversationRef = ref(db, `conversations/${conversationId}`);
+    
+    const now = new Date().toISOString();
+    
+    const message: ConversationMessage = {
+        senderId: 'employer', // Differentiate from the student
+        text: initialMessage,
+        timestamp: now,
+    };
+    
+    const conversationData = {
+        participants: {
+            [studentId]: {
+                name: (await getUserById(studentId))?.displayName || 'Student',
+                photoURL: (await getUserById(studentId))?.photoURL || ''
+            },
+            'employer': {
+                name: employerName,
+                photoURL: employerPhotoUrl,
+            }
+        },
+        lastMessage: message,
+        updatedAt: now,
+        readBy: { [studentId]: false, 'employer': true },
+        employerDetails: employerDetails,
+        organizationName: organizationName,
+    };
+
+    await update(conversationRef, conversationData);
+    const messagesRef = ref(db, `conversations/${conversationId}/messages`);
+    const newMessageRef = push(messagesRef);
+    await set(newMessageRef, message);
+    
+    await createNotification({
+        userId: studentId,
+        title: `New Message from ${employerName}`,
+        body: initialMessage.substring(0, 100) + '...',
+        link: '/messages'
+    });
+
+    return conversationId;
+}
+
+export async function sendMessage(conversationId: string, message: ConversationMessage): Promise<void> {
+    const messagesRef = ref(db, `conversations/${conversationId}/messages`);
+    const conversationRef = ref(db, `conversations/${conversationId}`);
+    const newMessageRef = push(messagesRef);
+    await set(newMessageRef, message);
+    await update(conversationRef, {
+        lastMessage: message,
+        updatedAt: new Date().toISOString(),
+    });
+}
+
+export function getConversationsForUser(userId: string, callback: (conversations: Conversation[]) => void): () => void {
+    const conversationsRef = query(ref(db, 'conversations'), orderByChild(`participants/${userId}`), equalTo(null)); // This is a trick to query keys
+    return onValue(conversationsRef, (snapshot) => {
+        const convos: Conversation[] = [];
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            Object.keys(data).forEach(key => {
+                if (key.startsWith(userId)) {
+                    convos.push({ id: key, ...data[key] });
+                }
+            });
+        }
+        callback(convos.sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
+    });
+}
+
+export function getMessagesForConversation(conversationId: string, callback: (messages: ConversationMessage[]) => void): () => void {
+    const messagesRef = query(ref(db, `conversations/${conversationId}/messages`), limitToLast(50));
+    return onValue(messagesRef, (snapshot) => {
+        const messages: ConversationMessage[] = [];
+        if(snapshot.exists()) {
+            const data = snapshot.val();
+            Object.keys(data).forEach(key => {
+                messages.push({ ...data[key] });
+            });
+        }
+        callback(messages);
+    });
+}
+
+// Portfolio Project Submission
+export async function createProjectSubmission(submissionData: Omit<ProjectSubmission, 'id'>): Promise<string> {
+    const projectSubmissionsRef = ref(db, `projectSubmissions`);
+    const newSubmissionRef = push(projectSubmissionsRef);
+    await set(newSubmissionRef, submissionData);
+    return newSubmissionRef.key!;
+}
+
+// Advertisement Functions
+export async function createAdvertisement(adData: Omit<Advertisement, 'id'>): Promise<string> {
+    const adsRef = ref(db, 'advertisements');
+    const newAdRef = push(adsRef);
+    await set(newAdRef, adData);
+    return newAdRef.key!;
+}
+
+export async function getAllAdvertisements(): Promise<Advertisement[]> {
+    const adsRef = ref(db, 'advertisements');
+    const snapshot = await get(adsRef);
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
+    }
+    return [];
+}
+
+export async function getActiveAdvertisements(): Promise<Advertisement[]> {
+    const allAds = await getAllAdvertisements();
+    return allAds.filter(ad => ad.isActive);
+}
+
+
+export async function getAdvertisementById(id: string): Promise<Advertisement | null> {
+    const adRef = ref(db, `advertisements/${id}`);
+    const snapshot = await get(adRef);
+    if (snapshot.exists()) {
+        return { id, ...snapshot.val() };
+    }
+    return null;
+}
+
+export async function updateAdvertisement(id: string, adData: Partial<Advertisement>): Promise<void> {
+    const adRef = ref(db, `advertisements/${id}`);
+    await update(adRef, adData);
+}
+
+export async function deleteAdvertisement(id: string): Promise<void> {
+    const adRef = ref(db, `advertisements/${id}`);
+    await remove(adRef);
 }
