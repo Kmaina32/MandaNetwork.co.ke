@@ -1,29 +1,75 @@
 
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, CreditCard } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useState } from 'react';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
+import { getAllUsers, getAllCourses } from '@/lib/firebase-service';
+import type { RegisteredUser, Course, UserCourse } from '@/lib/types';
+import { format } from 'date-fns';
+import PaymentIcons from '@/components/PaymentIcons';
 
-// This is a placeholder type. Replace with your actual transaction data structure.
 type Transaction = {
   id: string;
   userName: string;
-  phone: string;
-  course: string;
+  userEmail: string;
+  courseTitle: string;
   amount: number;
-  status: 'Success' | 'Failed' | 'Pending';
+  status: 'Success';
   date: string;
+  paymentMethod: UserCourse['paymentMethod'];
 }
 
 export default function AdminPaymentsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(false); // Set to true when fetching real data
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      setLoading(true);
+      try {
+        const [users, courses] = await Promise.all([
+          getAllUsers(),
+          getAllCourses()
+        ]);
+
+        const courseMap = new Map(courses.map(c => [c.id, c]));
+        const allTransactions: Transaction[] = [];
+
+        users.forEach(user => {
+          if (user.purchasedCourses) {
+            Object.entries(user.purchasedCourses).forEach(([courseId, purchaseDetails]) => {
+              const course = courseMap.get(courseId);
+              if (course) {
+                allTransactions.push({
+                  id: `${user.uid}-${courseId}`,
+                  userName: user.displayName || 'N/A',
+                  userEmail: user.email || 'N/A',
+                  courseTitle: course.title,
+                  amount: course.price,
+                  status: 'Success', // Assuming all recorded purchases are successful
+                  date: purchaseDetails.enrollmentDate,
+                  paymentMethod: purchaseDetails.paymentMethod
+                });
+              }
+            });
+          }
+        });
+
+        setTransactions(allTransactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      } catch (error) {
+        console.error("Failed to fetch transactions:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTransactions();
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -35,8 +81,13 @@ export default function AdminPaymentsPage() {
             </Link>
             <Card>
                 <CardHeader>
-                    <CardTitle>Manage Payments</CardTitle>
-                    <CardDescription>View M-Pesa transaction history.</CardDescription>
+                    <div className="flex items-center gap-4">
+                        <CreditCard className="h-8 w-8" />
+                        <div>
+                            <CardTitle>Manage Payments</CardTitle>
+                            <CardDescription>View transaction history for all course enrollments.</CardDescription>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent>
                    {loading ? (
@@ -47,28 +98,27 @@ export default function AdminPaymentsPage() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>User Name</TableHead>
-                            <TableHead>Phone</TableHead>
+                            <TableHead>User</TableHead>
                             <TableHead>Course</TableHead>
                             <TableHead>Amount</TableHead>
-                             <TableHead>Date</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Method</TableHead>
                             <TableHead>Status</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {transactions.length > 0 ? transactions.map((transaction) => (
                             <TableRow key={transaction.id}>
-                              <TableCell className="font-medium">{transaction.userName}</TableCell>
-                              <TableCell>{transaction.phone}</TableCell>
-                               <TableCell>{transaction.course}</TableCell>
-                              <TableCell>Ksh {transaction.amount.toLocaleString()}</TableCell>
-                               <TableCell>{transaction.date}</TableCell>
                               <TableCell>
-                                <Badge variant={
-                                    transaction.status === 'Success' ? 'default' :
-                                    transaction.status === 'Failed' ? 'destructive' :
-                                    'secondary'
-                                }>
+                                <div className="font-medium">{transaction.userName}</div>
+                                <div className="text-sm text-muted-foreground">{transaction.userEmail}</div>
+                              </TableCell>
+                              <TableCell>{transaction.courseTitle}</TableCell>
+                              <TableCell>Ksh {transaction.amount.toLocaleString()}</TableCell>
+                              <TableCell>{format(new Date(transaction.date), 'PPP')}</TableCell>
+                              <TableCell className="capitalize">{transaction.paymentMethod}</TableCell>
+                              <TableCell>
+                                <Badge variant={transaction.status === 'Success' ? 'default' : 'destructive'}>
                                     {transaction.status}
                                 </Badge>
                               </TableCell>
@@ -83,6 +133,14 @@ export default function AdminPaymentsPage() {
                         </TableBody>
                       </Table>
                     )}
+                </CardContent>
+            </Card>
+            <Card className="mt-8">
+                <CardHeader>
+                    <CardTitle>Accepted Payment Methods</CardTitle>
+                </CardHeader>
+                 <CardContent>
+                   <PaymentIcons />
                 </CardContent>
             </Card>
         </div>
