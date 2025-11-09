@@ -1,17 +1,15 @@
 
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Footer } from "@/components/shared/Footer";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, BookOpen, FileSignature, FileText, Loader2, Presentation, Milestone, Icon, Wallet } from 'lucide-react';
+import { ArrowLeft, BookOpen, FileSignature, FileText, Loader2, Presentation, Milestone } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { DocumentEditor, DocType } from '@/components/shared/DocumentEditor';
-import { Icon as IconifyIcon } from '@iconify/react';
 
 const TABS_CONFIG = [
     { value: "PITCH_DECK", label: "Pitch Deck", icon: Presentation },

@@ -164,15 +164,6 @@ export function AdminSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
 
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/documents')} tooltip="Documents">
-              <Link href="/admin/documents">
-                <FileText className="h-4 w-4 mr-2" />
-                Documents
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-
           {/* Audience Section */}
           <p className="text-xs font-semibold text-muted-foreground px-2 mb-1 mt-3 group-data-[collapsible=icon]:hidden">
             Audience

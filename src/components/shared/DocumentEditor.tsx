@@ -210,14 +210,14 @@ export function DocumentEditor({ docType }: { docType: DocType }) {
           const pdfHeight = pdf.internal.pageSize.getHeight();
           const canvasWidth = canvas.width;
           const canvasHeight = canvas.height;
-          const ratio = canvasWidth / canvasHeight;
+          const ratio = canvasHeight / canvasWidth;
 
           let finalWidth = pdfWidth - 80; // with margins
           let finalHeight = finalWidth / ratio;
           
           if (finalHeight > pdfHeight - 80) {
               finalHeight = pdfHeight - 80;
-              finalWidth = finalHeight * ratio;
+              finalWidth = finalHeight / ratio;
           }
 
           const x = (pdfWidth - finalWidth) / 2;
