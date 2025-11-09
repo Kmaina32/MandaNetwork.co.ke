@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -211,7 +210,7 @@ export function PaymentModal({
           } else {
               throw new Error(result.message);
           }
-      } catch (error: any) => {
+      } catch (error: any) {
           toast({ title: 'PayPal Error', description: error.message, variant: 'destructive'});
       } finally {
           setIsLoading(false);

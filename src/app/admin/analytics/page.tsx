@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Footer } from "@/components/shared/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Sparkles, Users, BookOpen, UserPlus } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Users, BookOpen, UserPlus, LineChart, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { runContentStrategy } from '@/app/actions';
 import type { ContentStrategyOutput, Course, RegisteredUser } from '@/lib/types';
@@ -178,6 +178,22 @@ export default function AdminAnalyticsPage() {
                 </div>
 
                 <div className="grid gap-8">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle>Vercel Speed Insights</CardTitle>
+                                <CardDescription>Real-time performance metrics for your application.</CardDescription>
+                            </div>
+                            <Button asChild variant="outline">
+                                <a href="https://vercel.com/dashboard" target="_blank" rel="noopener noreferrer">
+                                    View Analytics <ExternalLink className="ml-2 h-4 w-4" />
+                                </a>
+                            </Button>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-sm text-muted-foreground">Click the button to open your Vercel dashboard and view detailed analytics on page load speeds, Core Web Vitals, and user traffic patterns.</p>
+                        </CardContent>
+                    </Card>
                   <Card>
                     <CardHeader>
                       <CardTitle>Top 10 Enrolled Courses</CardTitle>

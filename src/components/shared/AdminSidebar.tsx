@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -18,6 +19,7 @@ import { Separator } from '../ui/separator';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import pkg from '../../../package.json';
+import { Icon } from '@iconify/react';
 
 export function AdminSidebar() {
     const pathname = usePathname();
@@ -110,6 +112,11 @@ export function AdminSidebar() {
                         <Link href="/admin/organizations"><Building className="h-4 w-4 mr-2"/>Organizations</Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
+                 <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/affiliates')} tooltip="Affiliates">
+                        <Link href="/admin/affiliates"><Handshake className="h-4 w-4 mr-2"/>Affiliates</Link>
+                    </SidebarMenuButton>
+                 </SidebarMenuItem>
                 {isSuperAdmin && (
                      <SidebarMenuItem>
                         <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/approvals')} tooltip="Approvals">
@@ -135,6 +142,32 @@ export function AdminSidebar() {
                     </SidebarMenuButton>
                 </SidebarMenuItem>
 
+                 <p className='text-xs font-semibold text-muted-foreground px-2 mb-1 mt-3 group-data-[collapsible=icon]:hidden'>Integrations</p>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/telegram')} tooltip="Telegram">
+                    <Link href="/admin/telegram">
+                        <Icon icon="logos:telegram" className="h-4 w-4 mr-2" />
+                        Telegram
+                    </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/twitter')} tooltip="Twitter">
+                    <Link href="/admin/twitter">
+                        <Icon icon="simple-icons:x" className="h-4 w-4 mr-2" />
+                        Twitter
+                    </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/blockchain')} tooltip="Blockchain">
+                    <Link href="/admin/blockchain">
+                        <Icon icon="mdi:bitcoin" className="h-4 w-4 mr-2" />
+                        Blockchain
+                    </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+
                 <p className='text-xs font-semibold text-muted-foreground px-2 mb-1 mt-3 group-data-[collapsible=icon]:hidden'>Growth</p>
                 <SidebarMenuItem>
                      <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/plans')} tooltip="Pricing Plans">
@@ -156,13 +189,13 @@ export function AdminSidebar() {
                         <Link href="/admin/analytics"><BarChart3 className="h-4 w-4 mr-2"/>Analytics</Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
-
+               
                 <p className='text-xs font-semibold text-muted-foreground px-2 mb-1 mt-3 group-data-[collapsible=icon]:hidden'>Settings</p>
                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild size="sm" isActive={isActive('/developer')} tooltip="Developer">
-                        <Link href="/developer"><Code className="h-4 w-4 mr-2"/>Developer</Link>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/team')} tooltip="Team">
+                        <Link href="/admin/team"><Users className="h-4 w-4 mr-2"/>Team</Link>
                     </SidebarMenuButton>
-                </SidebarMenuItem>
+                 </SidebarMenuItem>
                 <SidebarMenuItem>
                     <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/hero')} tooltip="Site Settings">
                         <Link href="/admin/hero"><ImageIcon className="h-4 w-4 mr-2"/>Site Settings</Link>
