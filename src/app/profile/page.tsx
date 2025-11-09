@@ -179,6 +179,15 @@ export default function ProfilePage() {
             workExperience: profile.portfolio?.workExperience || [],
             education: profile.portfolio?.education || [],
           });
+
+          // Also set wallet info if it exists
+          if (profile.portfolio?.walletAddress) {
+              setWalletAddress(profile.portfolio.walletAddress);
+              if (typeof window.ethereum !== 'undefined') {
+                  const provider = new ethers.BrowserProvider(window.ethereum);
+                  fetchBalance(provider, profile.portfolio.walletAddress);
+              }
+          }
         }
       });
     }
@@ -293,14 +302,24 @@ export default function ProfilePage() {
         setNoWallet(true);
         return;
     }
+    if (!user) return;
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         const signer = await provider.getSigner();
         const address = await signer.getAddress();
         setWalletAddress(address);
+        
+        // Save address to user's profile
+        await saveUser(user.uid, {
+            portfolio: {
+                ...dbUser?.portfolio,
+                walletAddress: address
+            }
+        });
+
         toast({
-            title: "Wallet Connected",
+            title: "Wallet Connected & Saved",
             description: `Connected to address: ${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
         });
         await fetchBalance(provider, address);
@@ -362,6 +381,7 @@ export default function ProfilePage() {
             displayName: newDisplayName,
             photoURL: user.photoURL,
             portfolio: {
+                ...dbUser?.portfolio,
                 aboutMe: values.aboutMe,
                 phone: values.phone,
                 address: {
@@ -720,4 +740,3 @@ export default function ProfilePage() {
     </>
   );
 }
-
