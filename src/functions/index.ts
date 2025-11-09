@@ -18,16 +18,14 @@ export const onUserCreate = functions.auth.user().onCreate(async (user) => {
     // Generate a unique affiliate ID
     const affiliateId = randomBytes(4).toString('hex');
 
-    // This function now only creates the basic user record.
-    // Complex logic like organization creation or invitation handling is
-    // managed on the client-side during the signup process for better reliability.
     try {
+        // We only set the data that is immediately available and essential.
+        // The `referredBy` field will be set client-side during the signup flow.
         await userRef.set({
             email: email,
             displayName: displayName || 'New User',
             createdAt: creationTime,
             affiliateId: affiliateId,
-            // referral tracking is handled client-side now
         });
         console.log(`Successfully created user record for ${uid} with affiliate ID ${affiliateId}`);
     } catch (error) {

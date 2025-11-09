@@ -28,12 +28,13 @@ import {
   updatePassword,
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { RegisteredUser, saveUser, getUserById, createOrganization, getOrganizationByOwnerId, Organization, getOrganizationMembers, logActivity } from '@/lib/firebase-service';
+import { RegisteredUser, saveUser, getUserById, createOrganization, getOrganizationByOwnerId, Organization, getOrganizationMembers, logActivity, getReferralsByAffiliate } from '@/lib/firebase-service';
 import { ref, onValue, onDisconnect, set, serverTimestamp, update, get } from 'firebase/database';
 import { useToast } from './use-toast';
 import { add } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { slugify } from '@/lib/utils';
+import { randomBytes } from 'crypto';
 
 const ADMIN_UID = 'YlyqSWedlPfEqI9LlGzjN7zlRtC2';
 const SUPER_ADMIN_ORG_NAME = "Manda Network";
@@ -131,7 +132,15 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
   }, []);
 
   const fetchUserData = useCallback(async (user: User) => {
-    const userProfile = await getUserById(user.uid);
+    let userProfile = await getUserById(user.uid);
+
+    // Retroactively add affiliateId if it's missing for an existing user
+    if (userProfile && !userProfile.affiliateId) {
+        const newAffiliateId = randomBytes(4).toString('hex');
+        await saveUser(user.uid, { affiliateId: newAffiliateId });
+        userProfile.affiliateId = newAffiliateId; // Update in-memory profile
+    }
+
     setDbUser(userProfile);
 
     let orgId = userProfile?.organizationId;
@@ -210,11 +219,19 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
     });
     
     const userSlug = slugify(displayName);
-    const userData: Partial<RegisteredUser> = { slug: userSlug };
+    
+    const userData: Partial<RegisteredUser> = { 
+        slug: userSlug,
+    };
+    // The onUserCreate cloud function will automatically add the affiliateId.
+    
     if (affiliateRef) {
         userData.referredBy = affiliateRef;
     }
+    
+    // Save initial user data. Cloud function will add affiliateId.
     await saveUser(userCredential.user.uid, userData);
+
     await logActivity(userCredential.user.uid, { type: 'signup', details: {} });
     
     if (organizationName && !inviteOrgId) {
