@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
 import { getAllUsers, getAllCourses } from '@/lib/firebase-service';
 import type { RegisteredUser, Course, UserCourse } from '@/lib/types';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import PaymentIcons from '@/components/PaymentIcons';
 
 type Transaction = {
@@ -107,23 +107,26 @@ export default function AdminPaymentsPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {transactions.length > 0 ? transactions.map((transaction) => (
-                            <TableRow key={transaction.id}>
-                              <TableCell>
-                                <div className="font-medium">{transaction.userName}</div>
-                                <div className="text-sm text-muted-foreground">{transaction.userEmail}</div>
-                              </TableCell>
-                              <TableCell>{transaction.courseTitle}</TableCell>
-                              <TableCell>Ksh {transaction.amount.toLocaleString()}</TableCell>
-                              <TableCell>{format(new Date(transaction.date), 'PPP')}</TableCell>
-                              <TableCell className="capitalize">{transaction.paymentMethod}</TableCell>
-                              <TableCell>
-                                <Badge variant={transaction.status === 'Success' ? 'default' : 'destructive'}>
-                                    {transaction.status}
-                                </Badge>
-                              </TableCell>
-                            </TableRow>
-                          )) : (
+                          {transactions.length > 0 ? transactions.map((transaction) => {
+                             const transactionDate = new Date(transaction.date);
+                             return (
+                                <TableRow key={transaction.id}>
+                                <TableCell>
+                                    <div className="font-medium">{transaction.userName}</div>
+                                    <div className="text-sm text-muted-foreground">{transaction.userEmail}</div>
+                                </TableCell>
+                                <TableCell>{transaction.courseTitle}</TableCell>
+                                <TableCell>Ksh {transaction.amount.toLocaleString()}</TableCell>
+                                <TableCell>{isValid(transactionDate) ? format(transactionDate, 'PPP') : 'N/A'}</TableCell>
+                                <TableCell className="capitalize">{transaction.paymentMethod}</TableCell>
+                                <TableCell>
+                                    <Badge variant={transaction.status === 'Success' ? 'default' : 'destructive'}>
+                                        {transaction.status}
+                                    </Badge>
+                                </TableCell>
+                                </TableRow>
+                            )
+                          }) : (
                             <TableRow>
                                 <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
                                     No transactions found.
