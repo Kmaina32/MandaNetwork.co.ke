@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Footer } from "@/components/shared/Footer";
-import { ArrowLeft, Coins, Loader2, Wallet, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Coins, Loader2, Wallet, AlertCircle, FileText } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@iconify/react';
@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { DocumentEditor, DocType } from '@/components/shared/DocumentEditor';
 
 const contractAddressIsSet = MANDA_TOKEN_CONTRACT_ADDRESS !== '0x0000000000000000000000000000000000000000';
 
@@ -127,7 +128,10 @@ export default function AdminBlockchainPage() {
             if (error.message.includes("insufficient balance")) {
                 errorMessage = "You do not have enough MDT to complete this transaction.";
             }
-            toast({ title: 'Funding Failed', description: errorMessage, variant: 'destructive' });
+             if (error.message.includes("insufficient funds")) {
+                errorMessage = "You do not have enough MATIC in your wallet to pay for the gas fee.";
+            }
+            toast({ title: 'Funding Failed', description: errorMessage, variant: 'destructive', duration: 10000 });
         } finally {
             setIsFunding(false);
             setFundAmount('');
@@ -138,7 +142,7 @@ export default function AdminBlockchainPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <main className="flex-grow container mx-auto px-4 md:px-6 py-12 md:py-16">
-        <div className="max-w-3xl mx-auto h-full flex flex-col">
+        <div className="max-w-4xl mx-auto h-full flex flex-col gap-8">
           <Link href="/admin" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
             <ArrowLeft className="h-4 w-4" />
             Back to Admin Dashboard
@@ -181,7 +185,7 @@ export default function AdminBlockchainPage() {
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                <Button className="w-full" onClick={handleConnectWallet} disabled={noWallet || !contractAddressIsSet}>
+                                <Button className="w-full" onClick={handleConnectWallet} disabled={noWallet}>
                                     <Icon icon="logos:metamask-icon" className="mr-2 h-5 w-5" />
                                     Connect MetaMask Wallet
                                 </Button>
@@ -222,6 +226,20 @@ export default function AdminBlockchainPage() {
                          </div>
                      </CardContent>
                  </Card>
+              </CardContent>
+            </Card>
+             <Card className="flex-grow flex flex-col">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-6 w-6" />
+                  Blockchain Integration Guide
+                </CardTitle>
+                <CardDescription>
+                  This document provides technical details on how the blockchain components are integrated.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex-grow flex flex-col">
+                 <DocumentEditor docType={'BLOCKCHAIN_INTEGRATION' as DocType} />
               </CardContent>
             </Card>
         </div>

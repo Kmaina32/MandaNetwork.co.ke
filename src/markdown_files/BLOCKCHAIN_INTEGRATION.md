@@ -62,7 +62,16 @@ These components would live on a public blockchain. An EVM-compatible chain like
 
 Follow these steps to compile, deploy, and configure your `MandaToken` smart contract.
 
-### Step 1: Compile the Smart Contract
+### Step 1: Get Test MATIC
+
+All transactions on the blockchain require "gas" fees. On the Polygon Amoy testnet, these fees are paid in test MATIC. You must get some from a public faucet before you can deploy your contract.
+
+1.  Visit a Polygon Amoy faucet, such as [www.alchemy.com/faucets/polygon-amoy](https://www.alchemy.com/faucets/polygon-amoy).
+2.  Paste your MetaMask wallet address (the one you will use for deployment) into the input field.
+3.  Complete any required verification steps (like a CAPTCHA).
+4.  Request the test MATIC. It should arrive in your wallet within a few minutes.
+
+### Step 2: Compile the Smart Contract
 
 First, ensure your smart contract code is correct and ready. Then, open your terminal and run the compilation command. This checks for errors and prepares the necessary files for deployment.
 
@@ -71,7 +80,7 @@ npm run blockchain:compile
 ```
 This command navigates into the `blockchain` directory and runs `npx hardhat compile`.
 
-### Step 2: Deploy the Contract
+### Step 3: Deploy the Contract
 
 Next, you will deploy the contract to a test network. The project is configured for the **Polygon Amoy** testnet. Ensure your MetaMask wallet is set to this network and funded with test MATIC.
 
@@ -87,7 +96,7 @@ MandaToken deployed to: 0xAbC123...dEf456
 
 **This is your unique contract address.** Copy it.
 
-### Step 3: Update the Application with the Contract Address
+### Step 4: Update the Application with the Contract Address
 
 Now you must tell your Next.js application where to find the deployed contract.
 
@@ -96,7 +105,7 @@ Now you must tell your Next.js application where to find the deployed contract.
     ```typescript
     export const MANDA_TOKEN_CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000";
     ```
-3.  Replace the placeholder with the **actual address** you copied from the terminal output in Step 2.
+3.  Replace the placeholder with the **actual address** you copied from the terminal output in Step 3.
     ```typescript
     export const MANDA_TOKEN_CONTRACT_ADDRESS = "0xAbC123...dEf456"; // Your deployed address here
     ```
