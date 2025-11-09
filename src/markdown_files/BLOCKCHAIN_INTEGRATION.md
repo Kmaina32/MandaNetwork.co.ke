@@ -58,80 +58,60 @@ These components would live on a public blockchain. An EVM-compatible chain like
 
 ---
 
-## 4. How to Build Your Crypto (A Conceptual Guide)
+## 3. Step-by-Step Deployment Guide
 
-Creating a cryptocurrency like MandaToken (MDT) involves writing and deploying a "smart contract" to a blockchain. Below is a simplified, high-level guide to the process.
+Follow these steps to compile, deploy, and configure your `MandaToken` smart contract.
 
-### Step 1: Set Up Your Development Environment
+### Step 1: Compile the Smart Contract
 
-Before writing any code, you need the right tools.
--   **Node.js:** Make sure you have Node.js installed on your computer.
--   **Wallet:** Install a browser wallet like [MetaMask](https://metamask.io/). This will hold your test cryptocurrency and allow you to interact with the blockchain.
--   **Code Editor:** A code editor like [VS Code](https://code.visualstudio.com/) is recommended.
--   **Development Framework:** Use a framework like [Hardhat](https://hardhat.org/) to compile, test, and deploy your smart contracts.
+First, ensure your smart contract code is correct and ready. Then, open your terminal and run the compilation command. This checks for errors and prepares the necessary files for deployment.
 
-To set up a Hardhat project, you would run these commands in your terminal:
 ```bash
-mkdir manda-token-contract
-cd manda-token-contract
-npm init -y
-npm install --save-dev hardhat
+npm run blockchain:compile
+```
+This command navigates into the `blockchain` directory and runs `npx hardhat compile`.
+
+### Step 2: Deploy the Contract
+
+Next, you will deploy the contract to a test network. The project is configured for the **Polygon Amoy** testnet. Ensure your MetaMask wallet is set to this network and funded with test MATIC.
+
+Run the following command in your terminal:
+```bash
+cd blockchain && npx hardhat run scripts/deploy.ts --network amoy
+```
+This script will use your MetaMask wallet (or whichever wallet is configured with Hardhat) to deploy the contract. After a few moments, the terminal will output a message like this:
+
+```
+MandaToken deployed to: 0xAbC123...dEf456
 ```
 
-### Step 2: Write the Smart Contract in Solidity
+**This is your unique contract address.** Copy it.
 
-The code for a smart contract is typically written in a language called **Solidity**. For an ERC-20 token, you don't need to write everything from scratch. You can use secure, audited templates from [OpenZeppelin](https://www.openzeppelin.com/contracts).
+### Step 3: Update the Application with the Contract Address
 
-Here’s what a basic `MandaToken.sol` contract would look like. This code defines the token's name, symbol, and total supply.
+Now you must tell your Next.js application where to find the deployed contract.
 
-```solidity
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
-/**
- * @title MandaToken
- * @dev A simple ERC20 token for the Manda Network platform.
- */
-contract MandaToken is ERC20 {
-    /**
-     * @dev Constructor that mints the initial supply of tokens to the contract deployer.
-     * The deployer's address will become the owner and receive all tokens.
-     */
-    constructor() ERC20("MandaToken", "MDT") {
-        // Mint 100 million tokens.
-        // ERC20 contracts use a number of decimals (usually 18), so we add 18 zeros.
-        _mint(msg.sender, 100000000 * (10 ** 18));
-    }
-}
-```
-
-### Step 3: Compile and Deploy the Contract
-
-1.  **Compile:** Using your development framework (Hardhat), you would run a command to compile your Solidity code into bytecode that the blockchain can understand.
-    ```bash
-    npx hardhat compile
+1.  Open the file: `src/lib/blockchain/contracts.ts`
+2.  You will see a placeholder address:
+    ```typescript
+    export const MANDA_TOKEN_CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000";
+    ```
+3.  Replace the placeholder with the **actual address** you copied from the terminal output in Step 2.
+    ```typescript
+    export const MANDA_TOKEN_CONTRACT_ADDRESS = "0xAbC123...dEf456"; // Your deployed address here
     ```
 
-2.  **Get Test Funds:** To deploy your contract to a test network (like Polygon Amoy), you'll need test currency (e.g., testnet MATIC). You can get this for free from a "faucet" website.
-
-3.  **Deploy:** You would write a deployment script and run a command to send your compiled contract to the blockchain.
-    ```bash
-    npx hardhat run scripts/deploy.js --network amoy
-    ```
-
-Once deployed, your token contract will have a permanent address on the blockchain, and the total supply will be in the wallet you used for deployment.
+**Your application is now connected to your live smart contract.** You can proceed to test features like claiming from the faucet.
 
 ---
 
-## 5. Frontend Web3 Integration
+## 4. Frontend Web3 Integration
 
-This part explains how your Next.js application would communicate with the blockchain and your deployed smart contracts.
+This part explains how your Next.js application communicates with the blockchain.
 
 ### Step 1: Install a Web3 Library
 
-You need a library to interact with the Ethereum blockchain. The most popular one is **Ethers.js**.
+The project already includes **Ethers.js**, a powerful library for interacting with the Ethereum blockchain.
 
 ```bash
 npm install ethers
@@ -139,25 +119,21 @@ npm install ethers
 
 ### Step 2: Connect to the User's Wallet
 
-You need to create a function that detects the user's browser wallet (like MetaMask) and asks for permission to connect. This function retrieves the **user's unique wallet address**, not a contract ID.
+The application contains code to detect a user's browser wallet (like MetaMask) and ask for their permission to connect. This is handled within the `src/app/profile/page.tsx` file. The function retrieves the **user's unique wallet address**, which is distinct from a contract address.
 
 ```javascript
 import { ethers } from 'ethers';
 
 async function connectWallet() {
-  // Check if MetaMask or another wallet is installed
   if (typeof window.ethereum === 'undefined') {
     alert('Please install MetaMask!');
     return;
   }
 
   try {
-    // Request account access
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = await provider.getSigner();
     const userWalletAddress = await signer.getAddress();
-    
-    console.log('Connected User Wallet:', userWalletAddress);
     return { provider, signer, address: userWalletAddress };
   } catch (error) {
     console.error('User rejected connection:', error);
@@ -165,66 +141,37 @@ async function connectWallet() {
 }
 ```
 
-### Step 3: Update the Contract Address
+### Step 3: Interact with Your Smart Contracts
 
-After deploying your contract, you will get a unique address for it. You must update the application to use this new address.
+To call functions on your contract (like `faucet()` or `balanceOf()`), the application needs three things:
+1.  A connected user wallet (`signer`).
+2.  The **Contract Address** (which you configured in the previous section).
+3.  The **Contract ABI** (Application Binary Interface), which is a JSON file that acts as a function manual for the contract.
 
-1.  Open the file: `src/lib/blockchain/contracts.ts`
-2.  You will see a placeholder address like this:
-    ```typescript
-    export const MANDA_TOKEN_CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000";
-    ```
-3.  Replace the placeholder with the **actual address** of your deployed `MandaToken` contract. This constant is imported throughout the application to interact with your token.
-
-### Step 4: Interact with Your Smart Contracts
-
-Once connected and configured, you can create instances of your smart contracts in your code to call their functions. To do this, you need the **Contract Address** (which you just configured) and the **Contract ABI (Application Binary Interface)**. The ABI is a JSON file generated during compilation that describes your contract's functions.
-
-Here is a conceptual example of how you might create a "Pay with MDT" button in a React component.
+Here is a conceptual example of how the "Claim MDT" button works:
 
 ```javascript
 import { ethers } from 'ethers';
-import { MANDA_TOKEN_CONTRACT_ADDRESS } from '@/lib/blockchain/contracts'; // Import the address
-import MandaTokenABI from '@/lib/blockchain/abis/MandaToken.json'; // Import the ABI
+import { MANDA_TOKEN_CONTRACT_ADDRESS } from '@/lib/blockchain/contracts';
+import MandaTokenABI from '@/lib/blockchain/abis/MandaToken.json';
 
-const ENROLLMENT_CONTRACT_ADDRESS = 'YOUR_ENROLLMENT_CONTRACT_ADDRESS';
+async function handleClaim() {
+    const { signer } = await connectWallet();
+    if (!signer) return;
 
-function PurchaseButton({ courseId, priceInMdt }) {
-  const handlePurchase = async () => {
-    const { provider, signer } = await connectWallet();
-    if (!provider || !signer) return;
-
-    // Create contract instances
+    // Create a contract instance
     const mandaTokenContract = new ethers.Contract(MANDA_TOKEN_CONTRACT_ADDRESS, MandaTokenABI.abi, signer);
-    const enrollmentContract = new ethers.Contract(ENROLLMENT_CONTRACT_ADDRESS, CourseEnrollmentABI, signer);
 
     try {
-      // 1. Approve the enrollment contract to spend your tokens
-      const approveTx = await mandaTokenContract.approve(ENROLLMENT_CONTRACT_ADDRESS, priceInMdt);
-      await approveTx.wait(); // Wait for the transaction to be mined
-
-      // 2. Call the purchase function on the enrollment contract
-      const purchaseTx = await enrollmentContract.purchaseCourse(courseId);
-      await purchaseTx.wait(); // Wait for the purchase to be mined
-
-      alert('Purchase successful!');
-      // The backend listener will now detect the event and grant course access.
-
+      // Call the 'faucet' function on the contract
+      const tx = await mandaTokenContract.faucet();
+      await tx.wait(); // Wait for the transaction to be confirmed
+      alert('Tokens claimed successfully!');
     } catch (error) {
       console.error('Transaction failed:', error);
-      alert('Purchase failed. Check the console for details.');
+      alert('Failed to claim tokens.');
     }
-  };
-
-  return <button onClick={handlePurchase}>Pay with MDT</button>;
 }
 ```
 
-This flow demonstrates the core logic: connect to a wallet, get the user's permission to spend tokens, and then execute the main transaction.
-
-## 6. Next Steps & Considerations
-
--   **Choice of Blockchain:** A low-cost, high-speed chain like Polygon, Arbitrum, or Optimism would be essential to make micro-transactions feasible.
--   **Security:** All smart contracts must undergo a professional security audit before deployment.
--   **User Experience (UX):** A major focus would be abstracting away the complexities of blockchain for non-technical users. This might involve wallet creation guides, clear transaction prompts, and handling potential transaction failures gracefully.
--   **Specialized Team:** This implementation would require developers with expertise in Solidity, smart contract development, and web3 frontend integration.
+This flow demonstrates the core logic: connect wallet, create a contract object, and call a function on it.
