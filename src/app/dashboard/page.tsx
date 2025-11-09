@@ -153,7 +153,7 @@ function PortfolioProgressWidget({ dbUser }: { dbUser: RegisteredUser }) {
     const score = useMemo(() => {
         let currentScore = 0;
         if (dbUser.displayName && dbUser.displayName !== 'New Member') currentScore += 25;
-        if (dbUser.portfolio?.summary) currentScore += 25;
+        if (dbUser.portfolio?.aboutMe) currentScore += 25;
         if (dbUser.portfolio?.socialLinks?.github) currentScore += 25;
         if (dbUser.portfolio?.public) currentScore += 25;
         return currentScore;
@@ -188,7 +188,7 @@ function PortfolioProgressWidget({ dbUser }: { dbUser: RegisteredUser }) {
                     </div>
                     <ul className="text-sm space-y-2">
                         <li className={`flex items-center gap-2 ${dbUser.displayName && dbUser.displayName !== 'New Member' ? 'text-muted-foreground line-through' : ''}`}><CheckCircle className="h-4 w-4"/>Set your full name</li>
-                        <li className={`flex items-center gap-2 ${dbUser.portfolio?.summary ? 'text-muted-foreground line-through' : ''}`}><CheckCircle className="h-4 w-4"/>Add a profile summary</li>
+                        <li className={`flex items-center gap-2 ${dbUser.portfolio?.aboutMe ? 'text-muted-foreground line-through' : ''}`}><CheckCircle className="h-4 w-4"/>Add a profile summary</li>
                         <li className={`flex items-center gap-2 ${dbUser.portfolio?.socialLinks?.github ? 'text-muted-foreground line-through' : ''}`}><CheckCircle className="h-4 w-4"/>Link your GitHub</li>
                         <li className={`flex items-center gap-2 ${dbUser.portfolio?.public ? 'text-muted-foreground line-through' : ''}`}><CheckCircle className="h-4 w-4"/>Make portfolio public</li>
                     </ul>
