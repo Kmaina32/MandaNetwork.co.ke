@@ -1,5 +1,6 @@
+
 import type { MetadataRoute } from 'next';
-import { getAllCourses, getAllPrograms, getAllBootcamps, getPublicProfiles } from '@/lib/firebase-service';
+import { getAllCourses, getAllPrograms, getAllBootcamps, getPublicProfiles, getAllBlogPosts } from '@/lib/firebase-service';
 import { slugify } from '@/lib/utils';
 
 const BASE_URL = 'https://www.mandanetwork.co.ke';
@@ -10,6 +11,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const programs = await getAllPrograms();
   const bootcamps = await getAllBootcamps();
   const portfolios = await getPublicProfiles();
+  const blogPosts = await getAllBlogPosts();
 
   const courseEntries: MetadataRoute.Sitemap = courses.map((course) => ({
     url: `${BASE_URL}/courses/${slugify(course.title)}`,
@@ -38,63 +40,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: 'daily',
     priority: 0.6,
   }));
+  
+  const blogPostEntries: MetadataRoute.Sitemap = blogPosts.map((post) => ({
+    url: `${BASE_URL}/blog/${post.slug}`,
+    lastModified: new Date(post.updatedAt),
+    changeFrequency: 'weekly',
+    priority: 0.7,
+  }));
 
   // Define static routes
   const staticRoutes: MetadataRoute.Sitemap = [
-    {
-      url: BASE_URL,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 1,
-    },
-    {
-      url: `${BASE_URL}/about`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
-    {
-        url: `${BASE_URL}/programs`,
-        lastModified: new Date(),
-        changeFrequency: 'weekly',
-        priority: 0.9,
-    },
-     {
-        url: `${BASE_URL}/bootcamps`,
-        lastModified: new Date(),
-        changeFrequency: 'weekly',
-        priority: 0.9,
-    },
-     {
-        url: `${BASE_URL}/portal/hackathons`,
-        lastModified: new Date(),
-        changeFrequency: 'weekly',
-        priority: 0.8,
-    },
-     {
-        url: `${BASE_URL}/portfolios`,
-        lastModified: new Date(),
-        changeFrequency: 'daily',
-        priority: 0.9,
-    },
-    {
-      url: `${BASE_URL}/contact`,
-      lastModified: new Date(),
-      changeFrequency: 'yearly',
-      priority: 0.5,
-    },
-    {
-        url: `${BASE_URL}/help`,
-        lastModified: new Date(),
-        changeFrequency: 'monthly',
-        priority: 0.6,
-    },
-    {
-        url: `${BASE_URL}/for-business`,
-        lastModified: new Date(),
-        changeFrequency: 'monthly',
-        priority: 0.8,
-    }
+    { url: BASE_URL, lastModified: new Date(), changeFrequency: 'monthly', priority: 1 },
+    { url: `${BASE_URL}/login`, lastModified: new Date(), changeFrequency: 'yearly', priority: 0.5 },
+    { url: `${BASE_URL}/signup`, lastModified: new Date(), changeFrequency: 'yearly', priority: 0.5 },
+    { url: `${BASE_URL}/about`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${BASE_URL}/programs`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.9 },
+    { url: `${BASE_URL}/bootcamps`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.9 },
+    { url: `${BASE_URL}/portal/hackathons`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${BASE_URL}/portfolios`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.9 },
+    { url: `${BASE_URL}/contact`, lastModified: new Date(), changeFrequency: 'yearly', priority: 0.5 },
+    { url: `${BASE_URL}/help`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${BASE_URL}/for-business`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.8 }
   ];
 
   return [
@@ -103,5 +69,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...programEntries,
     ...bootcampEntries,
     ...portfolioEntries,
+    ...blogPostEntries,
   ];
 }

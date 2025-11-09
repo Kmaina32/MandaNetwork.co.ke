@@ -14,58 +14,70 @@ const BASE_URL = 'https://www.mandanetwork.co.ke';
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: {
-    default: 'Manda Network: Online Courses for the Kenyan Market',
+    default: 'Manda Network | Empowering Digital Africa',
     template: `%s | Manda Network`,
   },
-  description: 'Find your next course at Manda Network. We offer quality, affordable online courses in AI, Data Science, and more, designed specifically for Kenya.',
+  description: 'Manda Network is Africa’s leading digital learning and innovation platform—building the next generation of tech talent across Kenya, East Africa, and the continent.',
+  keywords: "Manda Network, Africa tech startups, AI learning, online courses, bootcamps, East Africa, Kenya, digital skills, innovation hub",
+  authors: [{ name: "Manda Network" }],
+  robots: "index, follow",
   verification: {
     google: 'qNZsueqgogEIZHV-vcsY-Kv7tkLo82P_-w7BQvJG1jY',
   },
   openGraph: {
-    title: 'Manda Network: Online Courses for the Kenyan Market',
-    description: 'Find your next course at Manda Network. We offer quality, affordable online courses in AI, Data Science, and more, designed specifically for Kenya.',
+    title: 'Manda Network | Empowering Digital Africa',
+    description: 'Join Africa’s fastest-growing platform for digital learning and innovation. Learn AI, coding, business, and more with Manda Network.',
     url: BASE_URL,
     siteName: 'Manda Network',
+    images: [
+      {
+        url: `${BASE_URL}/assets/og-image.jpg`,
+        width: 1200,
+        height: 630,
+      },
+    ],
     locale: 'en_KE',
     type: 'website',
   },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Manda Network | Empowering Digital Africa',
+    description: 'Build digital skills, launch startups, and innovate with Africa’s top online platform.',
+    images: [`${BASE_URL}/assets/og-image.jpg`],
   },
 };
 
 const organizationSchema = {
   "@context": "https://schema.org",
-  "@type": "EducationalOrganization",
+  "@type": "Organization",
   "name": "Manda Network",
-  "url": BASE_URL,
-  "logo": `${BASE_URL}/logo.png`,
-  "contactPoint": {
+  "url": "https://www.mandanetwork.co.ke/",
+  "logo": "https://www.mandanetwork.co.ke/assets/logo.png",
+  "sameAs": [
+    "https://www.linkedin.com/company/mandanetwork",
+    "https://www.instagram.com/mandanetwork",
+    "https://www.twitter.com/mandanetwork",
+    "https://www.facebook.com/mandanetwork"
+  ],
+  "contactPoint": [{
     "@type": "ContactPoint",
-    "telephone": "+254-747-079-034",
-    "contactType": "Customer Service",
+    "telephone": "+254742999999",
+    "contactType": "customer service",
     "areaServed": "KE",
-    "availableLanguage": ["en", "sw"]
+    "availableLanguage": ["English", "Swahili"]
+  }],
+  "founder": {
+    "@type": "Person",
+    "name": "George Maina",
+    "jobTitle": "CTO"
   },
+  "description": "Manda Network is a pan-African platform that powers digital education, startups, and innovation hubs across Africa. We bridge the talent gap through AI, technology, and entrepreneurship.",
   "address": {
     "@type": "PostalAddress",
-    "streetAddress": "Runda Mall, Kiambu Road",
-    "addressLocality": "Nairobi",
+    "streetAddress": "Serena Rd",
+    "addressLocality": "Mombasa",
     "addressCountry": "KE"
-  },
-  "sameAs": [
-    "https://twitter.com/MandaNetwork",
-    "https://www.linkedin.com/company/mandanetwork"
-  ],
-  "description": "The official Manda Network, an online learning platform providing high-quality, affordable, and accessible education tailored for the Kenyan market in AI, Data Science, and technology."
+  }
 };
 
 const websiteSchema = {
@@ -82,20 +94,6 @@ const websiteSchema = {
     "query-input": "required name=search_term_string"
   }
 };
-
-const navigationSchema = {
-    "@context": "https://schema.org",
-    "@type": "SiteNavigationElement",
-    "name": [ "Courses", "Login", "Sign Up", "About Us", "Contact" ],
-    "url": [
-        `${BASE_URL}/`,
-        `${BASE_URL}/login`,
-        `${BASE_URL}/signup`,
-        `${BASE_URL}/about`,
-        `${BASE_URL}/contact`
-    ]
-}
-
 
 export default async function RootLayout({
   children,
@@ -119,10 +117,6 @@ export default async function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(navigationSchema) }}
         />
       </head>
       <body className="font-body antialiased">

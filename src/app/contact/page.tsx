@@ -36,7 +36,7 @@ export default function ContactPage() {
                                 </div>
                                 <div>
                                     <h3 className="font-semibold">Our Office</h3>
-                                    <p className="text-sm text-muted-foreground">Runda Mall, Kiambu Road, Nairobi</p>
+                                    <p className="text-sm text-muted-foreground">Serena Rd, Mombasa, Kenya</p>
                                 </div>
                             </div>
                             <div className="flex flex-col items-center md:items-start gap-3 p-4 rounded-lg bg-secondary/50">
@@ -54,7 +54,7 @@ export default function ContactPage() {
                                 </div>
                                 <div>
                                     <h3 className="font-semibold">Call Us</h3>
-                                    <p className="text-sm text-muted-foreground">0747079034 (Mon-Fri, 9am-5pm)</p>
+                                    <p className="text-sm text-muted-foreground">+254742999999 (Mon-Fri, 9am-5pm)</p>
                                 </div>
                             </div>
                         </div>

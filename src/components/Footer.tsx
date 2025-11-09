@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -25,25 +26,25 @@ export function Footer() {
           {/* Social Icons */}
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost" size="icon">
-              <Link href="https://twitter.com" target="_blank" rel="noopener noreferrer">
+              <Link href="https://twitter.com/mandanetwork" target="_blank" rel="noopener noreferrer">
                 <Twitter className="h-4 w-4" />
                 <span className="sr-only">Twitter</span>
               </Link>
             </Button>
             <Button asChild variant="ghost" size="icon">
-              <Link href="https://facebook.com" target="_blank" rel="noopener noreferrer">
+              <Link href="https://facebook.com/mandanetwork" target="_blank" rel="noopener noreferrer">
                 <Facebook className="h-4 w-4" />
                 <span className="sr-only">Facebook</span>
               </Link>
             </Button>
             <Button asChild variant="ghost" size="icon">
-              <Link href="https://linkedin.com" target="_blank" rel="noopener noreferrer">
+              <Link href="https://linkedin.com/company/mandanetwork" target="_blank" rel="noopener noreferrer">
                 <Linkedin className="h-4 w-4" />
                 <span className="sr-only">LinkedIn</span>
               </Link>
             </Button>
             <Button asChild variant="ghost" size="icon">
-              <Link href="https://www.instagram.com/manda.networkhub/" target="_blank" rel="noopener noreferrer">
+              <Link href="https://www.instagram.com/mandanetwork" target="_blank" rel="noopener noreferrer">
                 <Instagram className="h-4 w-4" />
                 <span className="sr-only">Instagram</span>
               </Link>
@@ -59,4 +60,3 @@ export function Footer() {
     </footer>
   );
 }
-
