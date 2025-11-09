@@ -13,7 +13,7 @@ import { ethers } from 'ethers';
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, User as UserIcon, Camera, Upload, Eye, Building, Share2, PlusCircle, Trash2, KeyRound, Wallet, AlertCircle, Coins } from 'lucide-react';
+import { ArrowLeft, Loader2, User as UserIcon, Camera, Upload, Eye, Building, Share2, PlusCircle, Trash2, KeyRound, Wallet, AlertCircle, Coins, EyeOff } from 'lucide-react';
 import { AppSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
@@ -111,6 +111,8 @@ export default function ProfilePage() {
   const [mdtBalance, setMdtBalance] = useState<string | null>(null);
   const [noWallet, setNoWallet] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
+
+  const contractAddressIsSet = MANDA_TOKEN_CONTRACT_ADDRESS !== '0x0000000000000000000000000000000000000000';
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -272,8 +274,8 @@ export default function ProfilePage() {
   }
   
     const fetchBalance = async (provider: ethers.BrowserProvider, address: string) => {
-        if (MANDA_TOKEN_CONTRACT_ADDRESS === 'YOUR_CONTRACT_ADDRESS_HERE') {
-            setMdtBalance('0'); // Set balance to 0 if contract is not deployed
+        if (!contractAddressIsSet) {
+            setMdtBalance('0.00');
             return;
         }
         try {
@@ -317,6 +319,7 @@ export default function ProfilePage() {
         toast({ title: 'Wallet not connected', variant: 'destructive'});
         return;
     }
+    if (!contractAddressIsSet) return;
     setIsClaiming(true);
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
@@ -486,10 +489,19 @@ export default function ProfilePage() {
                                                 <p className="text-sm font-semibold">MDT Balance</p>
                                                 <p className="font-bold text-primary text-lg">{mdtBalance !== null ? parseFloat(mdtBalance).toFixed(4) : 'Loading...'} MDT</p>
                                             </div>
-                                            <Button onClick={handleClaimFaucet} disabled={isClaiming}>
+                                            <Button onClick={handleClaimFaucet} disabled={isClaiming || !contractAddressIsSet}>
                                                 {isClaiming ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Coins className="h-4 w-4 mr-2" />}
                                                 Claim 10 MDT
                                             </Button>
+                                            {!contractAddressIsSet && (
+                                                <Alert variant="destructive" className="mt-2">
+                                                    <AlertCircle className="h-4 w-4" />
+                                                    <AlertTitle>Action Required</AlertTitle>
+                                                    <AlertDescriptionComponent>
+                                                        The MandaToken contract is not deployed. Update the address in `src/lib/blockchain/contracts.ts` to enable this feature.
+                                                    </AlertDescriptionComponent>
+                                                </Alert>
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="space-y-4">
