@@ -84,7 +84,7 @@ describe("MandaToken", function () {
 
     it("Should prevent a user from claiming tokens twice within the cooldown period", async function() {
         await mandaToken.connect(addr1).faucet();
-        await expect(mandaToken.connect(addr1).faucet()).to.be.revertedWith("MandaToken: Faucet cooldown not over yet.");
+        await expect(mandaToken.connect(addr1).faucet()).to.be.revertedWithCustomError(mandaToken, "MandaToken__FaucetCooldownNotOver");
     });
 
     it("Should allow a user to claim again after the cooldown period", async function() {
