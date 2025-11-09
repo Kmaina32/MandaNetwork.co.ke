@@ -807,7 +807,7 @@ These components would live on a public blockchain. An EVM-compatible chain like
 
 1.  **MandaToken (MDT) - ERC-20 Smart Contract:**
     *   **Type:** A standard ERC-20 token.
-    *   **Total Supply:** A fixed supply would be minted at creation (e.g., 100,000,000 MDT). A portion would be held by the platform treasury for rewards.
+    *   **Total Supply:** A fixed supply would be minted at creation (e.g., 100,000,000 MDT). A portion would be held by the platform treasury for rewards and operations.
     *   **Utility:**
         *   **Payments:** Used by students to pay for courses.
         *   **Rewards:** Distributed to students for completing courses, achieving high exam scores, or participating in community events.
@@ -824,7 +824,7 @@ These components would live on a public blockchain. An EVM-compatible chain like
 ### Off-Chain Components (Current Application)
 
 1.  **Frontend (Next.js):**
-    *   **Wallet Integration:** Use a library like \`Ethers.js\` or \`Web3.js\` to connect to the user's browser wallet (e.g., MetaMask).
+    *   **Wallet Integration:** Use a library like \`Ethers.js\` to connect to the user's browser wallet (e.g., MetaMask).
     *   **UI Changes:**
         *   Display course prices in both KES and MDT.
         *   Show the user's MDT balance in their profile.
@@ -835,9 +835,14 @@ These components would live on a public blockchain. An EVM-compatible chain like
     *   **Enrollment Logic:** When the listener detects an \`Enrolled\` event for a specific student and course, it triggers a function to update the Firebase Realtime Database, granting that student access to the course (i.e., adding the course to their \`purchasedCourses\` list).
     *   **Token Distribution:** Admin-triggered functions (or automated cloud functions) would be needed to send MDT rewards from the treasury to students' wallets upon course completion.
 
+3.  **Admin Faucet Management:**
+    *   An administrative interface will be created within the admin dashboard.
+    *   From this page, the platform owner can connect their wallet (which holds the total supply of MDT) and call the \`fundFaucet\` function on the \`MandaToken\` contract.
+    *   This allows the owner to securely transfer a specified amount of MDT into the contract itself, creating a reserve from which the public faucet can distribute tokens.
+
 ---
 
-## 3. How to Build Your Crypto (A Conceptual Guide)
+## 4. How to Build Your Crypto (A Conceptual Guide)
 
 Creating a cryptocurrency like MandaToken (MDT) involves writing and deploying a "smart contract" to a blockchain. Below is a simplified, high-level guide to the process.
 
@@ -904,7 +909,7 @@ Once deployed, your token contract will have a permanent address on the blockcha
 
 ---
 
-## 4. Frontend Web3 Integration
+## 5. Frontend Web3 Integration
 
 This part explains how your Next.js application would communicate with the blockchain and your deployed smart contracts.
 
@@ -918,7 +923,7 @@ npm install ethers
 
 ### Step 2: Connect to the User's Wallet
 
-You need to create a function that detects the user's browser wallet (like MetaMask) and asks for permission to connect.
+You need to create a function that detects the user's browser wallet (like MetaMask) and asks for permission to connect. This function retrieves the **user's unique wallet address**, not a contract ID.
 
 \`\`\`javascript
 import { ethers } from 'ethers';
@@ -934,29 +939,38 @@ async function connectWallet() {
     // Request account access
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = await provider.getSigner();
-    const address = await signer.getAddress();
+    const userWalletAddress = await signer.getAddress();
     
-    console.log('Connected Account:', address);
-    return { provider, signer, address };
+    console.log('Connected User Wallet:', userWalletAddress);
+    return { provider, signer, address: userWalletAddress };
   } catch (error) {
     console.error('User rejected connection:', error);
   }
 }
 \`\`\`
 
-### Step 3: Interact with Your Smart Contracts
+### Step 3: Update the Contract Address
 
-Once connected, you can create instances of your smart contracts in your code to call their functions. To do this, you need two things:
-1.  **Contract Address:** The address your contract was deployed to in Step 3 of the previous section.
-2.  **Contract ABI (Application Binary Interface):** This is a JSON file generated during compilation that describes your contract's functions.
+After deploying your contract, you will get a unique address for it. You must update the application to use this new address.
+
+1.  Open the file: \`src/lib/blockchain/contracts.ts\`
+2.  You will see a placeholder address like this:
+    \`\`\`typescript
+    export const MANDA_TOKEN_CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000";
+    \`\`\`
+3.  Replace the placeholder with the **actual address** of your deployed \`MandaToken\` contract. This constant is imported throughout the application to interact with your token.
+
+### Step 4: Interact with Your Smart Contracts
+
+Once connected and configured, you can create instances of your smart contracts in your code to call their functions. To do this, you need the **Contract Address** (which you just configured) and the **Contract ABI (Application Binary Interface)**. The ABI is a JSON file generated during compilation that describes your contract's functions.
 
 Here is a conceptual example of how you might create a "Pay with MDT" button in a React component.
 
 \`\`\`javascript
 import { ethers } from 'ethers';
-import { MandaTokenABI, CourseEnrollmentABI } from './abis'; // You would import your ABIs
+import { MANDA_TOKEN_CONTRACT_ADDRESS } from '@/lib/blockchain/contracts'; // Import the address
+import MandaTokenABI from '@/lib/blockchain/abis/MandaToken.json'; // Import the ABI
 
-const MANDA_TOKEN_ADDRESS = 'YOUR_MDT_CONTRACT_ADDRESS';
 const ENROLLMENT_CONTRACT_ADDRESS = 'YOUR_ENROLLMENT_CONTRACT_ADDRESS';
 
 function PurchaseButton({ courseId, priceInMdt }) {
@@ -965,7 +979,7 @@ function PurchaseButton({ courseId, priceInMdt }) {
     if (!provider || !signer) return;
 
     // Create contract instances
-    const mandaTokenContract = new ethers.Contract(MANDA_TOKEN_ADDRESS, MandaTokenABI, signer);
+    const mandaTokenContract = new ethers.Contract(MANDA_TOKEN_CONTRACT_ADDRESS, MandaTokenABI.abi, signer);
     const enrollmentContract = new ethers.Contract(ENROLLMENT_CONTRACT_ADDRESS, CourseEnrollmentABI, signer);
 
     try {
@@ -992,7 +1006,7 @@ function PurchaseButton({ courseId, priceInMdt }) {
 
 This flow demonstrates the core logic: connect to a wallet, get the user's permission to spend tokens, and then execute the main transaction.
 
-## 5. Next Steps & Considerations
+## 6. Next Steps & Considerations
 
 -   **Choice of Blockchain:** A low-cost, high-speed chain like Polygon, Arbitrum, or Optimism would be essential to make micro-transactions feasible.
 -   **Security:** All smart contracts must undergo a professional security audit before deployment.

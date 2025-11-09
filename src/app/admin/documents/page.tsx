@@ -21,9 +21,6 @@ const TABS_CONFIG = [
     { value: "SEO_STRATEGY", label: "SEO Strategy", icon: FileSignature },
     { value: "VISUAL_FRAMEWORK", label: "Visual Framework", icon: FileSignature },
     { value: "PORTFOLIO_ROADMAP", label: "Portfolio Roadmap", icon: Milestone },
-    { value: "TELEGRAM_SETUP", label: "Telegram", icon: (props: any) => <IconifyIcon icon="logos:telegram" {...props} /> },
-    { value: "TWITTER_SETUP", label: "Twitter/X", icon: (props: any) => <IconifyIcon icon="simple-icons:x" {...props} /> },
-    { value: "BLOCKCHAIN_INTEGRATION", label: "Blockchain", icon: Wallet },
 ];
 
 export default function AdminDocumentsPage() {
@@ -57,7 +54,7 @@ export default function AdminDocumentsPage() {
                   Manage Documents
                 </CardTitle>
                 <CardDescription>View, edit, and generate formal documentation for your application.</CardDescription>
-                 <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 mt-4">
+                 <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 mt-4">
                     {TABS_CONFIG.map(tab => {
                         const Icon = tab.icon;
                         return (

@@ -61,8 +61,8 @@ function PdfRenderer({ content, docType, forwardRef }: { content: string, docTyp
             .pdf-render-area {
                 position: absolute;
                 top: 0;
-                left: 0;
-                z-index: 9999;
+                left: -9999px;
+                z-index: -1;
                 background-color: white;
                 color: black;
                 font-family: 'PT Sans', sans-serif;
@@ -134,8 +134,11 @@ export function DocumentEditor({ docType }: { docType: DocType }) {
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const pdfRef = useRef<HTMLDivElement>(null);
   const isVisualFramework = docType === 'VISUAL_FRAMEWORK';
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
+  const [renderPdf, setRenderPdf] = useState(false);
+
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -182,70 +185,60 @@ export function DocumentEditor({ docType }: { docType: DocType }) {
   const handleDownload = async () => {
     setIsDownloading(true);
     toast({ title: 'Generating PDF...', description: 'This may take a moment.' });
-    
-    // Create a temporary container for rendering
-    const container = document.createElement('div');
-    document.body.appendChild(container);
+    setRenderPdf(true); // Start rendering the PDF content
 
-    try {
-        await new Promise<void>((resolve) => {
-             ReactDOM.render(
-                <PdfRenderer content={content} docType={docType} forwardRef={(el) => {
-                    if (el) {
-                        setTimeout(async () => {
-                            const pdf = new jsPDF('p', 'pt', 'a4');
-                            const elements = Array.from(el.children) as HTMLElement[];
-                            
-                            for (let i = 0; i < elements.length; i++) {
-                                if (i > 0) pdf.addPage();
-                                
-                                const canvas = await html2canvas(elements[i], { scale: 2, backgroundColor: '#ffffff' });
-                                const imgData = canvas.toDataURL('image/png');
-                                
-                                const pdfWidth = pdf.internal.pageSize.getWidth();
-                                const pdfHeight = pdf.internal.pageSize.getHeight();
-                                const canvasWidth = canvas.width;
-                                const canvasHeight = canvas.height;
+    // Wait for the PDF content to be rendered in the hidden div
+    setTimeout(async () => {
+      if (!pdfRef.current) {
+        toast({ title: 'Error', description: 'PDF render target not found.', variant: 'destructive'});
+        setIsDownloading(false);
+        setRenderPdf(false);
+        return;
+      }
+      
+      try {
+        const pdf = new jsPDF('p', 'pt', 'a4');
+        const elements = Array.from(pdfRef.current.children) as HTMLElement[];
+        
+        for (let i = 0; i < elements.length; i++) {
+          if (i > 0) pdf.addPage();
+          
+          const canvas = await html2canvas(elements[i], { scale: 2, backgroundColor: '#ffffff' });
+          const imgData = canvas.toDataURL('image/png');
+          
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = pdf.internal.pageSize.getHeight();
+          const canvasWidth = canvas.width;
+          const canvasHeight = canvas.height;
+          const ratio = canvasWidth / canvasHeight;
 
-                                if (canvasWidth === 0 || canvasHeight === 0) {
-                                    throw new Error("Canvas has zero dimensions.");
-                                }
-                                
-                                const ratio = canvasWidth / canvasHeight;
-                                let finalWidth = pdfWidth;
-                                let finalHeight = pdfWidth / ratio;
-                                
-                                if (finalHeight > pdfHeight) {
-                                    finalHeight = pdfHeight;
-                                    finalWidth = finalHeight * ratio;
-                                }
-                                
-                                const x = (pdfWidth - finalWidth) / 2;
-                                const y = (pdfHeight - finalHeight) / 2;
+          let finalWidth = pdfWidth - 80; // with margins
+          let finalHeight = finalWidth / ratio;
+          
+          if (finalHeight > pdfHeight - 80) {
+              finalHeight = pdfHeight - 80;
+              finalWidth = finalHeight * ratio;
+          }
 
-                                pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
-                            }
-                            pdf.save(`${docType}.pdf`);
-                            resolve();
-                        }, 100); // Small delay to ensure rendering
-                    }
-                }} />,
-                container
-            );
-        });
+          const x = (pdfWidth - finalWidth) / 2;
+          const y = (pdfHeight - finalHeight) / 2;
 
-    } catch (error: any) {
+          pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
+        }
+        pdf.save(`${docType}.pdf`);
+      } catch (error: any) {
         console.error("PDF generation failed:", error);
         toast({ title: 'PDF Generation Error', description: error.message || 'Could not generate the PDF.', variant: 'destructive' });
-    } finally {
-        // Cleanup
-        ReactDOM.unmountComponentAtNode(container);
-        document.body.removeChild(container);
+      } finally {
+        setRenderPdf(false); // Stop rendering after we're done
         setIsDownloading(false);
-    }
+      }
+    }, 500); // A small delay to ensure the content is in the DOM
   };
   
   return (
+    <>
+      {renderPdf && <PdfRenderer content={content} docType={docType} forwardRef={pdfRef} />}
       <div className="space-y-4 h-full flex flex-col">
            <div className="flex justify-end">
             <Button variant="outline" size="sm" onClick={() => setViewMode(viewMode === 'edit' ? 'preview' : 'edit')}>
@@ -290,5 +283,6 @@ export function DocumentEditor({ docType }: { docType: DocType }) {
           </Button>
         </div>
       </div>
+    </>
   );
 }
