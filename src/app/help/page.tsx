@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Header } from "@/components/Header";
-import { HelpCircle, Loader2, Send, UserCircle, Bot, BookText } from "lucide-react";
+import { HelpCircle, Loader2, Send, User, Bot, BookText } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
@@ -22,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getTutorSettings } from '@/lib/firebase-service';
 import type { TutorSettings } from '@/lib/firebase-service';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 const helpSchema = z.object({
   question: z.string().min(10, 'Please ask a more detailed question.'),
@@ -32,35 +33,40 @@ type Message = {
     content: string;
 };
 
+const faqItems = [
+    {
+        question: "How do I purchase a course?",
+        answer: "To purchase a course, simply navigate to the course you're interested in and click the \"View Course\" button. On the course detail page, you'll see a purchase button with the price. We use M-Pesa for secure payments. Just follow the on-screen instructions to complete your purchase."
+    },
+    {
+        question: "How do I access a course I've enrolled in?",
+        answer: "Once you've enrolled in a course, it will appear on your main Dashboard. You can click the \"Jump Back In\" button on the course card to start or continue learning."
+    },
+    {
+        question: "How do I get my certificate?",
+        answer: "A certificate is awarded after you successfully complete all course lessons and pass the final exam with a score of 80% or higher. Once you meet these requirements, a \"View Certificate\" button will appear on your dashboard for that course."
+    },
+    {
+        question: "I forgot my password. What do I do?",
+        answer: "If you've forgotten your password, go to the Login page and click the \"Forgot your password?\" link. You will receive an email with instructions on how to reset your password."
+    },
+    {
+        question: "What is the AI Career Coach?",
+        answer: "The AI Career Coach is a special tool that helps you plan your learning journey. Tell it your career goal, and it will recommend a personalized sequence of courses from our catalog to help you get there."
+    }
+];
+
 function FaqComponent() {
     return (
         <Card className="h-full border-0 shadow-none">
             <CardContent className="pt-6">
                 <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem value="item-1">
-                        <AccordionTrigger>How do I purchase a course?</AccordionTrigger>
-                        <AccordionContent>
-                        To purchase a course, simply navigate to the course you're interested in and click the "View Course" button. On the course detail page, you'll see a purchase button with the price. We use M-Pesa for secure payments. Just follow the on-screen instructions to complete your purchase.
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="item-2">
-                        <AccordionTrigger>Can I get a refund?</AccordionTrigger>
-                        <AccordionContent>
-                        Due to the digital nature of our courses, we do not offer refunds once a course has been purchased. We encourage you to review the course details and curriculum before making a purchase.
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="item-3">
-                        <AccordionTrigger>How do I get my certificate?</AccordionTrigger>
-                        <AccordionContent>
-                        A certificate is awarded after you successfully complete all course lessons and pass the final exam with a score of 80% or higher. Once you meet these requirements, your certificate will be available to download from your dashboard.
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="item-4">
-                        <AccordionTrigger>I forgot my password. What do I do?</AccordionTrigger>
-                        <AccordionContent>
-                        If you've forgotten your password, click the "Forgot your password?" link on the login page. You will receive an email with instructions on how to reset your password.
-                        </AccordionContent>
-                    </AccordionItem>
+                    {faqItems.map((item, index) => (
+                         <AccordionItem value={`item-${index}`} key={index}>
+                            <AccordionTrigger>{item.question}</AccordionTrigger>
+                            <AccordionContent>{item.answer}</AccordionContent>
+                        </AccordionItem>
+                    ))}
                 </Accordion>
             </CardContent>
         </Card>
@@ -79,7 +85,7 @@ function AiAssistant() {
             setMessages([
                 {
                     role: 'assistant',
-                    content: settings.prompts?.split('\n')[0] || "Hello! If you can't find your answer in the FAQ, ask me anything about how the platform works."
+                    content: "Hello! If you can't find an answer in the FAQ, ask me anything about how the Manda Network platform works."
                 }
             ]);
         });
@@ -127,7 +133,7 @@ function AiAssistant() {
                                 <div className={`rounded-lg px-4 py-3 max-w-sm ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}>
                                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                                 </div>
-                                {message.role === 'user' && <UserCircle className="h-8 w-8 text-muted-foreground" />}
+                                {message.role === 'user' && <User className="h-8 w-8 text-muted-foreground" />}
                             </div>
                         ))}
                         {isLoading && (
