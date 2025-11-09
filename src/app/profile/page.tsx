@@ -328,7 +328,7 @@ export default function ProfilePage() {
 
         await tx.wait(); // Wait for the transaction to be mined
 
-        toast({ title: 'Success!', description: '100 MDT has been added to your wallet.' });
+        toast({ title: 'Success!', description: '10 MDT has been added to your wallet.' });
         await fetchBalance(provider, walletAddress);
 
     } catch (error: any) {
@@ -488,7 +488,7 @@ export default function ProfilePage() {
                                             </div>
                                             <Button onClick={handleClaimFaucet} disabled={isClaiming}>
                                                 {isClaiming ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Coins className="h-4 w-4 mr-2" />}
-                                                Claim 100 MDT
+                                                Claim 10 MDT
                                             </Button>
                                         </div>
                                     ) : (

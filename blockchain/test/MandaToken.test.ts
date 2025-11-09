@@ -78,7 +78,7 @@ describe("MandaToken", function () {
         await mandaToken.connect(addr1).faucet();
         
         const finalBalance = await mandaToken.balanceOf(addr1.address);
-        const expectedBalance = ethers.parseUnits("100", 18);
+        const expectedBalance = ethers.parseUnits("10", 18);
         expect(finalBalance).to.equal(expectedBalance);
     });
 
@@ -96,7 +96,7 @@ describe("MandaToken", function () {
 
         await mandaToken.connect(addr1).faucet();
         const finalBalance = await mandaToken.balanceOf(addr1.address);
-        const expectedBalance = ethers.parseUnits("200", 18);
+        const expectedBalance = ethers.parseUnits("20", 18);
         expect(finalBalance).to.equal(expectedBalance);
     });
   });

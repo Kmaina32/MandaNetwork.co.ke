@@ -2,47 +2,54 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title MandaToken
  * @dev An ERC20 token for the Manda Network platform with a faucet feature.
  */
-contract MandaToken is ERC20, Ownable {
-    // Mapping to store the last time a user claimed from the faucet
-    mapping(address => uint256) public lastClaimed;
+contract MandaToken is ERC20 {
+    address public owner;
+    uint256 public faucetAmount;
+    uint256 public faucetCooldown = 24 hours;
+    mapping(address => uint256) public lastFaucetClaim;
+    uint256 public faucetBalance;
 
-    // Faucet gives out 100 tokens
-    uint256 public constant FAUCET_AMOUNT = 100 * (10 ** 18);
-    // Cooldown period for the faucet (24 hours)
-    uint256 public constant FAUCET_COOLDOWN = 24 hours;
+    event FaucetFunded(address indexed from, uint256 amount);
+    event FaucetClaimed(address indexed to, uint256 amount);
 
     /**
-     * @dev Constructor that mints the initial supply of tokens to the contract deployer.
+     * @dev Sets the values for {name} and {symbol}.
      */
-    constructor() ERC20("MandaToken", "MDT") Ownable(msg.sender) {
-        // Mint 100 million tokens to the contract deployer (treasury)
-        _mint(msg.sender, 100000000 * (10 ** 18));
+    constructor() ERC20("MandaToken", "MDT") {
+        owner = msg.sender;
+        // Mint 100 million tokens to the contract deployer (owner)
+        _mint(owner, 100000000 * (10 ** decimals()));
+        faucetAmount = 10 * (10 ** decimals()); // Set faucet to claim 10 MDT
+    }
+
+    /**
+     * @dev Allows the owner to fund the faucet from their balance.
+     */
+    function fundFaucet(uint256 _amount) public {
+        require(msg.sender == owner, "MandaToken: Only owner can fund the faucet.");
+        require(balanceOf(owner) >= _amount, "MandaToken: Insufficient owner balance to fund faucet.");
+        _transfer(owner, address(this), _amount);
+        faucetBalance += _amount;
+        emit FaucetFunded(owner, _amount);
     }
 
     /**
      * @dev Allows any user to claim a fixed amount of tokens from the faucet,
-     * but only once within a 24-hour period.
-     * The contract itself must hold tokens for the faucet to work.
+     * subject to a cooldown period.
      */
     function faucet() public {
-        require(block.timestamp >= lastClaimed[msg.sender] + FAUCET_COOLDOWN, "MandaToken: Faucet cooldown not over yet.");
-        require(balanceOf(address(this)) >= FAUCET_AMOUNT, "MandaToken: Faucet is empty.");
+        require(block.timestamp >= lastFaucetClaim[msg.sender] + faucetCooldown, "MandaToken: Faucet cooldown not over yet.");
+        require(faucetBalance >= faucetAmount, "MandaToken: Faucet is empty.");
+        
+        lastFaucetClaim[msg.sender] = block.timestamp;
+        faucetBalance -= faucetAmount;
+        _transfer(address(this), msg.sender, faucetAmount);
 
-        lastClaimed[msg.sender] = block.timestamp;
-        _transfer(address(this), msg.sender, FAUCET_AMOUNT);
-    }
-
-    /**
-     * @dev Allows the owner to fund the faucet by transferring tokens to this contract.
-     * @param amount The amount of tokens to send to the faucet.
-     */
-    function fundFaucet(uint256 amount) public onlyOwner {
-        _transfer(owner(), address(this), amount);
+        emit FaucetClaimed(msg.sender, faucetAmount);
     }
 }
