@@ -1,3 +1,4 @@
+
 {
   "rules": {
     "users": {
@@ -17,7 +18,7 @@
       ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
     },
     "blog": {
-      ".read": "auth != null",
+      ".read": true,
       ".write": "auth != null && (root.child('users').child(auth.uid).child('isSuperAdmin').val() === true || (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)))",
       ".indexOn": ["slug", "createdAt"]
     },
@@ -147,7 +148,6 @@
     },
     "referrals": {
       ".read": "auth != null",
-      ".write": "auth != null",
       ".indexOn": "affiliateId"
     },
     "webrtc-offers": {
@@ -167,8 +167,10 @@
       ".write": "auth != null"
     },
     "liveChat": {
-      ".read": "auth != null",
-      ".write": "auth != null"
+      "$sessionId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
     },
     "liveReactions": {
       ".read": "auth != null",
