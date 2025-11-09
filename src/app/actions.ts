@@ -18,6 +18,7 @@ import type { CreateOrgInviteInput as SendOrgInviteInput, CreateOrgInviteOutput 
 import type { GenerateFormalDocumentInput, GenerateFormalDocumentOutput } from '@/ai/flows/generate-document';
 import type { GenerateHackathonIdeasInput, GenerateHackathonIdeasOutput } from '@/ai/flows/generate-hackathon-ideas';
 import type { StudentHelpInput, StudentHelpOutput } from '@/ai/flows/student-help';
+import type { SpeechToTextInput, SpeechToTextOutput, TextToSpeechInput, TextToSpeechOutput } from '@/ai/flows/text-to-speech';
 import type { GetPortfolioFeedbackInput, GetPortfolioFeedbackOutput } from '@/ai/flows/portfolio-advisor';
 import { createNotification, createProjectSubmission as saveProjectSubmission, createOrUpdateConversation, sendMessage, awardLeaderboardPoints } from '@/lib/firebase-service';
 import { checkHackathonParticipantAchievement } from '@/lib/achievements';
@@ -108,6 +109,16 @@ export async function siteHelp(input: SiteHelpInput): Promise<SiteHelpOutput> {
 export async function studentHelp(input: StudentHelpInput): Promise<StudentHelpOutput> {
   const { studentHelp } = await import('@/ai/flows/student-help');
   return studentHelp(input);
+}
+
+export async function textToSpeech(input: TextToSpeechInput): Promise<TextToSpeechOutput> {
+    const { textToSpeech } = await import('@/ai/flows/text-to-speech');
+    return textToSpeech(input);
+}
+
+export async function speechToText(input: SpeechToTextInput): Promise<SpeechToTextOutput> {
+    const { speechToText } = await import('@/ai/flows/text-to-speech');
+    return speechToText(input);
 }
 
 export async function sendOrganizationInvite(input: SendOrgInviteInput): Promise<SendOrgInviteOutput> {

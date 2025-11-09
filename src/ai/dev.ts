@@ -21,6 +21,7 @@ import './flows/generate-project';
 import './flows/generate-document';
 import './flows/generate-hackathon-ideas';
 import './flows/portfolio-advisor';
+import './flows/text-to-speech';
 
 // Tools are automatically registered when imported by a flow,
 // but you can also import them directly if needed.

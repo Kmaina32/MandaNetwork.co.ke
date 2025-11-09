@@ -1,3 +1,4 @@
+
 import * as admin from 'firebase-admin';
 
 let adminApp: admin.app.App;
@@ -13,7 +14,14 @@ function getFirebaseAdminApp(): admin.app.App {
   }
 
   try {
-    const serviceAccount = JSON.parse(serviceAccountString);
+    // The service account can be a base64 encoded string.
+    const isBase64 = !serviceAccountString.trim().startsWith('{');
+    const decodedServiceAccount = isBase64
+      ? Buffer.from(serviceAccountString, 'base64').toString('utf-8')
+      : serviceAccountString;
+      
+    const serviceAccount = JSON.parse(decodedServiceAccount);
+    
     adminApp = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
       databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
