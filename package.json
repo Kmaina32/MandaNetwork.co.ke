@@ -13,7 +13,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "jest --watch",
-    "deploy": "firebase deploy"
+    "deploy": "firebase deploy",
+    "blockchain:compile": "cd blockchain && npx hardhat compile"
   },
   "dependencies": {
     "@genkit-ai/firebase": "1.18.0",
@@ -75,9 +76,11 @@
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^9.0.1",
+    "wav": "^1.0.2",
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@testing-library/jest-dom": "^6.4.6",
     "@testing-library/react": "^16.0.0",
     "@types/file-saver": "^2.0.7",
@@ -88,9 +91,11 @@
     "@types/react-dom": "^18",
     "@types/react-google-recaptcha": "^2.1.9",
     "@types/uuid": "^9.0.8",
+    "hardhat": "^2.22.5",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "postcss": "^8",
+    "solidity-coverage": "^0.8.12",
     "tailwindcss": "^3.4.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.11.0",

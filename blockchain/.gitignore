@@ -1,0 +1,10 @@
+node_modules
+.env
+coverage
+coverage.json
+# hardhat
+cache/
+artifacts/
+typechain-types/
+
+# End of section
