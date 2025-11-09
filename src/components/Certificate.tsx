@@ -178,7 +178,7 @@ export function Certificate({ course, userName, certificateId, academicDirector 
            <div className="flex justify-between items-end text-[10px] text-gray-500 mt-4">
                 <span>Issued on: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                 <div className="flex items-center gap-2">
-                    <QRCode value={`${window.location.origin}/verify/${certificateId}`} size={24} bgColor="transparent" fgColor="#002147" />
+                    <QRCode value={`https://www.mandanetwork.co.ke/verify/${certificateId}`} size={24} bgColor="transparent" fgColor="#002147" />
                     <span>Verify at manda.network/verify</span>
                 </div>
                 <span>ID: {certificateId}</span>

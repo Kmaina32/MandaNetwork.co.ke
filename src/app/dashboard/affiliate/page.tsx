@@ -36,7 +36,7 @@ export default function AffiliateDashboardPage() {
     const [loading, setLoading] = useState(true);
     const [referrals, setReferrals] = useState<Referral[]>([]);
 
-    const affiliateLink = user && dbUser?.affiliateId ? `${window.location.origin}/signup?ref=${dbUser.affiliateId}` : '';
+    const affiliateLink = user && dbUser?.affiliateId ? `https://www.mandanetwork.co.ke/signup?ref=${dbUser.affiliateId}` : '';
 
     useEffect(() => {
         if (!authLoading) {

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -70,7 +69,7 @@ export default function ProgramDetailPage() {
     const shareData = {
         title: program.title,
         text: program.description,
-        url: window.location.href
+        url: `https://www.mandanetwork.co.ke/programs/${program.id}`
     };
 
     if (navigator.share) {
@@ -81,7 +80,7 @@ export default function ProgramDetailPage() {
         }
     } else {
         // Fallback for desktop browsers
-        navigator.clipboard.writeText(window.location.href);
+        navigator.clipboard.writeText(shareData.url);
         toast({
             title: "Link Copied!",
             description: "The program link has been copied to your clipboard.",
