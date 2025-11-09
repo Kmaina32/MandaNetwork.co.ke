@@ -97,7 +97,7 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
                     <div className="relative">
                         <Input type={showCurrent ? "text" : "password"} {...field} />
                         <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowCurrent(!showCurrent)}>
-                            {showCurrent ? <EyeOff /> : <Eye />}
+                            {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </Button>
                     </div>
                   </FormControl>
@@ -115,7 +115,7 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
                     <div className="relative">
                         <Input type={showNew ? "text" : "password"} {...field} />
                         <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowNew(!showNew)}>
-                            {showNew ? <EyeOff /> : <Eye />}
+                            {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </Button>
                     </div>
                   </FormControl>
@@ -133,7 +133,7 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
                     <div className="relative">
                         <Input type={showConfirm ? "text" : "password"} {...field} />
                         <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowConfirm(!showConfirm)}>
-                            {showConfirm ? <EyeOff /> : <Eye />}
+                            {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </Button>
                     </div>
                   </FormControl>

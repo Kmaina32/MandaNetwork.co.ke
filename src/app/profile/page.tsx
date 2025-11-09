@@ -471,57 +471,6 @@ export default function ProfilePage() {
                             </Dialog>
                             </div>
                             
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-base flex items-center gap-2">
-                                        <Icon icon="logos:metamask-icon" className="h-5 w-5"/>
-                                        Wallet Information
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    {walletAddress ? (
-                                        <div className="space-y-4">
-                                            <div>
-                                                <p className="text-sm font-semibold">Connected Address</p>
-                                                <p className="font-mono text-muted-foreground text-xs">{walletAddress}</p>
-                                            </div>
-                                             <div>
-                                                <p className="text-sm font-semibold">MDT Balance</p>
-                                                <p className="font-bold text-primary text-lg">{mdtBalance !== null ? parseFloat(mdtBalance).toFixed(4) : 'Loading...'} MDT</p>
-                                            </div>
-                                            <Button onClick={handleClaimFaucet} disabled={isClaiming || !contractAddressIsSet}>
-                                                {isClaiming ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Coins className="h-4 w-4 mr-2" />}
-                                                Claim 10 MDT
-                                            </Button>
-                                            {!contractAddressIsSet && (
-                                                <Alert variant="destructive" className="mt-2">
-                                                    <AlertCircle className="h-4 w-4" />
-                                                    <AlertTitle>Action Required</AlertTitle>
-                                                    <AlertDescriptionComponent>
-                                                        The MandaToken contract is not deployed. Update the address in `src/lib/blockchain/contracts.ts` to enable this feature.
-                                                    </AlertDescriptionComponent>
-                                                </Alert>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            <Button className="w-full" onClick={handleConnectWallet} disabled={noWallet}>
-                                                <Icon icon="logos:metamask-icon" className="mr-2 h-5 w-5" />
-                                                Connect MetaMask Wallet
-                                            </Button>
-                                            {noWallet && (
-                                                <Alert variant="destructive">
-                                                    <AlertCircle className="h-4 w-4" />
-                                                    <AlertTitle>Wallet Not Found</AlertTitle>
-                                                    <AlertDescriptionComponent>Please install a browser wallet like MetaMask to connect.</AlertDescriptionComponent>
-                                                </Alert>
-                                            )}
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-
-
                             <Tabs defaultValue="account">
                                 <TabsList className="grid w-full grid-cols-2">
                                     <TabsTrigger value="account">Account</TabsTrigger>
@@ -549,6 +498,56 @@ export default function ProfilePage() {
                                             <FormField control={form.control} name="poBox" render={({ field }) => ( <FormItem> <FormLabel>P.O. Box</FormLabel> <FormControl><Input placeholder="e.g., 12345-00100" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
                                             <FormField control={form.control} name="country" render={({ field }) => ( <FormItem> <FormLabel>Country</FormLabel> <FormControl><Input placeholder="e.g., Kenya" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
                                         </div>
+                                        <Separator />
+                                        <Card>
+                                            <CardHeader>
+                                                <CardTitle className="text-base flex items-center gap-2">
+                                                    <Icon icon="logos:metamask-icon" className="h-5 w-5"/>
+                                                    Wallet Information
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                {walletAddress ? (
+                                                    <div className="space-y-4">
+                                                        <div>
+                                                            <p className="text-sm font-semibold">Connected Address</p>
+                                                            <p className="font-mono text-muted-foreground text-xs break-all">{walletAddress}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-semibold">MDT Balance</p>
+                                                            <p className="font-bold text-primary text-lg">{mdtBalance !== null ? parseFloat(mdtBalance).toLocaleString() : 'Loading...'} MDT</p>
+                                                        </div>
+                                                        <Button onClick={handleClaimFaucet} disabled={isClaiming || !contractAddressIsSet}>
+                                                            {isClaiming ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Coins className="h-4 w-4 mr-2" />}
+                                                            Claim 10 MDT
+                                                        </Button>
+                                                        {!contractAddressIsSet && (
+                                                            <Alert variant="destructive" className="mt-2">
+                                                                <AlertCircle className="h-4 w-4" />
+                                                                <AlertTitle>Action Required</AlertTitle>
+                                                                <AlertDescriptionComponent>
+                                                                    The MandaToken contract is not deployed. Update the address in `src/lib/blockchain/contracts.ts` to enable this feature.
+                                                                </AlertDescriptionComponent>
+                                                            </Alert>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-4">
+                                                        <Button className="w-full" onClick={handleConnectWallet} disabled={noWallet}>
+                                                            <Icon icon="logos:metamask-icon" className="mr-2 h-5 w-5" />
+                                                            Connect MetaMask Wallet
+                                                        </Button>
+                                                        {noWallet && (
+                                                            <Alert variant="destructive">
+                                                                <AlertCircle className="h-4 w-4" />
+                                                                <AlertTitle>Wallet Not Found</AlertTitle>
+                                                                <AlertDescriptionComponent>Please install a browser wallet like MetaMask to connect.</AlertDescriptionComponent>
+                                                            </Alert>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </CardContent>
+                                        </Card>
 
                                      </div>
                                 </TabsContent>
@@ -721,3 +720,4 @@ export default function ProfilePage() {
     </>
   );
 }
+

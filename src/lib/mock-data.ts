@@ -238,28 +238,16 @@ export interface CourseFeedback {
     createdAt: string;
 }
 
-export interface Portfolio {
-    summary?: string;
-    socialLinks?: {
-        github?: string;
-        linkedin?: string;
-        twitter?: string;
-    };
-    public?: boolean;
-    projects?: Project[];
-}
-
-export interface PermissionRequest {
+export interface ProjectSubmission {
     id: string;
-    requesterId: string;
-    requesterName: string;
-    action: 'delete_course' | 'delete_program' | 'delete_bundle' | 'create_bootcamp';
-    itemId: string;
-    itemName: string;
-    itemData?: any;
-    status: 'pending' | 'approved' | 'denied';
-    createdAt: string; // ISO String
-    resolvedAt?: string; // ISO String
+    courseId: string;
+    userId: string;
+    title: string;
+    description: string;
+    liveUrl: string;
+    sourceUrl: string;
+    imageUrl: string;
+    submittedAt: string;
 }
 
 export interface Organization {
@@ -385,4 +373,18 @@ export interface Conversation {
     updatedAt: string;
     readBy?: Record<string, boolean>;
     messages?: Record<string, ConversationMessage>;
+}
+
+export interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  author: string;
+  category: string;
+  content: string;
+  isPublished: boolean;
+  createdAt: string; // ISO String
+  updatedAt: string; // ISO String
 }
