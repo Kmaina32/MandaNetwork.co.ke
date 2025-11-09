@@ -120,7 +120,7 @@ export default function AdminTeamPage() {
                           </Button>
                           <div className="flex flex-col sm:flex-row items-start gap-6">
                             <div className="flex flex-col items-center gap-2 w-full sm:w-32 flex-shrink-0">
-                                <Avatar className="h-24 w-24">
+                                <Avatar className="h-32 w-32">
                                     <AvatarImage src={field.avatar} />
                                     <AvatarFallback>{field.name?.substring(0,2) || 'TM'}</AvatarFallback>
                                 </Avatar>
