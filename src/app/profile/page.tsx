@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -29,11 +30,13 @@ import { Alert, AlertTitle, AlertDescription as AlertDescriptionComponent } from
 import { auth } from '@/lib/firebase';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import type { RegisteredUser, PortfolioProject } from '@/lib/types';
+import type { RegisteredUser, PortfolioProject as Project } from '@/lib/types';
 import { Icon } from '@iconify/react';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ChangePasswordDialog } from '@/components/ChangePasswordDialog';
+import { MANDA_TOKEN_CONTRACT_ADDRESS } from '@/lib/blockchain/contracts';
+import MandaTokenABI from '@/lib/blockchain/abis/MandaToken.json';
 
 
 const projectSchema = z.object({
@@ -105,6 +108,7 @@ export default function ProfilePage() {
   const [dbUser, setDbUser] = useState<RegisteredUser | null>(null);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [mdtBalance, setMdtBalance] = useState<string | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -258,6 +262,30 @@ export default function ProfilePage() {
         }
     }, 'image/png');
   }
+  
+    const fetchBalance = async (provider: ethers.BrowserProvider, address: string) => {
+        if (MANDA_TOKEN_CONTRACT_ADDRESS === 'YOUR_CONTRACT_ADDRESS_HERE') {
+            toast({
+                variant: "destructive",
+                title: "Contract Not Deployed",
+                description: "The MandaToken contract address has not been set.",
+            });
+            return;
+        }
+        try {
+            const contract = new ethers.Contract(MANDA_TOKEN_CONTRACT_ADDRESS, MandaTokenABI.abi, provider);
+            const balance = await contract.balanceOf(address);
+            // The balance is a BigNumber, format it to a readable string (dividing by 10**18 for standard ERC20 tokens)
+            setMdtBalance(ethers.formatUnits(balance, 18));
+        } catch (error) {
+            console.error("Failed to fetch token balance", error);
+            toast({
+                variant: "destructive",
+                title: "Balance Fetch Failed",
+                description: "Could not retrieve your MDT balance from the blockchain.",
+            });
+        }
+    };
 
   const handleConnectWallet = async () => {
     if (typeof window.ethereum === 'undefined') {
@@ -278,6 +306,7 @@ export default function ProfilePage() {
             title: "Wallet Connected",
             description: `Connected to address: ${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
         });
+        await fetchBalance(provider, address);
     } catch (error) {
         console.error("Failed to connect wallet", error);
         toast({
@@ -410,15 +439,17 @@ export default function ProfilePage() {
                                 </DialogContent>
                             </Dialog>
                             </div>
-
-                             {walletAddress ? (
-                                <Alert>
-                                    <Wallet className="h-4 w-4" />
-                                    <AlertTitle>Wallet Connected!</AlertTitle>
-                                    <AlertDescriptionComponent className="text-xs break-all">
-                                        Your wallet address: {walletAddress}
-                                    </AlertDescriptionComponent>
-                                </Alert>
+                            
+                            {walletAddress ? (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-base flex items-center gap-2"><Wallet className="h-5 w-5"/> Wallet Information</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-2 text-sm">
+                                        <p><strong>Address:</strong> <span className="font-mono text-muted-foreground text-xs">{walletAddress}</span></p>
+                                        <p><strong>MDT Balance:</strong> <span className="font-bold text-primary">{mdtBalance !== null ? parseFloat(mdtBalance).toFixed(4) : 'Loading...'} MDT</span></p>
+                                    </CardContent>
+                                </Card>
                             ) : (
                                 <Button variant="outline" className="w-full" onClick={handleConnectWallet}>
                                     <Wallet className="mr-2 h-4 w-4" />
