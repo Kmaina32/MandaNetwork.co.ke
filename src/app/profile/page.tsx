@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,7 +13,7 @@ import { ethers } from 'ethers';
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, User as UserIcon, Camera, Upload, Eye, Building, Share2, PlusCircle, Trash2, KeyRound, Wallet } from 'lucide-react';
+import { ArrowLeft, Loader2, User as UserIcon, Camera, Upload, Eye, Building, Share2, PlusCircle, Trash2, KeyRound, Wallet, AlertCircle } from 'lucide-react';
 import { AppSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
@@ -109,6 +109,7 @@ export default function ProfilePage() {
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [mdtBalance, setMdtBalance] = useState<string | null>(null);
+  const [noWallet, setNoWallet] = useState(false);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -143,6 +144,12 @@ export default function ProfilePage() {
       name: "education",
   });
 
+
+  useEffect(() => {
+    if (typeof window.ethereum === 'undefined') {
+        setNoWallet(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -211,7 +218,7 @@ export default function ProfilePage() {
     if (!name) return 'U';
     const names = name.split(' ');
     if (names.length > 1 && names[1]) {
-      return `${'names[0][0]'}${names[names.length - 1][0]}`;
+      return `${names[0][0]}${names[names.length - 1][0]}`;
     }
     return names[0]?.[0] || 'U';
   };
@@ -289,11 +296,7 @@ export default function ProfilePage() {
 
   const handleConnectWallet = async () => {
     if (typeof window.ethereum === 'undefined') {
-        toast({
-            variant: "destructive",
-            title: "Wallet Not Found",
-            description: "Please install a browser wallet like MetaMask to connect.",
-        });
+        setNoWallet(true);
         return;
     }
     try {
@@ -440,22 +443,36 @@ export default function ProfilePage() {
                             </Dialog>
                             </div>
                             
-                            {walletAddress ? (
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="text-base flex items-center gap-2"><Wallet className="h-5 w-5"/> Wallet Information</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-2 text-sm">
-                                        <p><strong>Address:</strong> <span className="font-mono text-muted-foreground text-xs">{walletAddress}</span></p>
-                                        <p><strong>MDT Balance:</strong> <span className="font-bold text-primary">{mdtBalance !== null ? parseFloat(mdtBalance).toFixed(4) : 'Loading...'} MDT</span></p>
-                                    </CardContent>
-                                </Card>
-                            ) : (
-                                <Button variant="outline" className="w-full" onClick={handleConnectWallet}>
-                                    <Wallet className="mr-2 h-4 w-4" />
-                                    Connect Wallet
-                                </Button>
-                            )}
+                           <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-base flex items-center gap-2">
+                                        <Icon icon="logos:metamask-icon" className="h-5 w-5"/>
+                                        Wallet Information
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    {walletAddress ? (
+                                        <div className="space-y-2 text-sm">
+                                            <p><strong>Address:</strong> <span className="font-mono text-muted-foreground text-xs">{walletAddress}</span></p>
+                                            <p><strong>MDT Balance:</strong> <span className="font-bold text-primary">{mdtBalance !== null ? parseFloat(mdtBalance).toFixed(4) : 'Loading...'} MDT</span></p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            <Button className="w-full" onClick={handleConnectWallet} disabled={noWallet}>
+                                                <Icon icon="logos:metamask-icon" className="mr-2 h-5 w-5" />
+                                                Connect MetaMask Wallet
+                                            </Button>
+                                            {noWallet && (
+                                                <Alert variant="destructive">
+                                                    <AlertCircle className="h-4 w-4" />
+                                                    <AlertTitle>Wallet Not Found</AlertTitle>
+                                                    <AlertDescriptionComponent>Please install a browser wallet like MetaMask to connect.</AlertDescriptionComponent>
+                                                </Alert>
+                                            )}
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
 
 
                             <Tabs defaultValue="account">
