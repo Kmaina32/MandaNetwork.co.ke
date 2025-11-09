@@ -28,7 +28,7 @@ import {
   updatePassword,
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { RegisteredUser, saveUser, getUserById, createOrganization, getOrganizationByOwnerId, Organization, getOrganizationMembers, logActivity, getReferralsByAffiliate } from '@/lib/firebase-service';
+import { RegisteredUser, saveUser, getUserById, createOrganization, getOrganizationByOwnerId, Organization, getOrganizationMembers, logActivity, getReferralsByAffiliate, createReferral } from '@/lib/firebase-service';
 import { ref, onValue, onDisconnect, set, serverTimestamp, update, get } from 'firebase/database';
 import { useToast } from './use-toast';
 import { add } from 'date-fns';
@@ -223,10 +223,22 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
     const userData: Partial<RegisteredUser> = { 
         slug: userSlug,
     };
-    // The onUserCreate cloud function will automatically add the affiliateId.
     
     if (affiliateRef) {
         userData.referredBy = affiliateRef;
+        // Create an initial referral record on signup
+        await createReferral({
+            affiliateId: affiliateRef,
+            referredUserId: userCredential.user.uid,
+            referredUserName: displayName,
+            purchaseAmount: 0, // Will be updated on first purchase
+            commissionAmount: 0,
+            createdAt: new Date().toISOString(),
+        });
+        const affiliateStatsRef = ref(db, `users/${affiliateRef}/affiliateStats`);
+        await update(affiliateStatsRef, {
+            referrals: increment(1)
+        });
     }
     
     // Save initial user data. Cloud function will add affiliateId.

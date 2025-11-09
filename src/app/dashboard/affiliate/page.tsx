@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -151,8 +152,12 @@ export default function AffiliateDashboardPage() {
                                                 {referrals.map(ref => (
                                                     <TableRow key={ref.id}>
                                                         <TableCell>{ref.referredUserName}</TableCell>
-                                                        <TableCell>Ksh {ref.purchaseAmount.toLocaleString()}</TableCell>
-                                                        <TableCell className="font-semibold text-primary">Ksh {ref.commissionAmount.toLocaleString()}</TableCell>
+                                                        <TableCell>
+                                                            {ref.purchaseAmount > 0 ? `Ksh ${ref.purchaseAmount.toLocaleString()}` : <span className="text-muted-foreground">-</span>}
+                                                        </TableCell>
+                                                        <TableCell className="font-semibold text-primary">
+                                                            {ref.commissionAmount > 0 ? `Ksh ${ref.commissionAmount.toLocaleString()}` : <span className="text-muted-foreground">-</span>}
+                                                        </TableCell>
                                                         <TableCell>{format(new Date(ref.createdAt), 'PPP')}</TableCell>
                                                     </TableRow>
                                                 ))}

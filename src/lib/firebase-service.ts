@@ -194,22 +194,24 @@ export async function enrollUserInCourse(userId: string, courseId: string, payme
             await saveUser(userId, { hasMadeFirstPurchase: true });
             
             const commissionAmount = course.price * 0.20; // 20% commission
-            const referralsRef = ref(db, 'referrals');
-            const newReferralRef = push(referralsRef);
-            await set(newReferralRef, {
-                affiliateId: user.referredBy,
-                referredUserId: userId,
-                referredUserName: user.displayName,
-                purchaseAmount: course.price,
-                commissionAmount: commissionAmount,
-                createdAt: new Date().toISOString(),
-            });
+            
+            // Find the referral record created at signup and update it
+            const referralsRef = query(ref(db, 'referrals'), orderByChild('referredUserId'), equalTo(userId));
+            const snapshot = await get(referralsRef);
+            if (snapshot.exists()) {
+                const referralsData = snapshot.val();
+                const referralId = Object.keys(referralsData)[0];
+                const referralRef = ref(db, `referrals/${referralId}`);
+                await update(referralRef, {
+                    purchaseAmount: course.price,
+                    commissionAmount: commissionAmount,
+                });
+            }
 
             // Also update the affiliate's stats
             const affiliateStatsRef = ref(db, `users/${user.referredBy}/affiliateStats`);
             await update(affiliateStatsRef, {
                 earnings: increment(commissionAmount),
-                referrals: increment(1)
             });
         }
     }
@@ -1124,6 +1126,13 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
 }
 
 // Affiliate Program Functions
+export async function createReferral(referralData: Omit<Referral, 'id'>): Promise<string> {
+    const referralsRef = ref(db, 'referrals');
+    const newRef = push(referralsRef);
+    await set(newRef, referralData);
+    return newRef.key!;
+}
+
 export async function getReferralsByAffiliate(affiliateId: string): Promise<Referral[]> {
     const referralsRef = query(ref(db, 'referrals'), orderByChild('affiliateId'), equalTo(affiliateId));
     const snapshot = await get(referralsRef);
