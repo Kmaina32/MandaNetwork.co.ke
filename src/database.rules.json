@@ -1,7 +1,17 @@
 {
   "rules": {
-    ".read": false,
-    ".write": false,
+    "users": {
+      ".indexOn": ["email", "organizationId", "portfolio/public"],
+      "$userId": {
+        ".read": "data.child('portfolio/public').val() === true || (auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('isAdmin').val() === true || root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true))",
+        ".write": "auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('isAdmin').val() === true)",
+        "purchasedCourses": {
+          "$courseId": {
+            ".write": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true || (auth.uid === $userId && !data.exists()))"
+          }
+        }
+      }
+    },
     "courses": {
       ".read": true,
       ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
@@ -48,18 +58,6 @@
       ".indexOn": "score",
       "$userId": {
         ".write": "auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('isAdmin').val() === true)"
-      }
-    },
-    "users": {
-      ".indexOn": ["email", "organizationId", "portfolio/public"],
-      "$userId": {
-        ".read": "data.child('portfolio/public').val() === true || (auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('isAdmin').val() === true || root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true))",
-        ".write": "auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('isAdmin').val() === true)",
-        "purchasedCourses": {
-          "$courseId": {
-            ".write": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true || (auth.uid === $userId && !data.exists()))"
-          }
-        }
       }
     },
     "calendarEvents": {
@@ -164,6 +162,11 @@
     "liveReactions": {
       ".read": "auth != null",
       ".write": "auth != null"
+    },
+    // Fallback rule for other paths
+    "$other": {
+        ".read": "auth != null",
+        ".write": "auth != null"
     }
   }
 }
