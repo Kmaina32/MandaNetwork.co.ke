@@ -41,6 +41,7 @@ import {
   Trophy,
   Handshake,
   Users,
+  LineChart,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -304,11 +305,19 @@ export function AdminSidebar() {
           </SidebarMenuItem>
 
           <SidebarMenuItem>
-            <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/analytics')} tooltip="Analytics">
+            <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/analytics')} tooltip="Platform Analytics">
               <Link href="/admin/analytics">
                 <BarChart3 className="h-4 w-4 mr-2" />
-                Analytics
+                Platform Analytics
               </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild size="sm" tooltip="Vercel Analytics">
+                <a href="https://vercel.com/dashboard" target="_blank" rel="noopener noreferrer">
+                    <LineChart className="h-4 w-4 mr-2" />
+                    Vercel Analytics
+                </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
 
