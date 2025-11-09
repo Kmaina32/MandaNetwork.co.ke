@@ -1,5 +1,4 @@
 
-
 import { db, storage } from './firebase';
 import { ref, get, set, push, update, remove, query, orderByChild, equalTo, increment, limitToLast, onValue } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -717,6 +716,28 @@ export async function createCourseFeedback(courseId: string, feedbackData: Omit<
     return newFeedbackRef.key!;
 }
 
+// Learning Goals
+export async function createLearningGoal(userId: string, text: string): Promise<string> {
+    const goalsRef = ref(db, `users/${userId}/learningGoals`);
+    const newGoalRef = push(goalsRef);
+    await set(newGoalRef, {
+        text,
+        completed: false,
+        createdAt: new Date().toISOString()
+    });
+    return newGoalRef.key!;
+}
+
+export async function updateLearningGoal(userId: string, goalId: string, data: Partial<Omit<LearningGoal, 'id'>>): Promise<void> {
+    const goalRef = ref(db, `users/${userId}/learningGoals/${goalId}`);
+    await update(goalRef, data);
+}
+
+export async function deleteLearningGoal(userId: string, goalId: string): Promise<void> {
+    const goalRef = ref(db, `users/${userId}/learningGoals/${goalId}`);
+    await remove(goalRef);
+}
+
 // Super Admin Permission Requests
 export async function createPermissionRequest(requestData: Omit<PermissionRequest, 'id' | 'createdAt' | 'status'>): Promise<string> {
     const requestsRef = ref(db, 'permissionRequests');
@@ -1384,9 +1405,9 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
         return snapshot.val();
     }
     return [
-      { id: uuidv4(), name: 'George Kairu', role: 'Founder & CTO', description: 'The visionary architect behind our platform.', avatar: '/avatars/male-1.png' },
-      { id: uuidv4(), name: 'Nathan Kabare', role: 'Director of Marketing', description: 'Leads our growth and brand strategy.', avatar: '/avatars/male-2.png' },
-      { id: uuidv4(), name: 'Joel K', role: 'Operations Director', description: 'Ensures the smooth running of the platform.', avatar: '/avatars/male-3.png' },
+      { id: 'uuid-1', name: 'George Kairu Maina', role: 'Founder & CTO', description: 'The visionary architect behind our platform.', avatar: '/avatars/male-1.png' },
+      { id: 'uuid-2', name: 'Nathan Kabare', role: 'Director of Marketing', description: 'Leads our growth and brand strategy.', avatar: '/avatars/male-2.png' },
+      { id: 'uuid-3', name: 'Joel K', role: 'Operations Director', description: 'Ensures the smooth running of the platform.', avatar: '/avatars/male-3.png' },
     ];
 }
 
