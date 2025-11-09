@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
@@ -110,8 +111,9 @@ function SignupFormComponent() {
       const displayName = [values.firstName, values.middleName, values.lastName].filter(Boolean).join(' ');
       
       const orgId = invitation ? invitation.organizationId : undefined;
+      const affiliateRef = searchParams.get('ref') || undefined;
       
-      await signup(values.email, values.password, displayName, undefined, orgId);
+      await signup(values.email, values.password, displayName, undefined, orgId, affiliateRef);
       
       toast({
         title: 'Account Created!',

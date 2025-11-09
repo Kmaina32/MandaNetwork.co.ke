@@ -348,6 +348,8 @@ export interface RegisteredUser {
     achievements?: Record<string, Achievement>;
     photoURL?: string;
     affiliateId?: string;
+    referredBy?: string; // UID of the affiliate
+    hasMadeFirstPurchase?: boolean;
 }
 
 export interface PermissionRequest {
@@ -471,4 +473,17 @@ export interface Conversation {
     messages?: Record<string, ConversationMessage>;
 }
 
+// Affiliate Program Types
+export interface Referral {
+    id: string;
+    referredUserId: string;
+    referredUserName: string;
+    purchaseAmount: number;
+    commissionAmount: number;
+    createdAt: string; // ISO String
+}
 
+export interface AffiliateStats {
+    clicks: number;
+    referrals: Referral[];
+}

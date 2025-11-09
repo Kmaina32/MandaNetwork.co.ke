@@ -27,6 +27,7 @@ export const onUserCreate = functions.auth.user().onCreate(async (user) => {
             displayName: displayName || 'New User',
             createdAt: creationTime,
             affiliateId: affiliateId,
+            // referral tracking is handled client-side now
         });
         console.log(`Successfully created user record for ${uid} with affiliate ID ${affiliateId}`);
     } catch (error) {

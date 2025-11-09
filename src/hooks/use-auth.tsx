@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -50,7 +51,7 @@ interface AuthContextType {
   organization: Organization | null;
   isAiConfigured: boolean;
   login: (email: string, pass: string) => Promise<any>;
-  signup: (email: string, pass: string, name: string, organizationName?: string, inviteOrgId?: string) => Promise<any>;
+  signup: (email: string, pass: string, name: string, organizationName?: string, inviteOrgId?: string, affiliateRef?: string) => Promise<any>;
   logout: () => Promise<any>;
   sendPasswordReset: (email: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
@@ -201,7 +202,7 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
     return signInWithEmailAndPassword(auth, email, pass);
   };
 
-  const signup = async (email: string, pass: string, displayName: string, organizationName?: string, inviteOrgId?: string) => {
+  const signup = async (email: string, pass: string, displayName: string, organizationName?: string, inviteOrgId?: string, affiliateRef?: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
     
     await updateProfile(userCredential.user, {
@@ -209,7 +210,11 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
     });
     
     const userSlug = slugify(displayName);
-    await saveUser(userCredential.user.uid, { slug: userSlug });
+    const userData: Partial<RegisteredUser> = { slug: userSlug };
+    if (affiliateRef) {
+        userData.referredBy = affiliateRef;
+    }
+    await saveUser(userCredential.user.uid, userData);
     await logActivity(userCredential.user.uid, { type: 'signup', details: {} });
     
     if (organizationName && !inviteOrgId) {
