@@ -158,7 +158,7 @@ export interface UserCourse {
     enrollmentDate: string; // ISO String
     completedLessons?: string[];
     feedbackSubmitted?: boolean;
-    paymentMethod?: 'mpesa' | 'card' | 'paypal' | 'free' | 'crypto';
+    paymentMethod?: 'mpesa' | 'card' | 'paypal' | 'free';
 }
 
 export type TutorMessage = {
@@ -469,3 +469,4 @@ export interface Conversation {
     readBy?: Record<string, boolean>;
     messages?: Record<string, ConversationMessage>;
 }
+

@@ -169,6 +169,13 @@
       ".read": "auth != null",
       ".write": "auth != null"
     },
+    "apiKeys": {
+      ".read": false,
+      "$userId": {
+        ".read": "auth != null && auth.uid === $userId",
+        ".write": "auth != null && auth.uid === $userId"
+      }
+    },
     // Fallback rule for other paths
     "$other": {
         ".read": "auth != null",
