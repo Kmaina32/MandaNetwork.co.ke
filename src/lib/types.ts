@@ -158,7 +158,7 @@ export interface UserCourse {
     enrollmentDate: string; // ISO String
     completedLessons?: string[];
     feedbackSubmitted?: boolean;
-    paymentMethod?: 'mpesa' | 'card' | 'paypal' | 'free';
+    paymentMethod?: 'mpesa' | 'card' | 'paypal' | 'free' | 'crypto';
 }
 
 export type TutorMessage = {

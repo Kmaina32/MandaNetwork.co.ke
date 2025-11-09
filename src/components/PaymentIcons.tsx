@@ -1,7 +1,9 @@
 
+
 'use client';
 
 import { Icon } from "@iconify/react";
+import { Coins } from "lucide-react";
 
 export default function PaymentIcons() {
   return (
@@ -11,6 +13,7 @@ export default function PaymentIcons() {
       <Icon icon="logos:stripe" className="h-10 w-auto" />
       <Icon icon="logos:mastercard" className="h-8 w-auto" />
       <Icon icon="logos:visa" className="h-8 w-auto" />
+      <Coins className="h-8 w-8 text-yellow-500" />
     </div>
   );
 }

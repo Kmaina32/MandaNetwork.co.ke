@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -6,7 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, CreditCard, Loader2 } from 'lucide-react';
+import { ArrowLeft, CreditCard, Loader2, Coins } from 'lucide-react';
 import { AppSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
@@ -77,6 +78,8 @@ export default function PurchaseHistoryPage() {
             return <CreditCard className="h-5 w-5 text-blue-500" />;
         case 'paypal':
             return <Icon icon="logos:paypal" className="h-5 w-5" />;
+        case 'crypto':
+            return <Coins className="h-5 w-5 text-yellow-500" />;
         default:
             return null;
     }
@@ -114,11 +117,11 @@ export default function PurchaseHistoryPage() {
                         </TableHeader>
                         <TableBody>
                           {history.length > 0 ? history.map((item) => {
-                            const enrollmentDate = new Date(item.enrollmentDate);
+                            const enrollmentDate = item.enrollmentDate ? new Date(item.enrollmentDate) : null;
                             return (
                                 <TableRow key={item.courseId}>
                                 <TableCell className="font-medium">{item.title}</TableCell>
-                                <TableCell>{isValid(enrollmentDate) ? format(enrollmentDate, 'PPP') : 'N/A'}</TableCell>
+                                <TableCell>{enrollmentDate && isValid(enrollmentDate) ? format(enrollmentDate, 'PPP') : 'N/A'}</TableCell>
                                 <TableCell>
                                     <div className="flex items-center gap-2 capitalize">
                                         {getPaymentIcon(item.paymentMethod)}

@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, CreditCard } from 'lucide-react';
+import { ArrowLeft, CreditCard, Coins } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
@@ -13,6 +14,7 @@ import { getAllUsers, getAllCourses } from '@/lib/firebase-service';
 import type { RegisteredUser, Course, UserCourse } from '@/lib/types';
 import { format, isValid } from 'date-fns';
 import PaymentIcons from '@/components/PaymentIcons';
+import { Icon } from '@iconify/react';
 
 type Transaction = {
   id: string;
@@ -70,6 +72,21 @@ export default function AdminPaymentsPage() {
     };
     fetchTransactions();
   }, []);
+
+  const getPaymentIcon = (method?: UserCourse['paymentMethod']) => {
+    switch (method) {
+        case 'mpesa':
+            return <Icon icon="simple-icons:mpesa" className="h-5 w-5 text-green-600" />;
+        case 'card':
+            return <CreditCard className="h-5 w-5 text-blue-500" />;
+        case 'paypal':
+            return <Icon icon="logos:paypal" className="h-5 w-5" />;
+        case 'crypto':
+            return <Coins className="h-5 w-5 text-yellow-500" />;
+        default:
+            return null;
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -131,7 +148,12 @@ export default function AdminPaymentsPage() {
                                 <TableCell>{transaction.courseTitle}</TableCell>
                                 <TableCell>Ksh {transaction.amount.toLocaleString()}</TableCell>
                                 <TableCell>{isValid(transactionDate) ? format(transactionDate, 'PPP') : 'N/A'}</TableCell>
-                                <TableCell className="capitalize">{transaction.paymentMethod}</TableCell>
+                                <TableCell>
+                                     <div className="flex items-center gap-2 capitalize">
+                                        {getPaymentIcon(transaction.paymentMethod)}
+                                        <span>{transaction.paymentMethod}</span>
+                                    </div>
+                                </TableCell>
                                 <TableCell>
                                     <Badge variant={transaction.status === 'Success' ? 'default' : 'destructive'}>
                                         {transaction.status}
