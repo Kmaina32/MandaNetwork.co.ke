@@ -40,18 +40,36 @@ export default function AdminBlockchainPage() {
         }
     }, [isSuperAdmin, authLoading, router]);
 
-    const fetchBalance = async (provider: ethers.BrowserProvider, address: string) => {
+    const checkContractAndFetchBalance = async (provider: ethers.BrowserProvider, address: string) => {
         if (!contractAddressIsSet) {
             setMdtBalance('0.00');
             return;
         }
+
         try {
+            const code = await provider.getCode(MANDA_TOKEN_CONTRACT_ADDRESS);
+            if (code === '0x') {
+                toast({
+                    variant: "destructive",
+                    title: "Contract Not Found",
+                    description: "The MandaToken contract could not be found on the current network. Please ensure your wallet is connected to the correct network (e.g., Polygon Amoy testnet).",
+                    duration: 10000,
+                });
+                setMdtBalance('N/A');
+                return;
+            }
+            
             const contract = new ethers.Contract(MANDA_TOKEN_CONTRACT_ADDRESS, MandaTokenABI.abi, provider);
             const balance = await contract.balanceOf(address);
             setMdtBalance(ethers.formatUnits(balance, 18));
         } catch (error) {
             console.error("Failed to fetch token balance", error);
             setMdtBalance('Error');
+            toast({
+                variant: 'destructive',
+                title: 'Balance Error',
+                description: 'Could not fetch token balance. See console for details.'
+            });
         }
     };
     
@@ -70,7 +88,7 @@ export default function AdminBlockchainPage() {
                 title: "Wallet Connected",
                 description: `Connected to address: ${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
             });
-            await fetchBalance(provider, address);
+            await checkContractAndFetchBalance(provider, address);
         } catch (error) {
             console.error("Failed to connect wallet", error);
             toast({
@@ -101,7 +119,7 @@ export default function AdminBlockchainPage() {
             await tx.wait(); // Wait for the transaction to be mined
 
             toast({ title: 'Success!', description: `${fundAmount} MDT has been sent to the faucet.` });
-            await fetchBalance(provider, walletAddress);
+            await checkContractAndFetchBalance(provider, walletAddress);
 
         } catch (error: any) {
             console.error("Faucet funding failed", error);
