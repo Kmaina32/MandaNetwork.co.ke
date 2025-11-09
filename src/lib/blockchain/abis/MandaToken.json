@@ -96,6 +96,16 @@
       "type": "error"
     },
     {
+      "inputs": [],
+      "name": "MandaToken__FaucetCooldownNotOver",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "MandaToken__FaucetIsEmpty",
+      "type": "error"
+    },
+    {
       "anonymous": false,
       "inputs": [
         {
@@ -118,6 +128,25 @@
         }
       ],
       "name": "Approval",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "FaucetClaimed",
       "type": "event"
     },
     {
@@ -223,6 +252,26 @@
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "faucet",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "fundFaucet",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
