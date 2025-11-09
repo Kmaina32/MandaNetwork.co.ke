@@ -10,12 +10,12 @@ import { z } from 'zod';
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Code, Loader2, PlusCircle, Key, Trash2, Eye, EyeOff, Copy } from 'lucide-react';
+import { ArrowLeft, Code, Loader2, PlusCircle, Key, Trash2, Eye, EyeOff, Copy, Terminal, Server } from 'lucide-react';
 import { AppSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useAuth } from '@/hooks/use-auth';
-import type { ApiKey } from '@/lib/mock-data';
+import type { ApiKey } from '@/lib/types';
 import { getUserApiKeys, deleteApiKey } from '@/lib/firebase-service';
 import { generateApiKey } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -37,6 +37,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 const generateKeySchema = z.object({
     keyName: z.string().min(3, { message: "Key name must be at least 3 characters."}),
@@ -189,6 +192,14 @@ function GenerateKeyDialog({ onGenerate }: { onGenerate: (keyName: string) => Pr
     )
 }
 
+function CodeBlock({ children }: { children: React.ReactNode }) {
+    return (
+        <pre className="bg-secondary rounded-md p-4 text-sm text-secondary-foreground overflow-x-auto">
+            <code>{children}</code>
+        </pre>
+    )
+}
+
 export default function DeveloperPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -243,7 +254,7 @@ export default function DeveloperPage() {
   }
 
   if (authLoading || loadingKeys) {
-    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    return <div className="flex justify-center items-center h-screen"><LoadingAnimation /></div>;
   }
 
   return (
@@ -258,15 +269,20 @@ export default function DeveloperPage() {
                   <ArrowLeft className="h-4 w-4" />
                   Back to Profile
                 </Link>
-                <Card>
+                <div className="mb-8">
+                    <h1 className="text-3xl font-bold font-headline">Developer Portal</h1>
+                    <p className="text-muted-foreground">Manage your API keys and access documentation.</p>
+                </div>
+
+                <Card className="mb-8">
                     <CardHeader>
                         <div className="flex items-start justify-between">
                              <div>
-                                <CardTitle className="text-2xl font-headline flex items-center gap-2">
-                                    <Code className="h-6 w-6"/>
-                                    Developer Settings
+                                <CardTitle className="text-2xl flex items-center gap-2">
+                                    <Key className="h-6 w-6"/>
+                                    API Keys
                                 </CardTitle>
-                                <CardDescription>Manage your API keys for programmatic access.</CardDescription>
+                                <CardDescription>Manage your secret keys for accessing the Manda Network API.</CardDescription>
                              </div>
                              <GenerateKeyDialog onGenerate={handleGenerateKey} />
                         </div>
@@ -277,7 +293,7 @@ export default function DeveloperPage() {
                                 <AlertTitle className="font-semibold">New API Key Generated</AlertTitle>
                                 <AlertDescription>
                                     Please copy and save this key somewhere safe. You will not be able to see it again.
-                                    <pre className="mt-2 p-2 bg-secondary rounded-md text-sm font-mono">{newlyGeneratedKey.key}</pre>
+                                    <CodeBlock>{newlyGeneratedKey.key}</CodeBlock>
                                 </AlertDescription>
                             </Alert>
                         )}
@@ -292,11 +308,271 @@ export default function DeveloperPage() {
                         </div>
                     </CardContent>
                 </Card>
+
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="text-2xl flex items-center gap-2"><Code className="h-6 w-6"/> API Documentation</CardTitle>
+                        <CardDescription>How to use your API keys to fetch data.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-8">
+                        <section>
+                            <h3 className="text-lg font-semibold mb-2">Authentication</h3>
+                            <p className="text-sm text-muted-foreground mb-4">
+                                All API requests must be authenticated using a Bearer Token. Include your API key in the `Authorization` header of your requests.
+                            </p>
+                            <CodeBlock>{`Authorization: Bearer YOUR_API_KEY`}</CodeBlock>
+                        </section>
+
+                        <Separator />
+
+                        <section>
+                             <h3 className="text-lg font-semibold mb-2 flex items-center gap-2"><Server /> Courses API</h3>
+                             <div className="space-y-2">
+                                <h4 className="font-medium flex items-center gap-2"><Badge>GET</Badge> /api/courses</h4>
+                                <p className="text-sm text-muted-foreground">
+                                    Retrieves a list of all public courses available on the Manda Network platform.
+                                </p>
+
+                                <h5 className="font-semibold text-sm pt-2">Example Request:</h5>
+                                <CodeBlock>{`curl -X GET 'https://www.mandanetwork.co.ke/api/courses' \\\n     -H 'Authorization: Bearer YOUR_API_KEY'`}</CodeBlock>
+                                
+                                <h5 className="font-semibold text-sm pt-2">Example Response:</h5>
+                                <CodeBlock>{`[
+  {
+    "id": "course-123",
+    "title": "Introduction to AI",
+    "description": "Learn the fundamentals of Artificial Intelligence.",
+    "price": 4999,
+    "category": "Technology"
+    ...
+  }
+]`}</CodeBlock>
+                            </div>
+                        </section>
+                        
+                         <Separator />
+
+                         <section>
+                             <h3 className="text-lg font-semibold mb-2">Usage & Monetization</h3>
+                              <p className="text-sm text-muted-foreground mb-4">
+                                API usage is tracked for each key. The default free tier allows for a generous number of requests suitable for development and small projects. For higher limits and access to more advanced endpoints (coming soon), you will be able to upgrade to a Pro plan.
+                            </p>
+                         </section>
+
+                    </CardContent>
+                </Card>
             </div>
           </main>
           <Footer />
         </div>
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+```
+  </change>
+  <change>
+    <file>src/components/shared/AdminSidebar.tsx</file>
+    <content><![CDATA[
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import * as React from 'react';
+import {
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarFooter,
+} from '@/components/ui/sidebar';
+import { GitBranch, Home, LayoutDashboard, ListTodo, Calendar, Users, ImageIcon, CreditCard, Cog, HelpCircle, ExternalLink, Bot, Bell, Clapperboard, Library, Layers, BarChart3, Tag, ShieldCheck, Building, FileText, Rocket, ChevronRight, BookCopy, Contact, Users2, Speaker, LineChart, Book, Trophy, Briefcase, Award, Megaphone, Rss, Code } from 'lucide-react';
+import { Button } from '../ui/button';
+import { Separator } from '../ui/separator';
+import { useAuth } from '@/hooks/use-auth';
+import { cn } from '@/lib/utils';
+import pkg from '../../../package.json';
+
+export function AdminSidebar() {
+    const pathname = usePathname();
+    const { isSuperAdmin } = useAuth();
+
+    const isActive = (path: string) => {
+        if (path === '/admin' && pathname === '/admin') return true;
+        // Don't mark /admin as active if we are on a sub-page like /admin/courses
+        if (path === '/admin' && pathname !== '/admin') return false;
+        return pathname.startsWith(path);
+    }
+
+  return (
+    <Sidebar>
+        <SidebarHeader className="mb-4">
+            <div className="flex items-center gap-2">
+                <GitBranch className="h-6 w-6 text-yellow-500" />
+                <span className="font-bold text-lg font-headline group-data-[collapsible=icon]:hidden">Manda Network</span>
+            </div>
+        </SidebarHeader>
+        <SidebarContent>
+            <div className='px-2 py-1'>
+                <p className='text-xs font-semibold text-muted-foreground group-data-[collapsible=icon]:hidden'>ADMIN</p>
+            </div>
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={isActive('/admin')} tooltip="Dashboard">
+                        <Link href="/admin">
+                            <LayoutDashboard />
+                            <span>Dashboard</span>
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <p className='text-xs font-semibold text-muted-foreground px-2 mb-1 mt-3 group-data-[collapsible=icon]:hidden'>Content</p>
+                 <SidebarMenuItem>
+                     <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/courses')} tooltip="Courses">
+                        <Link href="/admin/courses"><BookCopy className="h-4 w-4 mr-2"/>Courses</Link>
+                    </SidebarMenuButton>
+                 </SidebarMenuItem>
+                 <SidebarMenuItem>
+                     <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/blog')} tooltip="Blog">
+                        <Link href="/admin/blog"><Rss className="h-4 w-4 mr-2"/>Blog</Link>
+                    </SidebarMenuButton>
+                 </SidebarMenuItem>
+                 <SidebarMenuItem>
+                     <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/assignments')} tooltip="Exams & Projects">
+                        <Link href="/admin/assignments"><Briefcase className="h-4 w-4 mr-2"/>Exams & Projects</Link>
+                    </SidebarMenuButton>
+                 </SidebarMenuItem>
+                  <SidebarMenuItem>
+                     <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/certificates')} tooltip="Certificates">
+                        <Link href="/admin/certificates"><Award className="h-4 w-4 mr-2"/>Certificates</Link>
+                    </SidebarMenuButton>
+                 </SidebarMenuItem>
+                 <SidebarMenuItem>
+                     <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/programs')} tooltip="Programs">
+                        <Link href="/admin/programs"><Library className="h-4 w-4 mr-2"/>Programs</Link>
+                    </SidebarMenuButton>
+                 </SidebarMenuItem>
+                 <SidebarMenuItem>
+                     <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/bundles')} tooltip="Bundles">
+                        <Link href="/admin/bundles"><Layers className="h-4 w-4 mr-2"/>Bundles</Link>
+                    </SidebarMenuButton>
+                 </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/bootcamps')} tooltip="Bootcamps">
+                        <Link href="/admin/bootcamps"><Rocket className="h-4 w-4 mr-2"/>Bootcamps</Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/hackathons')} tooltip="Hackathons">
+                        <Link href="/admin/hackathons"><Trophy className="h-4 w-4 mr-2"/>Hackathons</Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/documents')} tooltip="Documents">
+                        <Link href="/admin/documents"><FileText className="h-4 w-4 mr-2"/>Documents</Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                
+                <p className='text-xs font-semibold text-muted-foreground px-2 mb-1 mt-3 group-data-[collapsible=icon]:hidden'>Audience</p>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/users')} tooltip="Users">
+                        <Link href="/admin/users"><Users2 className="h-4 w-4 mr-2"/>Users</Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/organizations')} tooltip="Organizations">
+                        <Link href="/admin/organizations"><Building className="h-4 w-4 mr-2"/>Organizations</Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                {isSuperAdmin && (
+                     <SidebarMenuItem>
+                        <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/approvals')} tooltip="Approvals">
+                            <Link href="/admin/approvals"><ShieldCheck className="h-4 w-4 mr-2"/>Approvals</Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                )}
+
+                <p className='text-xs font-semibold text-muted-foreground px-2 mb-1 mt-3 group-data-[collapsible=icon]:hidden'>Engagement</p>
+                <SidebarMenuItem>
+                     <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/live')} tooltip="Live Classroom">
+                        <Link href="/admin/live"><Clapperboard className="h-4 w-4 mr-2"/>Live Classroom</Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/notifications')} tooltip="Notifications">
+                        <Link href="/admin/notifications"><Bell className="h-4 w-4 mr-2"/>Notifications</Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/calendar')} tooltip="Calendar">
+                        <Link href="/admin/calendar"><Calendar className="h-4 w-4 mr-2"/>Calendar</Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <p className='text-xs font-semibold text-muted-foreground px-2 mb-1 mt-3 group-data-[collapsible=icon]:hidden'>Growth</p>
+                <SidebarMenuItem>
+                     <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/plans')} tooltip="Pricing Plans">
+                        <Link href="/admin/plans"><Tag className="h-4 w-4 mr-2"/>Pricing Plans</Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/advertisements')} tooltip="Advertisements">
+                        <Link href="/admin/advertisements"><Megaphone className="h-4 w-4 mr-2"/>Advertisements</Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/payments')} tooltip="Payments">
+                        <Link href="/admin/payments"><CreditCard className="h-4 w-4 mr-2"/>Payments</Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                     <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/analytics')} tooltip="Analytics">
+                        <Link href="/admin/analytics"><BarChart3 className="h-4 w-4 mr-2"/>Analytics</Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <p className='text-xs font-semibold text-muted-foreground px-2 mb-1 mt-3 group-data-[collapsible=icon]:hidden'>Settings</p>
+                 <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/developer')} tooltip="Developer">
+                        <Link href="/developer"><Code className="h-4 w-4 mr-2"/>Developer</Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/hero')} tooltip="Site Settings">
+                        <Link href="/admin/hero"><ImageIcon className="h-4 w-4 mr-2"/>Site Settings</Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/tutor')} tooltip="Tutor Settings">
+                        <Link href="/admin/tutor"><Bot className="h-4 w-4 mr-2"/>Tutor Settings</Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/help')} tooltip="Help Center">
+                        <Link href="/admin/help"><HelpCircle className="h-4 w-4 mr-2"/>Help Center</Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+               
+            </SidebarMenu>
+             <div className="px-2 mt-auto">
+                 <Separator className="my-2" />
+                 <Button asChild variant="outline" className="w-full justify-start group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:h-auto group-data-[collapsible=icon]:p-2">
+                    <Link href="/">
+                        <ExternalLink />
+                        <span className="group-data-[collapsible=icon]:hidden">Go to app</span>
+                    </Link>
+                 </Button>
+            </div>
+        </SidebarContent>
+        <SidebarFooter>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+                <Tag className="h-3 w-3" />
+                <span>v{pkg.version}</span>
+            </div>
+        </SidebarFooter>
+    </Sidebar>
   );
 }

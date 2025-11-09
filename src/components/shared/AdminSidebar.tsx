@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -13,7 +12,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { GitBranch, Home, LayoutDashboard, ListTodo, Calendar, Users, ImageIcon, CreditCard, Cog, HelpCircle, ExternalLink, Bot, Bell, Clapperboard, Library, Layers, BarChart3, Tag, ShieldCheck, Building, FileText, Rocket, ChevronRight, BookCopy, Contact, Users2, Speaker, LineChart, Book, Trophy, Briefcase, Award, Megaphone, Rss } from 'lucide-react';
+import { GitBranch, Home, LayoutDashboard, ListTodo, Calendar, Users, ImageIcon, CreditCard, Cog, HelpCircle, ExternalLink, Bot, Bell, Clapperboard, Library, Layers, BarChart3, Tag, ShieldCheck, Building, FileText, Rocket, ChevronRight, BookCopy, Contact, Users2, Speaker, LineChart, Book, Trophy, Briefcase, Award, Megaphone, Rss, Code } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
 import { useAuth } from '@/hooks/use-auth';
@@ -135,7 +134,7 @@ export function AdminSidebar() {
                         <Link href="/admin/calendar"><Calendar className="h-4 w-4 mr-2"/>Calendar</Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
-                
+
                 <p className='text-xs font-semibold text-muted-foreground px-2 mb-1 mt-3 group-data-[collapsible=icon]:hidden'>Growth</p>
                 <SidebarMenuItem>
                      <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/plans')} tooltip="Pricing Plans">
@@ -159,6 +158,11 @@ export function AdminSidebar() {
                 </SidebarMenuItem>
 
                 <p className='text-xs font-semibold text-muted-foreground px-2 mb-1 mt-3 group-data-[collapsible=icon]:hidden'>Settings</p>
+                 <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/developer')} tooltip="Developer">
+                        <Link href="/developer"><Code className="h-4 w-4 mr-2"/>Developer</Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
                 <SidebarMenuItem>
                     <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/hero')} tooltip="Site Settings">
                         <Link href="/admin/hero"><ImageIcon className="h-4 w-4 mr-2"/>Site Settings</Link>
