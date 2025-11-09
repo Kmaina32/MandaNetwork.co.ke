@@ -14,12 +14,12 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { GitBranch, Home, LayoutDashboard, ListTodo, Calendar, User, HelpCircle, Mail, Info, UserPlus, Book, Shield, Notebook as NotebookIcon, Clapperboard, Library, Briefcase, Tag, Building, Users as PortfoliosIcon, Rocket, Trophy, Rss, CreditCard } from 'lucide-react';
+import { GitBranch, Home, LayoutDashboard, ListTodo, Calendar, User, HelpCircle, Mail, Info, UserPlus, Book, Shield, Notebook as NotebookIcon, Clapperboard, Library, Briefcase, Tag, Building, Users as PortfoliosIcon, Rocket, Trophy, Rss, CreditCard, Handshake } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Separator } from './ui/separator';
 import pkg from '../../package.json';
 import { useEffect, useMemo, useState } from 'react';
-import type { CalendarEvent } from '@/lib/types';
+import type { CalendarEvent } from '@/lib/mock-data';
 import { getAllCalendarEvents } from '@/lib/firebase-service';
 import Image from 'next/image';
 
@@ -161,6 +161,11 @@ export function AppSidebar() {
                         <SidebarMenuItem>
                              <SidebarMenuButton asChild size="sm" isActive={isActive('/coach')} tooltip="AI Career Coach" onClick={() => onLinkClick('/coach')}>
                                 <Link href="/coach"><Briefcase className="mr-2"/>Career Coach</Link>
+                           </SidebarMenuButton>
+                        </SidebarMenuItem>
+                          <SidebarMenuItem>
+                           <SidebarMenuButton asChild size="sm" isActive={isActive('/dashboard/affiliate')} tooltip="Affiliate Program" onClick={() => onLinkClick('/dashboard/affiliate')}>
+                                <Link href="/dashboard/affiliate"><Handshake className="mr-2"/>Affiliate Program</Link>
                            </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>

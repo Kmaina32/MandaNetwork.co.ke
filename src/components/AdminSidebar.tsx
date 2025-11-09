@@ -39,6 +39,7 @@ import {
   Megaphone,
   Rss,
   Trophy,
+  Handshake,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -183,6 +184,15 @@ export function AdminSidebar() {
               <Link href="/admin/organizations">
                 <Building className="h-4 w-4 mr-2" />
                 Organizations
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          
+           <SidebarMenuItem>
+            <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/affiliates')} tooltip="Affiliates">
+              <Link href="/admin/affiliates">
+                <Handshake className="h-4 w-4 mr-2" />
+                Affiliates
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
