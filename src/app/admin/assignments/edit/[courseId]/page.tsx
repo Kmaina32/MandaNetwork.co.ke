@@ -22,6 +22,7 @@ import { generateExam, generateProject } from '@/app/actions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 const shortAnswerSchema = z.object({
   id: z.string(),
@@ -170,7 +171,7 @@ export default function EditAssignmentPage() {
   }
 
   if (loading) {
-    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    return <div className="flex justify-center items-center h-screen"><LoadingAnimation /></div>;
   }
   
   if (!course) notFound();

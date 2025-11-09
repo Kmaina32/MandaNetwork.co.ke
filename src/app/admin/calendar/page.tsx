@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 export default function AdminCalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -106,8 +107,7 @@ export default function AdminCalendarPage() {
                   <CardContent>
                       {loading ? (
                          <div className="flex justify-center items-center py-10">
-                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                            <p className="ml-2">Loading calendar...</p>
+                            <LoadingAnimation />
                          </div>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -191,5 +191,3 @@ export default function AdminCalendarPage() {
     </div>
   );
 }
-
-    

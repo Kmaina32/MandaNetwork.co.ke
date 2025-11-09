@@ -10,6 +10,7 @@ import { Footer } from "@/components/shared/Footer";
 import { ArrowLeft, BookOpen, FileSignature, FileText, Loader2, Presentation, Milestone } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { DocumentEditor, DocType } from '@/components/shared/DocumentEditor';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 const TABS_CONFIG = [
     { value: "PITCH_DECK", label: "Pitch Deck", icon: Presentation },
@@ -32,7 +33,7 @@ export default function AdminDocumentsPage() {
     }, [isSuperAdmin, authLoading, router]);
     
     if (authLoading || !isSuperAdmin) {
-        return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin h-8 w-8" /></div>
+        return <div className="flex h-screen items-center justify-center"><LoadingAnimation /></div>
     }
 
 

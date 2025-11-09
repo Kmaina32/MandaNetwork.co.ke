@@ -4,7 +4,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
@@ -37,7 +37,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ChangePasswordDialog } from '@/components/ChangePasswordDialog';
 import { MANDA_TOKEN_CONTRACT_ADDRESS } from '@/lib/blockchain/contracts';
 import MandaTokenABI from '@/lib/blockchain/abis/MandaToken.json';
-
+import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 const projectSchema = z.object({
   id: z.string(),
@@ -415,7 +415,7 @@ export default function ProfilePage() {
   if (loading || !user) {
      return (
         <div className="flex justify-center items-center min-h-screen">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <LoadingAnimation />
         </div>
     )
   }
