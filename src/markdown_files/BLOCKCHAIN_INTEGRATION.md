@@ -160,19 +160,28 @@ async function connectWallet() {
 }
 ```
 
-### Step 3: Interact with Your Smart Contracts
+### Step 3: Update the Contract Address
 
-Once connected, you can create instances of your smart contracts in your code to call their functions. To do this, you need two things:
-1.  **Contract Address:** The address your contract was deployed to in Step 3 of the previous section.
-2.  **Contract ABI (Application Binary Interface):** This is a JSON file generated during compilation that describes your contract's functions.
+After deploying your contract, you will get a unique address for it. You must update the application to use this new address.
+
+1.  Open the file: `src/lib/blockchain/contracts.ts`
+2.  You will see a placeholder address like this:
+    ```typescript
+    export const MANDA_TOKEN_CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000";
+    ```
+3.  Replace the placeholder with the **actual address** of your deployed `MandaToken` contract. This constant is imported throughout the application to interact with your token.
+
+### Step 4: Interact with Your Smart Contracts
+
+Once connected and configured, you can create instances of your smart contracts in your code to call their functions. To do this, you need the **Contract Address** (which you just configured) and the **Contract ABI (Application Binary Interface)**. The ABI is a JSON file generated during compilation that describes your contract's functions.
 
 Here is a conceptual example of how you might create a "Pay with MDT" button in a React component.
 
 ```javascript
 import { ethers } from 'ethers';
-import { MandaTokenABI, CourseEnrollmentABI } from './abis'; // You would import your ABIs
+import { MANDA_TOKEN_CONTRACT_ADDRESS } from '@/lib/blockchain/contracts'; // Import the address
+import MandaTokenABI from '@/lib/blockchain/abis/MandaToken.json'; // Import the ABI
 
-const MANDA_TOKEN_ADDRESS = 'YOUR_MDT_CONTRACT_ADDRESS';
 const ENROLLMENT_CONTRACT_ADDRESS = 'YOUR_ENROLLMENT_CONTRACT_ADDRESS';
 
 function PurchaseButton({ courseId, priceInMdt }) {
@@ -181,7 +190,7 @@ function PurchaseButton({ courseId, priceInMdt }) {
     if (!provider || !signer) return;
 
     // Create contract instances
-    const mandaTokenContract = new ethers.Contract(MANDA_TOKEN_ADDRESS, MandaTokenABI, signer);
+    const mandaTokenContract = new ethers.Contract(MANDA_TOKEN_CONTRACT_ADDRESS, MandaTokenABI.abi, signer);
     const enrollmentContract = new ethers.Contract(ENROLLMENT_CONTRACT_ADDRESS, CourseEnrollmentABI, signer);
 
     try {
