@@ -58,10 +58,12 @@ function PdfRenderer({ content, docType, forwardRef }: { content: string, docTyp
       ))}
        <style jsx global>{`
             .pdf-render-area {
-                position: absolute;
-                left: -9999px;
+                position: fixed;
                 top: 0;
+                left: 0;
                 opacity: 0;
+                pointer-events: none;
+                z-index: -1;
                 background-color: white;
                 color: black;
                 font-family: 'PT Sans', sans-serif;
@@ -199,7 +201,6 @@ export function DocumentEditor({ docType }: { docType: DocType }) {
             const canvasWidth = canvas.width;
             const canvasHeight = canvas.height;
             
-            // Check for zero dimensions to prevent division by zero
             if (canvasWidth === 0 || canvasHeight === 0) {
                  throw new Error("Canvas has zero dimensions.");
             }
