@@ -119,8 +119,8 @@ export default function AdminTeamPage() {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                           <div className="flex flex-col sm:flex-row items-start gap-6">
-                            <div className="flex flex-col items-center gap-2 w-full sm:w-32 flex-shrink-0">
-                                <Avatar className="h-32 w-32">
+                            <div className="flex flex-col items-center gap-2 w-full sm:w-40 flex-shrink-0">
+                                <Avatar className="h-40 w-40">
                                     <AvatarImage src={field.avatar} />
                                     <AvatarFallback>{field.name?.substring(0,2) || 'TM'}</AvatarFallback>
                                 </Avatar>
@@ -144,7 +144,7 @@ export default function AdminTeamPage() {
                           </div>
                         </Card>
                       ))}
-                       <Button type="button" variant="outline" onClick={() => append({ id: uuidv4(), name: 'New Member', role: 'Role', description: 'A short description of the new team member.', avatar: 'https://placehold.co/128x128' })}>
+                       <Button type="button" variant="outline" onClick={() => append({ id: uuidv4(), name: 'New Member', role: 'Role', description: 'A short description of the new team member.', avatar: 'https://placehold.co/160x160' })}>
                          <PlusCircle className="mr-2 h-4 w-4" />
                          Add Team Member
                       </Button>
