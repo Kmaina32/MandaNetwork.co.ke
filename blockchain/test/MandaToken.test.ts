@@ -1,6 +1,6 @@
 
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 import { MandaToken } from "../typechain-types";
 
 describe("MandaToken", function () {
@@ -62,5 +62,42 @@ describe("MandaToken", function () {
     // Check remaining allowance
     const remainingAllowance = await mandaToken.allowance(owner.address, addr1.address);
     expect(remainingAllowance).to.equal(500);
+  });
+
+  describe("Faucet", function () {
+    beforeEach(async function() {
+        // Fund the faucet from the owner's balance
+        const faucetFundAmount = ethers.parseUnits("1000", 18);
+        await mandaToken.fundFaucet(faucetFundAmount);
+    });
+
+    it("Should allow a user to claim tokens from the faucet", async function() {
+        const initialBalance = await mandaToken.balanceOf(addr1.address);
+        expect(initialBalance).to.equal(0);
+        
+        await mandaToken.connect(addr1).faucet();
+        
+        const finalBalance = await mandaToken.balanceOf(addr1.address);
+        const expectedBalance = ethers.parseUnits("100", 18);
+        expect(finalBalance).to.equal(expectedBalance);
+    });
+
+    it("Should prevent a user from claiming tokens twice within the cooldown period", async function() {
+        await mandaToken.connect(addr1).faucet();
+        await expect(mandaToken.connect(addr1).faucet()).to.be.revertedWith("MandaToken: Faucet cooldown not over yet.");
+    });
+
+    it("Should allow a user to claim again after the cooldown period", async function() {
+        await mandaToken.connect(addr1).faucet();
+        
+        // Advance time by 24 hours
+        await network.provider.send("evm_increaseTime", [24 * 60 * 60]);
+        await network.provider.send("evm_mine");
+
+        await mandaToken.connect(addr1).faucet();
+        const finalBalance = await mandaToken.balanceOf(addr1.address);
+        const expectedBalance = ethers.parseUnits("200", 18);
+        expect(finalBalance).to.equal(expectedBalance);
+    });
   });
 });

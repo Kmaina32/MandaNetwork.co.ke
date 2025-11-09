@@ -13,7 +13,7 @@ import { ethers } from 'ethers';
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, User as UserIcon, Camera, Upload, Eye, Building, Share2, PlusCircle, Trash2, KeyRound, Wallet, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, User as UserIcon, Camera, Upload, Eye, Building, Share2, PlusCircle, Trash2, KeyRound, Wallet, AlertCircle, Coins } from 'lucide-react';
 import { AppSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
@@ -110,6 +110,7 @@ export default function ProfilePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [mdtBalance, setMdtBalance] = useState<string | null>(null);
   const [noWallet, setNoWallet] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -272,25 +273,16 @@ export default function ProfilePage() {
   
     const fetchBalance = async (provider: ethers.BrowserProvider, address: string) => {
         if (MANDA_TOKEN_CONTRACT_ADDRESS === 'YOUR_CONTRACT_ADDRESS_HERE') {
-            toast({
-                variant: "destructive",
-                title: "Contract Not Deployed",
-                description: "The MandaToken contract address has not been set.",
-            });
+            setMdtBalance('0'); // Set balance to 0 if contract is not deployed
             return;
         }
         try {
             const contract = new ethers.Contract(MANDA_TOKEN_CONTRACT_ADDRESS, MandaTokenABI.abi, provider);
             const balance = await contract.balanceOf(address);
-            // The balance is a BigNumber, format it to a readable string (dividing by 10**18 for standard ERC20 tokens)
             setMdtBalance(ethers.formatUnits(balance, 18));
         } catch (error) {
             console.error("Failed to fetch token balance", error);
-            toast({
-                variant: "destructive",
-                title: "Balance Fetch Failed",
-                description: "Could not retrieve your MDT balance from the blockchain.",
-            });
+            setMdtBalance('Error');
         }
     };
 
@@ -319,6 +311,39 @@ export default function ProfilePage() {
         });
     }
   };
+
+  const handleClaimFaucet = async () => {
+    if (typeof window.ethereum === 'undefined' || !walletAddress) {
+        toast({ title: 'Wallet not connected', variant: 'destructive'});
+        return;
+    }
+    setIsClaiming(true);
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(MANDA_TOKEN_CONTRACT_ADDRESS, MandaTokenABI.abi, signer);
+        
+        const tx = await contract.faucet();
+        toast({ title: 'Processing...', description: 'Your transaction is being sent to the blockchain.' });
+
+        await tx.wait(); // Wait for the transaction to be mined
+
+        toast({ title: 'Success!', description: '100 MDT has been added to your wallet.' });
+        await fetchBalance(provider, walletAddress);
+
+    } catch (error: any) {
+        console.error("Faucet claim failed", error);
+        let errorMessage = "Could not claim tokens. Please try again.";
+        if (error.message.includes("Faucet cooldown")) {
+            errorMessage = "You can only claim from the faucet once every 24 hours.";
+        } else if (error.message.includes("Faucet is empty")) {
+            errorMessage = "The faucet is currently empty. Please try again later.";
+        }
+        toast({ title: 'Claim Failed', description: errorMessage, variant: 'destructive' });
+    } finally {
+        setIsClaiming(false);
+    }
+  }
 
   const onSubmit = async (values: ProfileFormValues) => {
     if (!user) return;
@@ -443,7 +468,7 @@ export default function ProfilePage() {
                             </Dialog>
                             </div>
                             
-                           <Card>
+                            <Card>
                                 <CardHeader>
                                     <CardTitle className="text-base flex items-center gap-2">
                                         <Icon icon="logos:metamask-icon" className="h-5 w-5"/>
@@ -452,9 +477,19 @@ export default function ProfilePage() {
                                 </CardHeader>
                                 <CardContent>
                                     {walletAddress ? (
-                                        <div className="space-y-2 text-sm">
-                                            <p><strong>Address:</strong> <span className="font-mono text-muted-foreground text-xs">{walletAddress}</span></p>
-                                            <p><strong>MDT Balance:</strong> <span className="font-bold text-primary">{mdtBalance !== null ? parseFloat(mdtBalance).toFixed(4) : 'Loading...'} MDT</span></p>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <p className="text-sm font-semibold">Connected Address</p>
+                                                <p className="font-mono text-muted-foreground text-xs">{walletAddress}</p>
+                                            </div>
+                                             <div>
+                                                <p className="text-sm font-semibold">MDT Balance</p>
+                                                <p className="font-bold text-primary text-lg">{mdtBalance !== null ? parseFloat(mdtBalance).toFixed(4) : 'Loading...'} MDT</p>
+                                            </div>
+                                            <Button onClick={handleClaimFaucet} disabled={isClaiming}>
+                                                {isClaiming ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Coins className="h-4 w-4 mr-2" />}
+                                                Claim 100 MDT
+                                            </Button>
                                         </div>
                                     ) : (
                                         <div className="space-y-4">
@@ -640,10 +675,10 @@ export default function ProfilePage() {
                                 </TabsContent>
                             </Tabs>
                         </CardContent>
-                         <CardFooter className="flex flex-col sm:flex-row justify-between px-6 pt-6">
-                            <div className="flex gap-2 w-full sm:w-auto mb-4 sm:mb-0">
+                         <CardFooter className="flex flex-col sm:flex-row justify-between px-6 pt-6 gap-4">
+                            <div className="flex gap-2 w-full sm:w-auto">
                                 <Button variant="outline" onClick={handleLogout} className="flex-1 sm:flex-initial">Logout</Button>
-                                <Button variant="outline" onClick={() => setIsPasswordDialogOpen(true)} className="flex-1 sm:flex-initial">
+                                <Button type="button" variant="outline" onClick={() => setIsPasswordDialogOpen(true)} className="flex-1 sm:flex-initial">
                                   <KeyRound className="mr-2 h-4 w-4" />
                                   Change Password
                                 </Button>
