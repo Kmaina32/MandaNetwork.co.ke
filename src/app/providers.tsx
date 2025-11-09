@@ -1,4 +1,3 @@
-
 'use client';
 
 import { AuthProvider } from '@/hooks/use-auth';
