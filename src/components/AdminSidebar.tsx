@@ -40,6 +40,7 @@ import {
   Rss,
   Trophy,
   Handshake,
+  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -315,6 +316,15 @@ export function AdminSidebar() {
           <p className="text-xs font-semibold text-muted-foreground px-2 mb-1 mt-3 group-data-[collapsible=icon]:hidden">
             Settings
           </p>
+
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/team')} tooltip="Team">
+              <Link href="/admin/team">
+                <Users className="h-4 w-4 mr-2" />
+                Team
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
 
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/hero')} tooltip="Site Settings">

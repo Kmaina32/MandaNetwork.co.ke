@@ -1,4 +1,5 @@
 
+
 {
   "rules": {
     "users": {
@@ -34,22 +35,6 @@
       ".read": true,
       ".write": "auth != null && (auth.uid === newData.child('participants').child(auth.uid).name() || root.child('users').child(auth.uid).child('isAdmin').val() === true)"
     },
-    "pricingPlans": {
-      ".read": true,
-      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
-    },
-    "hero": {
-      ".read": true,
-      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
-    },
-    "tutorSettings": {
-      ".read": true,
-      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
-    },
-    "certificateSettings": {
-      ".read": true,
-      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
-    },
     "hackathons": {
       ".read": true,
       ".write": "auth != null && (auth.uid === newData.child('participants').child(auth.uid).name() || root.child('users').child(auth.uid).child('isAdmin').val() === true)"
@@ -73,7 +58,7 @@
       }
     },
     "invitations": {
-      ".read": "auth != null",
+      ".read": "true",
       ".write": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true || root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true)"
     },
     "userNotes": {
@@ -147,8 +132,8 @@
       }
     },
     "referrals": {
-      ".read": "auth != null",
-      ".indexOn": "affiliateId"
+      ".indexOn": ["affiliateId"], 
+      ".read": "auth != null"
     },
     "webrtc-offers": {
       ".read": "auth != null",
@@ -182,6 +167,30 @@
         ".read": "auth != null && auth.uid === $userId",
         ".write": "auth != null && auth.uid === $userId"
       }
+    },
+    "hero": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
+    },
+    "tutorSettings": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
+    },
+    "certificateSettings": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
+    },
+    "pricingPlans": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
+    },
+    "advertisements": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
+    },
+    "teamMembers": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
     },
     // Fallback rule for other paths
     "$other": {

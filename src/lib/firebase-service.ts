@@ -3,7 +3,7 @@
 import { db, storage } from './firebase';
 import { ref, get, set, push, update, remove, query, orderByChild, equalTo, increment, limitToLast, onValue } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, Conversation, ConversationMessage, BlogPost, Referral } from './types';
+import type { Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, Conversation, ConversationMessage, BlogPost, Referral, TeamMember } from './types';
 import { getRemoteConfig, fetchAndActivate, getString } from 'firebase/remote-config';
 import { app } from './firebase';
 import { slugify } from './utils';
@@ -51,9 +51,8 @@ export interface CertificateSettings {
 }
 
 // Image Upload Service
-export async function uploadImage(userId: string, file: File): Promise<string> {
-    const filePath = `profile-pictures/${userId}/${file.name}`;
-    const imageRef = storageRef(storage, filePath);
+export async function uploadImage(path: string, file: File): Promise<string> {
+    const imageRef = storageRef(storage, path);
     await uploadBytes(imageRef, file);
     const downloadURL = await getDownloadURL(imageRef);
     return downloadURL;
@@ -982,6 +981,18 @@ export async function registerUserForBootcamp(bootcampId: string, userId: string
     await set(bootcampRef, true);
 }
 
+export async function getHackathonParticipants(hackathonId: string): Promise<RegisteredUser[]> {
+    const dataRef = ref(db, `hackathons/${hackathonId}/participants`);
+    const snapshot = await get(dataRef);
+    if (snapshot.exists()) {
+        const participantIds = Object.keys(snapshot.val());
+        const userPromises = participantIds.map(uid => getUserById(uid));
+        const users = (await Promise.all(userPromises)).filter(Boolean) as RegisteredUser[];
+        return users;
+    }
+    return [];
+}
+
 
 // Hackathon Functions
 export async function createHackathon(hackathonData: Omit<Hackathon, 'id'>): Promise<string> {
@@ -1028,14 +1039,15 @@ export async function registerForHackathon(hackathonId: string, userId: string):
     await set(dataRef, true);
 }
 
-export async function getHackathonParticipants(hackathonId: string): Promise<RegisteredUser[]> {
-    const dataRef = ref(db, `hackathons/${hackathonId}/participants`);
-    const snapshot = await get(dataRef);
+export async function getHackathonSubmissions(hackathonId: string): Promise<HackathonSubmission[]> {
+    const submissionsRef = query(ref(db, 'hackathonSubmissions'), orderByChild('hackathonId'), equalTo(hackathonId));
+    const snapshot = await get(submissionsRef);
     if (snapshot.exists()) {
-        const participantIds = Object.keys(snapshot.val());
-        const userPromises = participantIds.map(uid => getUserById(uid));
-        const users = (await Promise.all(userPromises)).filter(Boolean) as RegisteredUser[];
-        return users;
+        const data = snapshot.val();
+        return Object.keys(data).map(key => ({
+            id: key,
+            ...data[key]
+        }));
     }
     return [];
 }
@@ -1087,19 +1099,6 @@ export async function awardLeaderboardPoints(userId: string, points: number): Pr
     }
 }
 
-
-export async function getHackathonSubmissions(hackathonId: string): Promise<HackathonSubmission[]> {
-    const submissionsRef = query(ref(db, 'hackathonSubmissions'), orderByChild('hackathonId'), equalTo(hackathonId));
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
-        }));
-    }
-    return [];
-}
 
 export async function getHackathonSubmissionsByUser(userId: string): Promise<HackathonSubmission[]> {
     const submissionsRef = query(ref(db, 'hackathonSubmissions'), orderByChild('userId'), equalTo(userId));
@@ -1375,4 +1374,23 @@ export async function updateAdvertisement(id: string, adData: Partial<Advertisem
 export async function deleteAdvertisement(id: string): Promise<void> {
     const adRef = ref(db, `advertisements/${id}`);
     await remove(adRef);
+}
+
+// Team Member Functions
+export async function getTeamMembers(): Promise<TeamMember[]> {
+    const teamRef = ref(db, 'teamMembers');
+    const snapshot = await get(teamRef);
+    if (snapshot.exists()) {
+        return snapshot.val();
+    }
+    return [
+      { id: uuidv4(), name: 'George Kairu', role: 'Founder & CTO', description: 'The visionary architect behind our platform.', avatar: '/avatars/male-1.png' },
+      { id: uuidv4(), name: 'Nathan Kabare', role: 'Director of Marketing', description: 'Leads our growth and brand strategy.', avatar: '/avatars/male-2.png' },
+      { id: uuidv4(), name: 'Joel K', role: 'Operations Director', description: 'Ensures the smooth running of the platform.', avatar: '/avatars/male-3.png' },
+    ];
+}
+
+export async function updateTeamMembers(members: TeamMember[]): Promise<void> {
+    const teamRef = ref(db, 'teamMembers');
+    await set(teamRef, members);
 }

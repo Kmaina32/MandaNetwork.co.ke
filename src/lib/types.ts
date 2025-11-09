@@ -390,19 +390,6 @@ export interface PricingPlan {
 }
 
 
-// Payment Input Types
-export interface CardPaymentInput {
-    itemId: string;
-    itemName: string;
-    amount: number;
-}
-
-export interface PayPalPaymentInput {
-    itemId: string;
-    itemName: string;
-    amount: number;
-}
-
 export interface Hackathon {
   id: string;
   title: string;
@@ -507,4 +494,12 @@ export interface AffiliateStats {
     clicks: number;
     referrals: number;
     earnings: number;
+}
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  role: string;
+  avatar: string;
+  description: string;
 }

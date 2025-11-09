@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Header } from "@/components/Header";
@@ -11,29 +12,24 @@ import { Separator } from '@/components/ui/separator';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/Sidebar';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-
-const teamMembers = [
-    {
-        name: "George Kairu Maina",
-        role: "Founder & CTO",
-        avatar: "/avatars/male-1.png",
-        description: "The visionary architect behind our platform, driving the technical strategy to democratize education."
-    },
-    {
-        name: "Nathan Kabare",
-        role: "Director of Marketing",
-        avatar: "/avatars/male-2.png",
-        description: "Leads our growth and brand strategy, connecting with learners and partners across Kenya."
-    },
-    {
-        name: "Joel K",
-        role: "Operations Director",
-        avatar: "/avatars/male-3.png",
-        description: "Ensures the smooth day-to-day running of the platform, focusing on student success and operational excellence."
-    }
-]
+import { getTeamMembers } from '@/lib/firebase-service';
+import type { TeamMember } from '@/lib/types';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 export default function AboutPage() {
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTeam = async () => {
+      setLoading(true);
+      const members = await getTeamMembers();
+      setTeamMembers(members);
+      setLoading(false);
+    };
+    fetchTeam();
+  }, []);
+
   return (
     <SidebarProvider>
         <AppSidebar />
@@ -98,18 +94,24 @@ export default function AboutPage() {
                             <CardTitle className="font-headline text-3xl">Meet the Team</CardTitle>
                             <CardDescription>The passionate individuals driving our mission forward.</CardDescription>
                         </CardHeader>
-                        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            {teamMembers.map(member => (
-                                <div key={member.name} className="flex flex-col items-center">
-                                    <Avatar className="w-24 h-24 mb-4 border-4 border-primary/20">
-                                        <AvatarImage src={member.avatar} alt={member.name} />
-                                        <AvatarFallback>{member.name.substring(0,2)}</AvatarFallback>
-                                    </Avatar>
-                                    <h4 className="font-semibold text-lg">{member.name}</h4>
-                                    <p className="text-primary font-medium">{member.role}</p>
-                                    <p className="text-sm text-muted-foreground mt-2">{member.description}</p>
-                                </div>
-                            ))}
+                        <CardContent>
+                          {loading ? (
+                            <div className="flex justify-center items-center py-10"><LoadingAnimation /></div>
+                          ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                {teamMembers.map(member => (
+                                    <div key={member.name} className="flex flex-col items-center">
+                                        <Avatar className="w-24 h-24 mb-4 border-4 border-primary/20">
+                                            <AvatarImage src={member.avatar} alt={member.name} />
+                                            <AvatarFallback>{member.name.substring(0,2)}</AvatarFallback>
+                                        </Avatar>
+                                        <h4 className="font-semibold text-lg">{member.name}</h4>
+                                        <p className="text-primary font-medium">{member.role}</p>
+                                        <p className="text-sm text-muted-foreground mt-2">{member.description}</p>
+                                    </div>
+                                ))}
+                            </div>
+                          )}
                         </CardContent>
                     </Card>
 
