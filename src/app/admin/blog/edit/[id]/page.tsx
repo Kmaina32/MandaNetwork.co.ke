@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams, notFound } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,15 +11,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { ArrowLeft, Loader2, Rss } from 'lucide-react';
 import { updateBlogPost, getBlogPostById } from '@/lib/firebase-service';
 import { Switch } from '@/components/ui/switch';
 import { slugify } from '@/lib/utils';
-import type { BlogPost } from '@/lib/types';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
+import { RichTextEditor } from '@/components/shared/RichTextEditor';
 
 const blogPostSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters.'),
@@ -38,6 +37,7 @@ export default function EditBlogPostPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
 
   const form = useForm<z.infer<typeof blogPostSchema>>({
     resolver: zodResolver(blogPostSchema),
@@ -90,6 +90,8 @@ export default function EditBlogPostPage() {
       setIsLoading(false);
     }
   };
+
+  const contentValue = form.watch('content');
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -153,7 +155,23 @@ export default function EditBlogPostPage() {
                         <FormField control={form.control} name="category" render={({ field }) => ( <FormItem> <FormLabel>Category</FormLabel> <FormControl> <Input {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
                     </div>
                     <FormField control={form.control} name="imageUrl" render={({ field }) => ( <FormItem> <FormLabel>Header Image URL</FormLabel> <FormControl> <Input {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                    <FormField control={form.control} name="content" render={({ field }) => ( <FormItem> <FormLabel>Content (Markdown)</FormLabel> <FormControl> <Textarea {...field} className="min-h-[250px]" /> </FormControl> <FormMessage /> </FormItem> )}/>
+                    <FormField
+                        control={form.control}
+                        name="content"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Content</FormLabel>
+                            <FormControl>
+                            <RichTextEditor 
+                                content={contentValue} 
+                                onChange={field.onChange} 
+                                textareaRef={contentRef}
+                            />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
                     <FormField
                         control={form.control}
                         name="isPublished"

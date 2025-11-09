@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,6 +19,7 @@ import { createBlogPost } from '@/lib/firebase-service';
 import { Switch } from '@/components/ui/switch';
 import { slugify } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+import { RichTextEditor } from '@/components/shared/RichTextEditor';
 
 const blogPostSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters.'),
@@ -36,6 +37,7 @@ export default function CreateBlogPostPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
 
   const form = useForm<z.infer<typeof blogPostSchema>>({
     resolver: zodResolver(blogPostSchema),
@@ -81,6 +83,8 @@ export default function CreateBlogPostPage() {
       setIsLoading(false);
     }
   };
+  
+  const contentValue = form.watch('content');
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -181,9 +185,13 @@ export default function CreateBlogPostPage() {
                     name="content"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Content (Markdown)</FormLabel>
+                        <FormLabel>Content</FormLabel>
                         <FormControl>
-                          <Textarea placeholder="Write your article content here. Markdown is supported." {...field} className="min-h-[250px]" />
+                          <RichTextEditor 
+                            content={contentValue} 
+                            onChange={field.onChange} 
+                            textareaRef={contentRef}
+                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
