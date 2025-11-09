@@ -227,10 +227,10 @@ export default function CourseDetailPage() {
     notFound();
   }
   
-  const handlePaymentSuccess = async () => {
+  const handlePaymentSuccess = async (paymentMethod: UserCourse['paymentMethod']) => {
     if (!user) return;
     try {
-      await enrollUserInCourse(user.uid, course.id);
+      await enrollUserInCourse(user.uid, course.id, paymentMethod);
       const achievement = await checkFirstEnrollmentAchievement(user.uid);
       if (achievement) {
           toast({ title: "Achievement Unlocked!", description: `${achievement.name}: ${achievement.description}` });
@@ -252,7 +252,7 @@ export default function CourseDetailPage() {
     }
     setIsEnrolling(true);
     try {
-      await enrollUserInCourse(user.uid, course.id);
+      await enrollUserInCourse(user.uid, course.id, 'free');
       const achievement = await checkFirstEnrollmentAchievement(user.uid);
        if (achievement) {
           toast({ title: "Achievement Unlocked!", description: `${achievement.name}: ${achievement.description}` });

@@ -129,6 +129,7 @@ export interface UserCourse {
     enrollmentDate: string; // ISO String
     completedLessons?: string[];
     feedbackSubmitted?: boolean;
+    paymentMethod?: 'mpesa' | 'card' | 'paypal' | 'free';
 }
 
 export type TutorMessage = {
@@ -210,15 +211,14 @@ export interface ApiKey {
     userId: string;
 }
 
-export interface Portfolio {
-    summary?: string;
-    socialLinks?: {
-        github?: string;
-        linkedin?: string;
-        twitter?: string;
-    };
-    public?: boolean;
-    projects?: Project[];
+export interface PortfolioProject as Project {
+    id: string;
+    title: string;
+    description: string;
+    imageUrl: string;
+    liveUrl?: string;
+    sourceUrl?: string;
+    technologies: string[];
 }
 
 export interface LearningGoal {
@@ -238,14 +238,28 @@ export interface CourseFeedback {
     createdAt: string;
 }
 
-export interface Project {
+export interface Portfolio {
+    summary?: string;
+    socialLinks?: {
+        github?: string;
+        linkedin?: string;
+        twitter?: string;
+    };
+    public?: boolean;
+    projects?: Project[];
+}
+
+export interface PermissionRequest {
     id: string;
-    title: string;
-    description: string;
-    imageUrl: string;
-    liveUrl?: string;
-    sourceUrl?: string;
-    technologies: string[];
+    requesterId: string;
+    requesterName: string;
+    action: 'delete_course' | 'delete_program' | 'delete_bundle' | 'create_bootcamp';
+    itemId: string;
+    itemName: string;
+    itemData?: any;
+    status: 'pending' | 'approved' | 'denied';
+    createdAt: string; // ISO String
+    resolvedAt?: string; // ISO String
 }
 
 export interface Organization {
@@ -278,20 +292,6 @@ export interface RegisteredUser {
     lastSeen?: string | number;
     portfolio?: Portfolio;
     learningGoals?: Record<string, LearningGoal>;
-    photoURL?: string;
-}
-
-export interface PermissionRequest {
-    id: string;
-    requesterId: string;
-    requesterName: string;
-    action: 'delete_course' | 'delete_program' | 'delete_bundle' | 'create_bootcamp';
-    itemId: string;
-    itemName: string;
-    itemData?: any;
-    status: 'pending' | 'approved' | 'denied';
-    createdAt: string; // ISO String
-    resolvedAt?: string; // ISO String
 }
 
 export interface Invitation {
@@ -302,4 +302,87 @@ export interface Invitation {
     status: 'pending' | 'accepted';
     createdAt: string; // ISO String
     userId?: string; // Added to link to the user being invited
+}
+
+export interface PricingPlan {
+    id: string;
+    name: string;
+    price: number;
+    priceDetail: string; // e.g., 'per user / month'
+    features: string[];
+    isPrimary: boolean; // For highlighting a recommended plan
+}
+
+export interface Hackathon {
+  id: string;
+  title: string;
+  description: string;
+  prizeMoney: number;
+  entryFee: number;
+  startDate: string; // ISO String
+  endDate: string; // ISO String
+  imageUrl: string;
+  externalUrl?: string;
+  participants?: Record<string, boolean>;
+}
+
+export interface HackathonSubmission {
+  id: string;
+  hackathonId: string;
+  hackathonTitle: string;
+  userId: string;
+  userName: string;
+  projectName: string;
+  githubUrl: string;
+  liveUrl: string;
+  description: string;
+  submittedAt: string; // ISO String
+}
+
+export interface LeaderboardEntry {
+    userId: string;
+    userName: string;
+    userAvatar: string;
+    score: number;
+    hackathonCount: number;
+}
+
+export interface Advertisement {
+    id: string;
+    title: string;
+    description: string;
+    imageUrl: string;
+    ctaText: string;
+    ctaLink: string;
+    isActive: boolean;
+}
+
+export interface UserActivity {
+    id: string;
+    userId: string;
+    userName: string;
+    userAvatar: string;
+    type: 'signup' | 'enrollment' | 'page_visit';
+    details: any;
+    timestamp: string; // ISO string
+}
+
+export interface ConversationMessage {
+    senderId: string;
+    text: string;
+    timestamp: string;
+}
+
+export interface ConversationParticipant {
+    name: string;
+    photoURL: string;
+}
+
+export interface Conversation {
+    id: string;
+    participants: Record<string, ConversationParticipant>;
+    lastMessage: ConversationMessage;
+    updatedAt: string;
+    readBy?: Record<string, boolean>;
+    messages?: Record<string, ConversationMessage>;
 }

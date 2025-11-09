@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { format, isValid } from 'date-fns';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
+import { Icon } from '@iconify/react';
 
 type PurchaseHistoryItem = UserCourse & Partial<Course>;
 
@@ -68,6 +69,19 @@ export default function PurchaseHistoryPage() {
     );
   }
 
+  const getPaymentIcon = (method?: UserCourse['paymentMethod']) => {
+    switch (method) {
+        case 'mpesa':
+            return <Icon icon="simple-icons:mpesa" className="h-5 w-5 text-green-600" />;
+        case 'card':
+            return <CreditCard className="h-5 w-5 text-blue-500" />;
+        case 'paypal':
+            return <Icon icon="logos:paypal" className="h-5 w-5" />;
+        default:
+            return null;
+    }
+  }
+
   return (
      <SidebarProvider>
       <AppSidebar />
@@ -94,6 +108,7 @@ export default function PurchaseHistoryPage() {
                           <TableRow>
                             <TableHead>Item</TableHead>
                             <TableHead>Date</TableHead>
+                            <TableHead>Payment Method</TableHead>
                             <TableHead className="text-right">Amount</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -104,6 +119,12 @@ export default function PurchaseHistoryPage() {
                                 <TableRow key={item.courseId}>
                                 <TableCell className="font-medium">{item.title}</TableCell>
                                 <TableCell>{isValid(enrollmentDate) ? format(enrollmentDate, 'PPP') : 'N/A'}</TableCell>
+                                <TableCell>
+                                    <div className="flex items-center gap-2 capitalize">
+                                        {getPaymentIcon(item.paymentMethod)}
+                                        <span>{item.paymentMethod === 'free' ? '' : item.paymentMethod}</span>
+                                    </div>
+                                </TableCell>
                                 <TableCell className="text-right">
                                     {item.price !== undefined ? (
                                         item.price > 0 ? `Ksh ${item.price.toLocaleString()}` : <Badge variant="secondary">Free</Badge>
@@ -115,7 +136,7 @@ export default function PurchaseHistoryPage() {
                             )
                           }) : (
                             <TableRow>
-                                <TableCell colSpan={3} className="text-center text-muted-foreground py-10">
+                                <TableCell colSpan={4} className="text-center text-muted-foreground py-10">
                                     You have not purchased any courses yet.
                                 </TableCell>
                             </TableRow>

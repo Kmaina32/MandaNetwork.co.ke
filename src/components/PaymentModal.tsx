@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { processMpesaPayment, processCardPayment, processPayPalPayment } from '@/app/actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Icon } from '@iconify/react';
+import type { UserCourse } from '@/lib/types';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -27,7 +28,7 @@ interface PaymentModalProps {
   itemId: string;
   itemName: string;
   price: number;
-  onPaymentSuccess: () => void;
+  onPaymentSuccess: (paymentMethod: UserCourse['paymentMethod']) => void;
 }
 
 export function PaymentModal({
@@ -70,8 +71,7 @@ export function PaymentModal({
                 title: "Processing Payment...",
                 description: "Please check your phone to complete the M-Pesa transaction. Your purchase will be confirmed automatically."
             });
-            onClose();
-            onPaymentSuccess();
+            onPaymentSuccess('mpesa');
         } else {
             throw new Error(result.message);
         }
@@ -91,7 +91,7 @@ export function PaymentModal({
           const result = await processCardPayment({ itemId, itemName, amount: price });
           if (result.success) {
               toast({ title: 'Payment Successful!', description: 'Your payment has been processed.' });
-              onPaymentSuccess();
+              onPaymentSuccess('card');
           } else {
               throw new Error(result.message);
           }
@@ -112,7 +112,7 @@ export function PaymentModal({
               // In a real app, you would redirect to the approval URL.
               // For this simulation, we'll just call the success handler.
               // window.location.href = result.approvalUrl;
-              onPaymentSuccess();
+              onPaymentSuccess('paypal');
           } else {
               throw new Error(result.message);
           }
@@ -141,7 +141,7 @@ export function PaymentModal({
         
         <Tabs defaultValue="mpesa" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="mpesa">Mpesa</TabsTrigger>
+                <TabsTrigger value="mpesa">M-Pesa</TabsTrigger>
                 <TabsTrigger value="card">Card</TabsTrigger>
                 <TabsTrigger value="paypal">PayPal</TabsTrigger>
             </TabsList>

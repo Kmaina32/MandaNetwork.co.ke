@@ -168,7 +168,7 @@ export async function getUserByDisplayName(displayName: string): Promise<Registe
 
 
 
-export async function enrollUserInCourse(userId: string, courseId: string): Promise<void> {
+export async function enrollUserInCourse(userId: string, courseId: string, paymentMethod: UserCourse['paymentMethod'] = 'free'): Promise<void> {
     const enrollmentRef = ref(db, `users/${userId}/purchasedCourses/${courseId}`);
     await set(enrollmentRef, {
         progress: 0,
@@ -176,6 +176,7 @@ export async function enrollUserInCourse(userId: string, courseId: string): Prom
         certificateAvailable: false,
         completedLessons: [],
         enrollmentDate: new Date().toISOString(),
+        paymentMethod: paymentMethod,
     });
      const course = await getCourseById(courseId);
     if (course) {

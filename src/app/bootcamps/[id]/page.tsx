@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -67,7 +68,7 @@ export default function BootcampDetailPage() {
   const enrolledCourseIds = new Set(userCourses.map(c => c.courseId));
   const isEnrolled = bootcamp?.participants && user?.uid && bootcamp.participants[user.uid];
 
-  const handleEnroll = async () => {
+  const handleEnroll = async (paymentMethod: UserCourse['paymentMethod'] = 'free') => {
       if (!user || !bootcamp) return;
       setIsEnrolling(true);
       try {
@@ -186,7 +187,7 @@ export default function BootcampDetailPage() {
                                         <Link href="/dashboard">Go to Dashboard</Link>
                                     </Button>
                                 ) : (
-                                    <Button size="lg" className="w-full" onClick={() => bootcamp.price > 0 ? setIsModalOpen(true) : handleEnroll()} disabled={isEnrolling}>
+                                    <Button size="lg" className="w-full" onClick={() => bootcamp.price > 0 ? setIsModalOpen(true) : handleEnroll('free')} disabled={isEnrolling}>
                                         {isEnrolling ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Award className="mr-2 h-5 w-5" />}
                                         Enroll Now
                                     </Button>
