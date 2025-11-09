@@ -251,6 +251,14 @@ export function AdminSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/twitter')} tooltip="Twitter">
+              <Link href="/admin/twitter">
+                <Icon icon="simple-icons:x" className="h-4 w-4 mr-2" />
+                Twitter
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
 
           {/* Growth Section */}
           <p className="text-xs font-semibold text-muted-foreground px-2 mb-1 mt-3 group-data-[collapsible=icon]:hidden">

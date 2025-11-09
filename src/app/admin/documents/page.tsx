@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Footer } from "@/components/shared/Footer";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BookOpen, FileSignature, FileText, Loader2, Presentation, Milestone } from 'lucide-react';
+import { ArrowLeft, BookOpen, FileSignature, FileText, Loader2, Presentation, Milestone, Icon } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { DocumentEditor, DocType } from '@/components/shared/DocumentEditor';
 
