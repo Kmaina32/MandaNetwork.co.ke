@@ -132,8 +132,8 @@
       }
     },
     "referrals": {
-      ".indexOn": ["affiliateId"], 
-      ".read": "auth != null"
+      ".read": "auth != null",
+      ".indexOn": "affiliateId"
     },
     "webrtc-offers": {
       ".read": "auth != null",
