@@ -14,13 +14,9 @@ function getFirebaseAdminApp(): admin.app.App {
   }
 
   try {
-    // The service account can be a base64 encoded string.
-    const isBase64 = !serviceAccountString.trim().startsWith('{');
-    const decodedServiceAccount = isBase64
-      ? Buffer.from(serviceAccountString, 'base64').toString('utf-8')
-      : serviceAccountString;
-      
-    const serviceAccount = JSON.parse(decodedServiceAccount);
+    const serviceAccount = JSON.parse(
+        Buffer.from(serviceAccountString, 'base64').toString('utf-8')
+    );
     
     adminApp = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
