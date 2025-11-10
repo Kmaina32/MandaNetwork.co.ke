@@ -34,7 +34,7 @@ contract MandaToken is ERC20 {
      */
     function fundFaucet(uint256 amount) public {
         require(msg.sender == i_owner, "Only owner can fund the faucet.");
-        transferFrom(i_owner, address(this), amount);
+        _transfer(i_owner, address(this), amount);
     }
 
     /**

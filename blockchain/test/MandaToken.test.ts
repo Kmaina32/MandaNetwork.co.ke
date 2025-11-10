@@ -1,7 +1,9 @@
 
 import { expect } from "chai";
-import { ethers, network } from "hardhat";
+import hre from "hardhat";
+const { ethers, network } = hre;
 import { MandaToken } from "../typechain-types";
+
 
 describe("MandaToken", function () {
   let mandaToken: MandaToken;
