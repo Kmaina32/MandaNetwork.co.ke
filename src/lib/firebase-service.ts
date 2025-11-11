@@ -1,8 +1,11 @@
 
+
+'use client';
+
 import { db, storage } from './firebase';
 import { ref, get, set, push, update, remove, query, orderByChild, equalTo, increment, limitToLast, onValue } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, Conversation, ConversationMessage, BlogPost, Referral, TeamMember } from './types';
+import type { Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, Conversation, ConversationMessage, BlogPost, Referral, TeamMember, ContactMessage } from './types';
 import { getRemoteConfig, fetchAndActivate, getString } from 'firebase/remote-config';
 import { app } from './firebase';
 import { slugify } from './utils';
@@ -1414,4 +1417,36 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
 export async function updateTeamMembers(members: TeamMember[]): Promise<void> {
     const teamRef = ref(db, 'teamMembers');
     await set(teamRef, members);
+}
+
+// Contact Message Functions
+export async function createContactMessage(messageData: Omit<ContactMessage, 'id' | 'createdAt' | 'read'>): Promise<string> {
+    const messagesRef = ref(db, 'contactMessages');
+    const newMessageRef = push(messagesRef);
+    await set(newMessageRef, {
+        ...messageData,
+        createdAt: new Date().toISOString(),
+        read: false,
+    });
+    return newMessageRef.key!;
+}
+
+export async function getContactMessages(): Promise<ContactMessage[]> {
+    const messagesRef = ref(db, 'contactMessages');
+    const snapshot = await get(query(messagesRef, orderByChild('createdAt')));
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        return Object.keys(data).map(key => ({ id: key, ...data[key] })).reverse();
+    }
+    return [];
+}
+
+export async function markContactMessageAsRead(messageId: string): Promise<void> {
+    const messageRef = ref(db, `contactMessages/${messageId}`);
+    await update(messageRef, { read: true });
+}
+
+export async function deleteContactMessage(messageId: string): Promise<void> {
+    const messageRef = ref(db, `contactMessages/${messageId}`);
+    await remove(messageRef);
 }
