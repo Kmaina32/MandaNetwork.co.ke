@@ -161,6 +161,13 @@
       ".read": "auth != null",
       ".write": "auth != null"
     },
+    "apiUsage": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      "$userId": {
+        ".read": "auth != null && auth.uid === $userId",
+        ".write": "auth != null && auth.uid === $userId"
+      }
+    },
     "apiKeys": {
       ".read": false,
       "$userId": {

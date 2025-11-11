@@ -275,6 +275,7 @@ export interface Portfolio {
     projects?: PortfolioProject[];
     workExperience?: WorkExperience[];
     education?: Education[];
+    walletAddress?: string;
 }
 
 export interface LearningGoal {
@@ -479,7 +480,6 @@ export interface BlogPost {
   updatedAt: string; // ISO String
 }
 
-// Affiliate Program Types
 export interface Referral {
     id: string;
     affiliateId: string;

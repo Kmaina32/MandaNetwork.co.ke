@@ -1258,8 +1258,8 @@ export async function getActivityLogs(limit: number): Promise<UserActivity[]> {
 }
 
 // Conversation/Messaging Functions
-export async function createOrUpdateConversation(payload: { studentId: string, employerName: string, employerPhotoUrl: string, organizationName: string, initialMessage: string, employerDetails: { email: string, phone: string } }): Promise<string> {
-    const { studentId, employerName, employerPhotoUrl, organizationName, initialMessage, employerDetails } = payload;
+export async function createOrUpdateConversation(payload: { studentId: string; studentName: string; employerName: string, employerPhotoUrl: string, organizationName: string, initialMessage: string, employerDetails: { email: string, phone: string } }): Promise<string> {
+    const { studentId, studentName, employerName, employerPhotoUrl, organizationName, initialMessage, employerDetails } = payload;
     // For simplicity, we'll use a composite key for now. A real app might use a separate /conversations root.
     const conversationId = `${studentId}_${slugify(employerName)}`;
     const conversationRef = ref(db, `conversations/${conversationId}`);
@@ -1275,7 +1275,7 @@ export async function createOrUpdateConversation(payload: { studentId: string, e
     const conversationData = {
         participants: {
             [studentId]: {
-                name: (await getUserById(studentId))?.displayName || 'Student',
+                name: studentName,
                 photoURL: (await getUserById(studentId))?.photoURL || ''
             },
             'employer': {
