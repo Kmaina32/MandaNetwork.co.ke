@@ -8,6 +8,7 @@ import { OrganizationSidebar } from '@/components/OrganizationSidebar';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
+import { ClientOnly } from '@/components/ClientOnly';
 
 export default function PortfoliosLayout({
   children,
@@ -23,15 +24,17 @@ export default function PortfoliosLayout({
   }
 
   return (
-    <SidebarProvider>
-      {isEmployer ? <OrganizationSidebar /> : <AppSidebar />}
-      <SidebarInset>
-        <Header />
-        <div className="flex flex-col min-h-screen">
-          {children}
-          <Footer />
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+    <ClientOnly>
+        <SidebarProvider>
+        {isEmployer ? <OrganizationSidebar /> : <AppSidebar />}
+        <SidebarInset>
+            <Header />
+            <div className="flex flex-col min-h-screen">
+            {children}
+            <Footer />
+            </div>
+        </SidebarInset>
+        </SidebarProvider>
+    </ClientOnly>
   );
 }

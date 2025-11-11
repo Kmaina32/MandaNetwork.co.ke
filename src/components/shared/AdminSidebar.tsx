@@ -13,7 +13,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { GitBranch, Home, LayoutDashboard, ListTodo, Calendar, Users, ImageIcon, CreditCard, Cog, HelpCircle, ExternalLink, Bot, Bell, Clapperboard, Library, Layers, BarChart3, Tag, ShieldCheck, Building, FileText, Rocket, ChevronRight, BookCopy, Contact, Users2, Speaker, LineChart, Book, Trophy, Briefcase, Award, Megaphone, Rss, Code } from 'lucide-react';
+import { GitBranch, Home, LayoutDashboard, ListTodo, Calendar, Users, ImageIcon, CreditCard, Cog, HelpCircle, ExternalLink, Bot, Bell, Clapperboard, Library, Layers, BarChart3, Tag, ShieldCheck, Building, FileText, Rocket, ChevronRight, BookCopy, Contact, Users2, Speaker, LineChart, Book, Trophy, Briefcase, Award, Megaphone, Rss, Code, Handshake } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
 import { useAuth } from '@/hooks/use-auth';
@@ -185,8 +185,8 @@ export function AdminSidebar() {
                     </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                     <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/analytics')} tooltip="Analytics">
-                        <Link href="/admin/analytics"><BarChart3 className="h-4 w-4 mr-2"/>Analytics</Link>
+                     <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/analytics')} tooltip="Platform Analytics">
+                        <Link href="/admin/analytics"><BarChart3 className="h-4 w-4 mr-2"/>Platform Analytics</Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
                

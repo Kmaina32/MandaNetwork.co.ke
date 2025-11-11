@@ -1,5 +1,4 @@
 
-
 import { z } from 'zod';
 import type { Metadata as NextMetadata } from 'next';
 
@@ -488,12 +487,6 @@ export interface Referral {
     purchaseAmount: number;
     commissionAmount: number;
     createdAt: string; // ISO String
-}
-
-export interface AffiliateStats {
-    clicks: number;
-    referrals: number;
-    earnings: number;
 }
 
 export interface TeamMember {
