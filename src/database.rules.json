@@ -124,6 +124,11 @@
         ".write": "auth != null"
       }
     },
+    "contactMessages": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      ".write": "auth != null",
+      ".indexOn": "createdAt"
+    },
      "userActivity": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
       "$logId": {
