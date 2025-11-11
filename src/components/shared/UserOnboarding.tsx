@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, ArrowLeft, BookOpen, LayoutDashboard, User } from 'lucide-react';
+import { ArrowRight, ArrowLeft, BookOpen, LayoutDashboard, User, Trophy } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/use-auth';
 import { getHeroData } from '@/lib/firebase-service';
@@ -18,13 +18,18 @@ const onboardingSteps = [
     },
     {
         icon: <BookOpen className="h-10 w-10 text-primary" />,
-        title: "Explore Courses",
-        description: "Visit the main page to browse our full catalog of courses. When you enroll in a course, it will appear on your dashboard."
+        title: "Explore Courses & Learning Paths",
+        description: "Visit the main page to browse courses. You can also use the AI Career Coach to generate a personalized learning path tailored to your goals."
+    },
+    {
+        icon: <Trophy className="h-10 w-10 text-primary" />,
+        title: "Compete in Hackathons",
+        description: "Join hackathons from the portal to test your skills, build real-world projects, and earn points on the leaderboard."
     },
     {
         icon: <User className="h-10 w-10 text-primary" />,
-        title: "Build Your Profile",
-        description: "Head to your profile to build your portfolio, showcase your projects, and attract potential employers."
+        title: "Build Your Professional Portfolio",
+        description: "Head to your profile to add your projects, work experience, and skills. Make your portfolio public to attract potential employers in the Hiring Center."
     }
 ];
 

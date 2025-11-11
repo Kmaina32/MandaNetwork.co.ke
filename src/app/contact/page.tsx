@@ -27,6 +27,50 @@ const contactFormSchema = z.object({
 
 type ContactFormValues = z.infer<typeof contactFormSchema>;
 
+const faqItems = [
+    {
+        question: "What payment methods do you accept?",
+        answer: "We accept payments via M-Pesa, Credit/Debit Cards (Visa, Mastercard), PayPal, and our own MandaToken (MDT) cryptocurrency."
+    },
+    {
+        question: "How do I access a course after enrolling?",
+        answer: "Once you've enrolled, the course will appear on your main Dashboard. Simply click the \"Jump Back In\" button on the course card to start or continue learning."
+    },
+    {
+        question: "How do I get my certificate?",
+        answer: "A certificate is awarded after you successfully complete all course lessons and pass the final exam with a score of 80% or higher. Once you meet these requirements, a \"View Certificate\" button will appear on your dashboard for that course."
+    },
+    {
+        question: "Are there any prerequisites for the courses?",
+        answer: "Some advanced courses may have prerequisites. These will be clearly listed on the course details page. You must complete the prerequisite course before you can enroll."
+    },
+    {
+        question: "What is the AI Career Coach?",
+        answer: "The AI Career Coach is a special tool that helps you plan your learning journey. Tell it your career goal, and it will recommend a personalized sequence of courses from our catalog to help you get there."
+    },
+    {
+        question: "How do the hackathons work?",
+        answer: "Our hackathons are competitive events where you can build real-world projects. You can register, submit your project through our portal, and compete for prizes and leaderboard points."
+    },
+    {
+        question: "I forgot my password. What do I do?",
+        answer: "If you've forgotten your password, go to the Login page and click the \"Forgot your password?\" link. You will receive an email with instructions on how to reset your password."
+    },
+    {
+        question: "Can I get a refund for a course?",
+        answer: "Due to the digital nature of our content, we generally do not offer refunds once a course has been accessed. Please review the course details carefully before purchasing."
+    },
+    {
+        question: "How can I showcase my work to employers?",
+        answer: "Complete your profile in the 'Profile' section and set it to public. This makes your portfolio, including completed projects and certificates, visible to potential employers in our Hiring Center."
+    },
+    {
+        question: "Do you offer corporate training or team accounts?",
+        answer: "Yes, we do! We have a dedicated Organization Portal for businesses to manage their team's learning. Please visit our 'For Business' page or contact us for more information."
+    }
+];
+
+
 export default function ContactPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -164,24 +208,12 @@ export default function ContactPage() {
               <div className="mt-20">
                 <h2 className="text-3xl font-bold text-center text-gray-800 dark:text-white mb-8">Frequently Asked Questions</h2>
                 <Accordion type="single" collapsible className="w-full max-w-3xl mx-auto">
-                  <AccordionItem value="item-1">
-                    <AccordionTrigger>What is Manda Network?</AccordionTrigger>
-                    <AccordionContent>
-                      Manda Network is a platform dedicated to providing high-quality online courses and career development resources.
-                    </AccordionContent>
-                  </AccordionItem>
-                  <AccordionItem value="item-2">
-                    <AccordionTrigger>How can I enroll in a course?</AccordionTrigger>
-                    <AccordionContent>
-                      You can browse our course catalog and enroll directly through the course page. Payment can be made through our secure online portal.
-                    </AccordionContent>
-                  </AccordionItem>
-                  <AccordionItem value="item-3">
-                    <AccordionTrigger>Do you offer support for businesses?</AccordionTrigger>
-                    <AccordionContent>
-                      Yes, we have dedicated programs for businesses and organizations. Please visit our 'For Business' page or contact us for more information.
-                    </AccordionContent>
-                  </AccordionItem>
+                  {faqItems.map((item, index) => (
+                    <AccordionItem value={`item-${index}`} key={index}>
+                        <AccordionTrigger>{item.question}</AccordionTrigger>
+                        <AccordionContent>{item.answer}</AccordionContent>
+                    </AccordionItem>
+                  ))}
                 </Accordion>
               </div>
             </div>
