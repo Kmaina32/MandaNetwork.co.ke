@@ -96,7 +96,7 @@ export default function ContactPage() {
                     <AccordionTrigger>Do you offer support for businesses?</AccordionTrigger>
                     <AccordionContent>
                       Yes, we have dedicated programs for businesses and organizations. Please visit our 'For Business' page or contact us for more information.
-                    </AAccordionContent>
+                    </AccordionContent>
                   </AccordionItem>
                 </Accordion>
               </div>
