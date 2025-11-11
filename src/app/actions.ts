@@ -187,11 +187,15 @@ export async function sendChatMessage(conversationId: string, senderId: string, 
 
 export async function sendGeneralContactMessage(payload: { name: string, email: string, message: string }) {
     await createContactMessage(payload);
-    const ADMIN_UID = 'YlyqSWedlPfEqI9LlGzjN7zlRtC2';
+    const ADMIN_UID = 'YlyqSWedlPfEqI9LlGzjN7zlRtC2'; // Your admin UID
     await createNotification({
         userId: ADMIN_UID,
-        title: `New contact form message from ${payload.name}`,
-        body: `You have a new message waiting in your Admin Inbox.`,
+        title: `New Message from ${payload.name}`,
+        body: {
+            fromName: payload.name,
+            fromEmail: payload.email,
+            message: payload.message,
+        },
         link: `/admin/messages`,
     });
 }
