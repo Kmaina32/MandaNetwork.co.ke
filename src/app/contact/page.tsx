@@ -1,20 +1,61 @@
 
 'use client';
 
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Header } from "@/components/Header";
-import { Mail, Phone, MapPin, Building, Info, HelpCircle, Briefcase, Send } from "lucide-react";
+import { Mail, Phone, MapPin, Send, Loader2 } from "lucide-react";
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { Separator } from '@/components/ui/separator';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/Sidebar';
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useToast } from '@/hooks/use-toast';
+import { sendGeneralContactMessage } from '@/app/actions';
+
+const contactFormSchema = z.object({
+  name: z.string().min(2, "Please enter your name."),
+  email: z.string().email("Please enter a valid email address."),
+  message: z.string().min(10, "Message must be at least 10 characters long."),
+});
+
+type ContactFormValues = z.infer<typeof contactFormSchema>;
 
 export default function ContactPage() {
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const form = useForm<ContactFormValues>({
+    resolver: zodResolver(contactFormSchema),
+    defaultValues: { name: '', email: '', message: '' },
+  });
+
+  const onSubmit = async (values: ContactFormValues) => {
+    setIsLoading(true);
+    try {
+      await sendGeneralContactMessage(values);
+      toast({
+        title: "Message Sent!",
+        description: "Thank you for contacting us. We will get back to you shortly.",
+      });
+      form.reset();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send your message. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -35,7 +76,7 @@ export default function ContactPage() {
                     <div className="bg-primary/10 p-3 rounded-full"><MapPin className="h-6 w-6 text-primary" /></div>
                     <div>
                       <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Our Office</h3>
-                      <p className="text-gray-600 dark:text-gray-400">Serena Rd, Mombasa, Kenya</p>
+                      <p className="text-gray-600 dark:text-gray-400">Runda Mall, Kiambu road</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-4">
@@ -49,13 +90,21 @@ export default function ContactPage() {
                     <div className="bg-primary/10 p-3 rounded-full"><Phone className="h-6 w-6 text-primary" /></div>
                     <div>
                       <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Call Us</h3>
-                      <p className="text-gray-600 dark:text-gray-400">+254742999999 (Mon-Fri, 9am-5pm)</p>
+                      <p className="text-gray-600 dark:text-gray-400">0747079034 (Mon-Fri, 9am-5pm)</p>
                     </div>
                   </div>
                   
-                  {/* Placeholder for a map */}
-                  <div className="h-64 bg-gray-200 dark:bg-gray-800 rounded-lg flex items-center justify-center">
-                    <p className="text-gray-500">Map Placeholder</p>
+                  {/* Google Map */}
+                  <div className="h-64 bg-gray-200 dark:bg-gray-800 rounded-lg overflow-hidden">
+                    <iframe
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.88339194207!2d36.821946315263!3d-1.239228899092049!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x182f165a25c00b21%3A0x2a98c8c51a9a8f4c!2sRunda%20Mall!5e0!3m2!1sen!2ske!4v1628771175658!5m2!1sen!2ske"
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen={true}
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    ></iframe>
                   </div>
                 </div>
 
@@ -66,12 +115,47 @@ export default function ContactPage() {
                     <CardDescription>Fill out the form and we'll get back to you.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <form className="space-y-4">
-                      <Input placeholder="Your Name" />
-                      <Input type="email" placeholder="Your Email" />
-                      <Textarea placeholder="Your Message" className="min-h-[150px]" />
-                      <Button type="submit" className="w-full"><Send className="mr-2 h-4 w-4"/>Send Message</Button>
-                    </form>
+                    <Form {...form}>
+                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                         <FormField
+                            control={form.control}
+                            name="name"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Your Name</FormLabel>
+                                    <FormControl><Input placeholder="Jomo Kenyatta" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Your Email</FormLabel>
+                                    <FormControl><Input type="email" placeholder="you@example.com" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="message"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Your Message</FormLabel>
+                                    <FormControl><Textarea placeholder="Your message..." className="min-h-[150px]" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <Button type="submit" className="w-full" disabled={isLoading}>
+                          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
+                          Send Message
+                        </Button>
+                      </form>
+                    </Form>
                   </CardContent>
                 </Card>
               </div>

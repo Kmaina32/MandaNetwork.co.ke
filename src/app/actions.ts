@@ -183,3 +183,13 @@ export async function sendChatMessage(conversationId: string, senderId: string, 
         timestamp: new Date().toISOString(),
     });
 }
+
+export async function sendGeneralContactMessage(payload: { name: string, email: string, message: string }) {
+    const ADMIN_UID = 'YlyqSWedlPfEqI9LlGzjN7zlRtC2';
+    await createNotification({
+        userId: ADMIN_UID,
+        title: `New contact form message from ${payload.name}`,
+        body: `Email: ${payload.email}\n\nMessage: ${payload.message}`,
+        link: `/admin/users`, // A generic link for admins
+    });
+}
