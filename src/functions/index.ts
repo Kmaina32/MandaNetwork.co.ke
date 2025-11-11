@@ -22,6 +22,7 @@ export const onUserCreate = functions.auth.user().onCreate(async (user) => {
         // We only set the data that is immediately available and essential.
         // The `referredBy` field will be set client-side during the signup flow.
         await userRef.set({
+            uid: uid, // Add the UID to the user record
             email: email,
             displayName: displayName || 'New User',
             createdAt: creationTime,
