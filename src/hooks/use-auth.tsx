@@ -29,7 +29,7 @@ import {
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { RegisteredUser, saveUser, getUserById, createOrganization, getOrganizationByOwnerId, Organization, getOrganizationMembers, logActivity, getReferralsByAffiliate, createReferral } from '@/lib/firebase-service';
-import { ref, onValue, onDisconnect, set, serverTimestamp, update, get } from 'firebase/database';
+import { ref, onValue, onDisconnect, set, serverTimestamp, update, get, increment } from 'firebase/database';
 import { useToast } from './use-toast';
 import { add } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -235,10 +235,13 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
             commissionAmount: 0,
             createdAt: new Date().toISOString(),
         });
-        const affiliateStatsRef = ref(db, `users/${affiliateRef}/affiliateStats`);
-        await update(affiliateStatsRef, {
-            referrals: increment(1)
-        });
+        const affiliateUser = await getUserById(affiliateRef);
+        if (affiliateUser) {
+            const affiliateStatsRef = ref(db, `users/${affiliateRef}/affiliateStats`);
+            await update(affiliateStatsRef, {
+                clicks: increment(1),
+            });
+        }
     }
     
     // Save initial user data. Cloud function will add affiliateId.
@@ -313,6 +316,13 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
   }
 
   const logout = async () => {
+    if (user) {
+        const userStatusRef = ref(db, `/users/${user.uid}`);
+        await update(userStatusRef, {
+            isOnline: false,
+            lastSeen: serverTimestamp(),
+        });
+    }
     if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true') {
         console.warn('Cannot log out when auth bypass is active.');
         return Promise.resolve();

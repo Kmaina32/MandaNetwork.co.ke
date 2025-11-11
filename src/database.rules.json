@@ -11,7 +11,9 @@
           "$courseId": {
             ".write": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true || (auth.uid === $userId && !data.exists()))"
           }
-        }
+        },
+        "isOnline": { ".write": "auth != null && auth.uid === $userId" },
+        "lastSeen": { ".write": "auth != null && auth.uid === $userId" }
       }
     },
     "courses": {
