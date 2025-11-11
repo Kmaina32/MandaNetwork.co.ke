@@ -42,6 +42,7 @@ import {
   Handshake,
   Users,
   LineChart,
+  Mail,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -198,6 +199,16 @@ export function AdminSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/messages')} tooltip="Messages">
+              <Link href="/admin/messages">
+                <Mail className="h-4 w-4 mr-2" />
+                Messages
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+
 
           {isSuperAdmin && (
             <SidebarMenuItem>
@@ -352,6 +363,17 @@ export function AdminSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          
+           {isSuperAdmin && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/documents')} tooltip="Documents">
+                <Link href="/admin/documents">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Documents
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+           )}
 
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/help')} tooltip="Help Center">

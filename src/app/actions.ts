@@ -20,7 +20,7 @@ import type { GenerateHackathonIdeasInput, GenerateHackathonIdeasOutput } from '
 import type { StudentHelpInput, StudentHelpOutput } from '@/ai/flows/student-help';
 import type { SpeechToTextInput, SpeechToTextOutput, TextToSpeechInput, TextToSpeechOutput } from '@/ai/flows/text-to-speech';
 import type { GetPortfolioFeedbackInput, GetPortfolioFeedbackOutput } from '@/ai/flows/portfolio-advisor';
-import { createNotification, createProjectSubmission as saveProjectSubmission, createOrUpdateConversation, sendMessage, awardLeaderboardPoints } from '@/lib/firebase-service';
+import { createNotification, createProjectSubmission as saveProjectSubmission, createOrUpdateConversation, sendMessage, awardLeaderboardPoints, createContactMessage } from '@/lib/firebase-service';
 import { checkHackathonParticipantAchievement } from '@/lib/achievements';
 
 // Each function dynamically imports its corresponding flow, ensuring that the AI logic
@@ -155,6 +155,7 @@ export async function sendContactMessage(payload: {
   studentId: string;
   studentName: string;
   employerPhotoUrl?: string;
+  employerName: string;
   organizationName: string;
   email: string;
   phone: string;
@@ -185,11 +186,12 @@ export async function sendChatMessage(conversationId: string, senderId: string, 
 }
 
 export async function sendGeneralContactMessage(payload: { name: string, email: string, message: string }) {
+    await createContactMessage(payload);
     const ADMIN_UID = 'YlyqSWedlPfEqI9LlGzjN7zlRtC2';
     await createNotification({
         userId: ADMIN_UID,
         title: `New contact form message from ${payload.name}`,
-        body: `Email: ${payload.email}\n\nMessage: ${payload.message}`,
-        link: `/admin/users`, // A generic link for admins
+        body: `You have a new message waiting in your Admin Inbox.`,
+        link: `/admin/messages`,
     });
 }
