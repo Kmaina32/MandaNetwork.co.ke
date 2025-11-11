@@ -45,6 +45,9 @@ export const metadata: Metadata = {
     description: 'Build digital skills, launch startups, and innovate with Africa’s top online platform.',
     images: [`${BASE_URL}/assets/og-image.jpg`],
   },
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 const organizationSchema = {
