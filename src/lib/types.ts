@@ -1,4 +1,6 @@
 
+'use client';
+
 import { z } from 'zod';
 import type { Metadata as NextMetadata } from 'next';
 
@@ -505,3 +507,5 @@ export interface ContactMessage {
     createdAt: string; // ISO String
     read: boolean;
 }
+
+    

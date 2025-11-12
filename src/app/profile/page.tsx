@@ -614,59 +614,8 @@ export default function ProfilePage() {
                                     
                                     <Separator/>
 
-                                    <div className="grid grid-cols-1 gap-4">
-                                      <FormField 
-                                        control={form.control} 
-                                        name="github" 
-                                        render={({ field }) => ( 
-                                          <FormItem> 
-                                            <FormLabel className="flex items-center gap-2">
-                                              <Icon icon="mdi:github" className="h-5 w-5" /> 
-                                              GitHub URL
-                                            </FormLabel> 
-                                            <FormControl>
-                                              <Input placeholder="https://github.com/username" {...field} />
-                                            </FormControl> 
-                                            <FormMessage /> 
-                                          </FormItem> 
-                                        )} 
-                                      />
-                                      <FormField 
-                                        control={form.control} 
-                                        name="gitlab" 
-                                        render={({ field }) => ( 
-                                          <FormItem> 
-                                            <FormLabel className="flex items-center gap-2">
-                                              <Icon icon="mdi:gitlab" className="h-5 w-5" /> 
-                                              GitLab URL
-                                            </FormLabel> 
-                                            <FormControl>
-                                              <Input placeholder="https://gitlab.com/username" {...field} />
-                                            </FormControl> 
-                                            <FormMessage /> 
-                                          </FormItem> 
-                                        )} 
-                                      />
-                                      <FormField 
-                                        control={form.control} 
-                                        name="bitbucket" 
-                                        render={({ field }) => ( 
-                                          <FormItem> 
-                                            <FormLabel className="flex items-center gap-2">
-                                              <Icon icon="mdi:bitbucket" className="h-5 w-5" /> 
-                                              Bitbucket URL
-                                            </FormLabel> 
-                                            <FormControl>
-                                              <Input placeholder="https://bitbucket.org/username" {...field} />
-                                            </FormControl> 
-                                            <FormMessage /> 
-                                          </FormItem> 
-                                        )} 
-                                      />
-                                    </div>
-                                    
-                                     <div>
-                                        <h3 className="font-semibold text-lg mb-2">Featured Projects</h3>
+                                    <div>
+                                        <h3 className="text-lg font-semibold mb-4">Featured Projects</h3>
                                         <div className="space-y-4">
                                             {projectFields.map((field, index) => (
                                                 <Card key={field.id} className="p-4 relative bg-secondary/50">
@@ -699,7 +648,6 @@ export default function ProfilePage() {
                                         </div>
                                         <Button type="button" variant="outline" className="mt-4" onClick={() => appendProject({ id: uuidv4(), title: '', description: '', imageUrl: 'https://placehold.co/600x400', technologies: [] })}> <PlusCircle className="mr-2 h-4 w-4" /> Add Project </Button>
                                     </div>
-
                                     <Separator />
                                     <FormField control={form.control} name="public" render={({ field }) => ( <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4"> <div className="space-y-0.5"> <FormLabel className="text-base">Make Portfolio Public</FormLabel> <FormDescription> Allow employers and peers to view your completed courses and profile. </FormDescription> </div> <FormControl> <Switch checked={field.value} onCheckedChange={field.onChange} /> </FormControl> </FormItem> )}/>
 
@@ -740,3 +688,5 @@ export default function ProfilePage() {
     </>
   );
 }
+
+    
