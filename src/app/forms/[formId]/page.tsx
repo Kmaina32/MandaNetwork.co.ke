@@ -21,6 +21,9 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
 import { Slider } from '@/components/ui/slider';
+import { AppSidebar } from '@/components/Sidebar';
+import { Header } from '@/components/Header';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 
 // Dynamically build the Zod schema from the form questions
 const buildSchema = (form: FormType) => {
@@ -106,7 +109,7 @@ export default function FillFormPage() {
         }
     };
     
-    if (loading || authLoading) {
+    if (authLoading || loading) {
         return <div className="flex h-screen items-center justify-center"><LoadingAnimation /></div>;
     }
 
@@ -144,75 +147,81 @@ export default function FillFormPage() {
     }
 
     return (
-        <div className="flex flex-col min-h-screen">
-            <main className="flex-grow container mx-auto px-4 md:px-6 py-12">
-                <div className="max-w-3xl mx-auto">
-                    <div className="text-center mb-8">
-                        <Link href="/" className="flex items-center justify-center gap-2 font-bold text-2xl font-headline mb-4">
-                            <GitBranch className="h-7 w-7 text-primary" />
-                            <span>Manda Network</span>
-                        </Link>
-                         <h1 className="text-3xl font-bold">{formDef.title}</h1>
-                         {formDef.description && <p className="text-muted-foreground mt-2">{formDef.description}</p>}
-                    </div>
-
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                            {formDef.questions.map((q, index) => (
-                                <Card key={q.id} className="p-6">
-                                    <FormLabel className="text-base font-semibold">{index + 1}. {q.text}</FormLabel>
-                                    <div className="mt-4">
-                                       <FormField
-                                            control={form.control}
-                                            name={q.id}
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormControl>
-                                                        {q.type === 'short-text' && <Input {...field} />}
-                                                        {q.type === 'long-text' && <Textarea className="min-h-24" {...field} />}
-                                                        {q.type === 'multiple-choice' && (
-                                                            <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-2">
-                                                                {q.options?.map((option, i) => (
-                                                                    <FormItem key={i} className="flex items-center space-x-3 space-y-0">
-                                                                        <FormControl>
-                                                                            <RadioGroupItem value={option} />
-                                                                        </FormControl>
-                                                                        <FormLabel className="font-normal">{option}</FormLabel>
-                                                                    </FormItem>
-                                                                ))}
-                                                            </RadioGroup>
-                                                        )}
-                                                         {q.type === 'rating' && (
-                                                            <div className="flex items-center gap-4">
-                                                                <Slider
-                                                                    defaultValue={[3]}
-                                                                    min={1}
-                                                                    max={5}
-                                                                    step={1}
-                                                                    onValueChange={(value) => field.onChange(value[0])}
-                                                                />
-                                                                <span className="font-bold w-12 text-center">{field.value || '...'}</span>
-                                                            </div>
-                                                        )}
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </div>
-                                </Card>
-                            ))}
-                            <div className="flex justify-end">
-                                <Button type="submit" size="lg" disabled={isSubmitting}>
-                                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
-                                    Submit Form
-                                </Button>
+        <SidebarProvider>
+            <AppSidebar />
+            <SidebarInset>
+                <Header />
+                <div className="flex flex-col min-h-screen">
+                    <main className="flex-grow flex items-center justify-center p-4 md:p-8 bg-secondary/30">
+                        <div className="w-full max-w-3xl mx-auto">
+                             <div className="text-center mb-8">
+                                <Link href="/" className="flex items-center justify-center gap-2 font-bold text-2xl font-headline mb-4">
+                                    <GitBranch className="h-7 w-7 text-primary" />
+                                    <span>Manda Network</span>
+                                </Link>
+                                <h1 className="text-3xl font-bold">{formDef.title}</h1>
+                                {formDef.description && <p className="text-muted-foreground mt-2">{formDef.description}</p>}
                             </div>
-                        </form>
-                    </Form>
+
+                            <Form {...form}>
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                                    {formDef.questions.map((q, index) => (
+                                        <Card key={q.id} className="p-6">
+                                            <FormLabel className="text-base font-semibold">{index + 1}. {q.text}</FormLabel>
+                                            <div className="mt-4">
+                                            <FormField
+                                                    control={form.control}
+                                                    name={q.id}
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormControl>
+                                                                {q.type === 'short-text' && <Input {...field} />}
+                                                                {q.type === 'long-text' && <Textarea className="min-h-24" {...field} />}
+                                                                {q.type === 'multiple-choice' && (
+                                                                    <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-2">
+                                                                        {q.options?.map((option, i) => (
+                                                                            <FormItem key={i} className="flex items-center space-x-3 space-y-0">
+                                                                                <FormControl>
+                                                                                    <RadioGroupItem value={option} />
+                                                                                </FormControl>
+                                                                                <FormLabel className="font-normal">{option}</FormLabel>
+                                                                            </FormItem>
+                                                                        ))}
+                                                                    </RadioGroup>
+                                                                )}
+                                                                {q.type === 'rating' && (
+                                                                    <div className="flex items-center gap-4">
+                                                                        <Slider
+                                                                            defaultValue={[3]}
+                                                                            min={1}
+                                                                            max={5}
+                                                                            step={1}
+                                                                            onValueChange={(value) => field.onChange(value[0])}
+                                                                        />
+                                                                        <span className="font-bold w-12 text-center">{field.value || '...'}</span>
+                                                                    </div>
+                                                                )}
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </div>
+                                        </Card>
+                                    ))}
+                                    <div className="flex justify-end">
+                                        <Button type="submit" size="lg" disabled={isSubmitting}>
+                                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
+                                            Submit Form
+                                        </Button>
+                                    </div>
+                                </form>
+                            </Form>
+                        </div>
+                    </main>
+                    <Footer />
                 </div>
-            </main>
-            <Footer />
-        </div>
+            </SidebarInset>
+        </SidebarProvider>
     );
 }
