@@ -135,6 +135,13 @@
       ".read": "auth != null",
       ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
     },
+    "formSubmissions": {
+      ".indexOn": ["formId", "userId"],
+      ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      "$submissionId": {
+        ".write": "auth != null && newData.child('userId').val() === auth.uid"
+      }
+    },
      "userActivity": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
       "$logId": {
