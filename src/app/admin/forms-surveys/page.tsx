@@ -7,20 +7,28 @@ import { Footer } from "@/components/shared/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, PlusCircle, FilePen } from 'lucide-react';
+import { ArrowLeft, PlusCircle, FilePen, Eye } from 'lucide-react';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
-import { getAllForms } from '@/lib/firebase-service';
+import { getAllForms, getFormSubmissions } from '@/lib/firebase-service';
 import type { Form as FormType } from '@/lib/types';
 
+interface FormWithSubmissions extends FormType {
+    submissionCount: number;
+}
+
 export default function AdminFormsPage() {
-  const [forms, setForms] = useState<FormType[]>([]);
+  const [forms, setForms] = useState<FormWithSubmissions[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchForms = async () => {
       try {
         const fetchedForms = await getAllForms();
-        setForms(fetchedForms);
+        const formsWithCounts = await Promise.all(fetchedForms.map(async (form) => {
+            const submissions = await getFormSubmissions(form.id);
+            return { ...form, submissionCount: submissions.length };
+        }));
+        setForms(formsWithCounts);
       } catch (error) {
         console.error("Failed to fetch forms:", error);
       } finally {
@@ -78,9 +86,12 @@ export default function AdminFormsPage() {
                         <TableRow key={form.id}>
                           <TableCell className="font-medium">{form.title}</TableCell>
                           <TableCell>{form.questions?.length || 0}</TableCell>
-                          <TableCell>0</TableCell>
+                          <TableCell>{form.submissionCount}</TableCell>
                           <TableCell className="text-right">
-                            {/* Actions here */}
+                             <Button variant="outline" size="sm">
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Submissions
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))

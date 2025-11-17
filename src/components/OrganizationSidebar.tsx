@@ -74,6 +74,14 @@ export function OrganizationSidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        <SidebarMenuItem>
+                           <SidebarMenuButton asChild isActive={isActive('/organization/forms')} tooltip="Forms & Surveys">
+                                <Link href="/organization/forms">
+                                    <FilePen />
+                                    <span>Forms & Surveys</span>
+                                </Link>
+                           </SidebarMenuButton>
+                        </SidebarMenuItem>
                          <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/organization/live')} tooltip="Live Classroom">
                                 <Link href="/organization/live">
@@ -171,7 +179,7 @@ export function OrganizationSidebar() {
         <SidebarFooter>
             <div className="flex items-center gap-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
                 <Tag />
-                <span>v1.0.2</span>
+                <span>v{pkg.version}</span>
             </div>
         </SidebarFooter>
     </Sidebar>
