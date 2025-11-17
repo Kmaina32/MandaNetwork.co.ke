@@ -12,31 +12,35 @@ interface BlogPostContentProps {
   promoItems: Advertisement[];
 }
 
-// This is a custom renderer for paragraphs.
-const ParagraphRenderer = ({ node, children, ...props }: { node: any, children: React.ReactNode, [key: string]: any }) => {
-    // We check if it's the right place to insert an ad.
-    // We'll insert an ad every 6th element (roughly every 3rd paragraph).
-    const showAd = props.index > 0 && props.index % 6 === 0;
-    const adIndex = Math.floor(props.index / 6) - 1;
+// This is a custom renderer for thematic breaks (---)
+const ThematicBreakRenderer = ({ node, ...props }: { node: any, [key: string]: any }) => {
+    // Check if the thematic break is our special ad marker
+    // The markdown parser will see `--- ad ---` as a thematic break with text inside, but we can't easily access that text here.
+    // A simpler convention is to just use a standard thematic break `---` as the ad placeholder.
+    // We will use a counter to cycle through ads.
+    const adIndex = props.adCounter.current % props.promoItems.length;
+    const promoItem = props.promoItems[adIndex];
     
-    const promoItem = props.promoItems[adIndex % props.promoItems.length];
-
-    if (showAd && promoItem) {
+    if (promoItem) {
+      props.adCounter.current += 1;
       return (
-        <>
-          <p>{children}</p>
-          <div className="not-prose my-8">
-            <InContentAdCard item={promoItem} />
-          </div>
-        </>
+        <div className="not-prose my-8">
+          <InContentAdCard item={promoItem} />
+        </div>
       );
     }
-
-    return <p>{children}</p>;
+    
+    // If no promo item, render a standard separator
+    return <hr />;
 };
 
+
 export function BlogPostContent({ content, promoItems }: BlogPostContentProps) {
-  if (promoItems.length === 0) {
+  // Use a ref to keep track of which ad to show next, so we can cycle through them.
+  const adCounter = React.useRef(0);
+
+  if (promoItems.length === 0 || !content.includes('---')) {
+    // If no ads or no ad markers, just render the content as is.
     return <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>;
   }
 
@@ -44,7 +48,11 @@ export function BlogPostContent({ content, promoItems }: BlogPostContentProps) {
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
-        p: (props) => <ParagraphRenderer {...props} promoItems={promoItems} />
+        // We override the thematic break (`---`) component.
+        // When the markdown parser finds a `---`, it will render our ad card instead.
+        hr: (props) => (
+            <ThematicBreakRenderer {...props} promoItems={promoItems} adCounter={adCounter} />
+        ),
       }}
     >
       {content}
