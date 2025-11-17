@@ -11,25 +11,25 @@ import type { Form as FormType } from '@/lib/types';
 import { getAllForms, getFormSubmissionsByUserId } from '@/lib/firebase-service';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function OrganizationFormsPage() {
     const { organization, user, loading: authLoading } = useAuth();
+    const router = useRouter();
     const [forms, setForms] = useState<FormType[]>([]);
     const [completedFormIds, setCompletedFormIds] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (authLoading) {
-            return; // Wait until auth state is resolved
-        }
+        if (authLoading) return; // Wait for authentication to resolve
 
         if (!user || !organization) {
-            setLoading(false); // No user or org, nothing to fetch
+            setLoading(false); // No user/org, so stop loading
+            // Optional: redirect or show message if user should be logged in
             return;
         }
 
         const fetchFormsAndSubmissions = async () => {
-            setLoading(true);
             try {
                 const [allForms, userSubmissions] = await Promise.all([
                     getAllForms(),
@@ -47,7 +47,7 @@ export default function OrganizationFormsPage() {
             } catch (error) {
                 console.error("Failed to fetch forms and submissions:", error);
             } finally {
-                setLoading(false);
+                setLoading(false); // Ensure loading is stopped in all cases
             }
         };
 
