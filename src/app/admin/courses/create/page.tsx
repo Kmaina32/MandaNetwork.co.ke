@@ -268,12 +268,16 @@ export default function CreateCoursePage() {
     if (!user) return;
     setIsLoading(true);
      try {
-        const courseData: Omit<Course, 'id' | 'createdAt'> = {
+        const courseData: Omit<Course, 'id' | 'createdAt'> & { prerequisiteCourseId?: string } = {
             ...values,
             imageUrl: 'https://placehold.co/600x400',
             exam: [], // Exams are now handled separately
-            prerequisiteCourseId: values.prerequisiteCourseId === 'none' ? undefined : values.prerequisiteCourseId,
+        };
+
+        if (values.prerequisiteCourseId === 'none' || !values.prerequisiteCourseId) {
+            delete courseData.prerequisiteCourseId;
         }
+
         await createCourse(courseData);
         toast({
             title: 'Course Created!',
@@ -550,5 +554,3 @@ export default function CreateCoursePage() {
     </>
   );
 }
-
-    

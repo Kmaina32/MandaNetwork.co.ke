@@ -101,10 +101,15 @@ export default function EditCoursePage() {
     if (!params.id) return;
     setIsLoading(true);
     try {
-      await updateCourse(params.id as string, {
-          ...values,
-          prerequisiteCourseId: values.prerequisiteCourseId === 'none' ? undefined : values.prerequisiteCourseId
-      });
+        const dataToSave: Partial<Course> = { ...values };
+        if (values.prerequisiteCourseId === 'none' || !values.prerequisiteCourseId) {
+            dataToSave.prerequisiteCourseId = undefined; // Will be filtered out
+        }
+
+        // Filter out undefined values before saving
+        const finalData = Object.fromEntries(Object.entries(dataToSave).filter(([_, v]) => v !== undefined));
+        
+      await updateCourse(params.id as string, finalData);
       toast({
         title: 'Success!',
         description: `The course "${values.title}" has been updated.`,
