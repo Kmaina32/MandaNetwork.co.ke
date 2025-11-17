@@ -131,6 +131,10 @@
       ".write": "auth != null",
       ".indexOn": "createdAt"
     },
+    "forms": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
+    },
      "userActivity": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
       "$logId": {
