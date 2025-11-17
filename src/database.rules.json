@@ -135,7 +135,7 @@
       ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
     },
     "formSubmissions": {
-      ".read": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true || (query.orderByChild === 'userId' && query.equalTo === auth.uid))",
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true || query.orderByChild === 'userId' && query.equalTo === auth.uid)",
       ".indexOn": ["formId", "userId"],
       "$submissionId": {
           ".write": "auth != null"
