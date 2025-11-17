@@ -13,7 +13,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { GitBranch, Home, LayoutDashboard, ListTodo, Calendar, User, HelpCircle, Mail, Info, UserPlus, Book, Shield, Notebook as NotebookIcon, Clapperboard, Library, Briefcase, Tag, Building, Users as PortfoliosIcon, Rocket, Trophy, Rss, CreditCard, Handshake } from 'lucide-react';
+import { GitBranch, Home, LayoutDashboard, ListTodo, Calendar, User, HelpCircle, Mail, Info, UserPlus, Book, Shield, Notebook as NotebookIcon, Clapperboard, Library, Briefcase, Tag, Building, Users as PortfoliosIcon, Rocket, Trophy, Rss, CreditCard, Handshake, FilePen } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Separator } from './ui/separator';
 import pkg from '../../package.json';
@@ -149,6 +149,13 @@ export function AppSidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        {organization && (
+                            <SidebarMenuItem>
+                               <SidebarMenuButton asChild size="sm" isActive={isActive('/organization/forms')} tooltip="Forms & Surveys" onClick={() => onLinkClick('/organization/forms')}>
+                                    <Link href="/organization/forms"><FilePen className="mr-2"/>Forms & Surveys</Link>
+                               </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        )}
 
                         <Separator className="my-2"/>
                         <p className="text-xs font-semibold text-muted-foreground px-2 mb-2 group-data-[collapsible=icon]:hidden">Career & Support</p>

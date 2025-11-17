@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
+import { FilePen } from 'lucide-react';
 
 export default function OrganizationFormsPage() {
     const { loading } = useAuth();
@@ -18,7 +19,7 @@ export default function OrganizationFormsPage() {
         <div className="space-y-8">
              <Card>
                 <CardHeader>
-                    <CardTitle>Forms & Surveys</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><FilePen /> Forms & Surveys</CardTitle>
                     <CardDescription>
                        Respond to forms and surveys assigned by the platform administrators.
                     </CardDescription>

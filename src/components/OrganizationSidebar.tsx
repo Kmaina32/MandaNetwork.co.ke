@@ -16,6 +16,7 @@ import { GitBranch, LayoutDashboard, Users, BookOpen, CreditCard, Settings, Exte
 import { Button } from './ui/button';
 import { Separator } from './ui/separator';
 import { useAuth } from '@/hooks/use-auth';
+import pkg from '../../package.json';
 
 export function OrganizationSidebar() {
     const pathname = usePathname();
@@ -117,7 +118,7 @@ export function OrganizationSidebar() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                          <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive('/organization/forms')} tooltip="Forms">
+                            <SidebarMenuButton asChild isActive={isActive('/organization/forms')} tooltip="Forms & Surveys">
                                 <Link href="/organization/forms">
                                     <FilePen />
                                     <span>Forms & Surveys</span>
