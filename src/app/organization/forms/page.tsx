@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -22,18 +23,16 @@ export default function OrganizationFormsPage() {
 
     useEffect(() => {
         if (authLoading) return;
-
         if (!user) {
             router.push('/login');
             return;
         }
-        
-        if (!organization) {
-            setLoading(false);
-            return;
-        }
 
         const fetchFormsAndSubmissions = async () => {
+            if (!organization) {
+                setLoading(false);
+                return;
+            }
             setLoading(true);
             try {
                 const [allForms, userSubmissions] = await Promise.all([
@@ -60,7 +59,11 @@ export default function OrganizationFormsPage() {
 
 
     if (authLoading || loading) {
-        return <div className="flex justify-center items-center h-full"><LoadingAnimation /></div>
+        return (
+            <div className="flex justify-center items-center h-full">
+                <LoadingAnimation />
+            </div>
+        );
     }
 
     if (!organization) {
@@ -82,12 +85,12 @@ export default function OrganizationFormsPage() {
                 </CardHeader>
                 <CardContent>
                     {forms.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                             {forms.map(form => (
                                 <Card key={form.id} className="flex flex-col">
                                     <CardHeader>
                                         <CardTitle className="text-lg">{form.title}</CardTitle>
-                                        <CardDescription className="line-clamp-2">{form.description}</CardDescription>
+                                        <CardDescription className="line-clamp-2 h-10">{form.description}</CardDescription>
                                     </CardHeader>
                                     <CardContent className="flex-grow">
                                         {completedFormIds.has(form.id) && (
