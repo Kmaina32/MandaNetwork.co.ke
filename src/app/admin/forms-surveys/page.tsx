@@ -112,31 +112,28 @@ export default function AdminFormsPage() {
                           <TableCell>{form.questions?.length || 0}</TableCell>
                           <TableCell>{form.submissionCount}</TableCell>
                           <TableCell className="text-right">
-                             <Button asChild variant="outline" size="sm" className="mr-2">
-                                <Link href={`/admin/forms-surveys/submissions/${form.id}`}>
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    View Submissions
-                                </Link>
-                            </Button>
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4"/></Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleShare(form.id)}>
-                                        <Share2 className="mr-2 h-4 w-4"/> Share
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem asChild>
-                                        <Link href={`/admin/forms-surveys/edit/${form.id}`}><Edit className="mr-2 h-4 w-4"/> Edit</Link>
-                                    </DropdownMenuItem>
-                                    <AlertDialogTrigger asChild>
-                                        <DropdownMenuItem className="text-destructive">
-                                            <Trash2 className="mr-2 h-4 w-4"/> Delete
+                            <AlertDialog>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4"/></Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleShare(form.id)}>
+                                            <Share2 className="mr-2 h-4 w-4"/> Share
                                         </DropdownMenuItem>
-                                    </AlertDialogTrigger>
-                                </DropdownMenuContent>
-                             </DropdownMenu>
-                             <AlertDialog>
+                                        <DropdownMenuItem asChild>
+                                            <Link href={`/admin/forms-surveys/submissions/${form.id}`}><Eye className="mr-2 h-4 w-4"/> View Submissions</Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem asChild>
+                                            <Link href={`/admin/forms-surveys/edit/${form.id}`}><Edit className="mr-2 h-4 w-4"/> Edit</Link>
+                                        </DropdownMenuItem>
+                                        <AlertDialogTrigger asChild>
+                                            <DropdownMenuItem className="text-destructive">
+                                                <Trash2 className="mr-2 h-4 w-4"/> Delete
+                                            </DropdownMenuItem>
+                                        </AlertDialogTrigger>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>

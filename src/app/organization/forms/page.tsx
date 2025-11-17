@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,17 +11,22 @@ import { FilePen, CheckCircle, ArrowRight } from 'lucide-react';
 import type { Form as FormType } from '@/lib/types';
 import { getAllForms, getFormSubmissionsByUserId } from '@/lib/firebase-service';
 import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 
 export default function OrganizationFormsPage() {
-    const { organization, user, loading } = useAuth();
+    const { organization, user, loading: authLoading } = useAuth();
     const [forms, setForms] = useState<FormType[]>([]);
     const [completedFormIds, setCompletedFormIds] = useState<Set<string>>(new Set());
-    const [loadingForms, setLoadingForms] = useState(true);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchFormsAndSubmissions = async () => {
-            if (!organization || !user) return;
-            setLoadingForms(true);
+            setLoading(true);
+            if (!organization || !user) {
+                setLoading(false);
+                return;
+            }
+
             try {
                 const [allForms, userSubmissions] = await Promise.all([
                     getAllForms(),
@@ -38,17 +44,17 @@ export default function OrganizationFormsPage() {
             } catch (error) {
                 console.error("Failed to fetch forms and submissions:", error);
             } finally {
-                setLoadingForms(false);
+                setLoading(false);
             }
         };
 
-        if (!loading) {
-            fetchForms();
+        if (!authLoading) {
+            fetchFormsAndSubmissions();
         }
-    }, [organization, user, loading]);
+    }, [organization, user, authLoading]);
 
 
-    if (loading || loadingForms) {
+    if (authLoading || loading) {
         return <div className="flex justify-center items-center h-full"><LoadingAnimation /></div>
     }
 
@@ -78,9 +84,11 @@ export default function OrganizationFormsPage() {
                                         </div>
                                         <p className="text-sm text-muted-foreground mt-1">{form.description}</p>
                                     </div>
-                                    <Button disabled={completedFormIds.has(form.id)}>
-                                        {completedFormIds.has(form.id) ? 'Submitted' : 'Fill Form'}
-                                        {!completedFormIds.has(form.id) && <ArrowRight className="ml-2 h-4 w-4"/>}
+                                    <Button asChild disabled={completedFormIds.has(form.id)}>
+                                        <Link href={`/forms/${form.id}`}>
+                                            {completedFormIds.has(form.id) ? 'Submitted' : 'Fill Form'}
+                                            {!completedFormIds.has(form.id) && <ArrowRight className="ml-2 h-4 w-4"/>}
+                                        </Link>
                                     </Button>
                                 </Card>
                             ))}
