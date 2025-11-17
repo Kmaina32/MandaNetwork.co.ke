@@ -6,7 +6,7 @@ import { getStorage } from 'firebase/storage';
 import { getRemoteConfig } from 'firebase/remote-config';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCQ-ulJ5_fYNT1iI9kQ7Ht7CkDnL5JXq7I",
+  apiKey: "AIzaSyBe1wU8Q-415auhlXf9k7ZXefvLX9TPOF0",
   authDomain: "mkenya-skilled.firebaseapp.com",
   databaseURL: "https://mkenya-skilled-default-rtdb.firebaseio.com",
   projectId: "mkenya-skilled",
