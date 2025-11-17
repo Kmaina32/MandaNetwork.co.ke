@@ -200,7 +200,6 @@ function AiTutor({ course, lesson, settings }: { course: Course, lesson: Lesson 
     const [messages, setMessages] = useState<TutorMessage[]>([]);
     const [question, setQuestion] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [isGeneratingAudio, setIsGeneratingAudio] = useState<string | null>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
     const { isRecording, startRecording, stopRecording } = useRecorder();
 
@@ -222,57 +221,6 @@ function AiTutor({ course, lesson, settings }: { course: Course, lesson: Lesson 
         loadHistory();
     }, [user, course, lesson]);
 
-    useEffect(() => {
-        const transcribeAndSetQuestion = async (audioB64: string) => {
-            setIsLoading(true);
-            try {
-                const result = await speechToText({ audioDataUri: audioB64 });
-                setQuestion(result.transcript);
-            } catch (error) {
-                console.error("Speech to text failed:", error);
-                toast({ title: 'Error', description: 'Could not understand your speech. Please try again.', variant: 'destructive'});
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        if (stopRecording) {
-            stopRecording(transcribeAndSetQuestion);
-        }
-    }, [stopRecording, toast]);
-
-
-    const playAudio = (url: string) => {
-        if (audioRef.current) {
-            audioRef.current.src = url;
-            audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
-        }
-    };
-
-    const handlePlayAudio = async (messageIndex: number, text: string) => {
-        setIsGeneratingAudio(String(messageIndex));
-        try {
-            const audioResponse = await textToSpeech({
-                text: text,
-                voice: settings?.voice,
-            });
-
-            if (audioResponse.media) {
-                const updatedMessages = [...messages];
-                updatedMessages[messageIndex].audioUrl = audioResponse.media;
-                setMessages(updatedMessages);
-                playAudio(audioResponse.media);
-            } else {
-                throw new Error("No audio data received.");
-            }
-        } catch (error) {
-            console.error("TTS failed:", error);
-            toast({ title: 'Error', description: 'Could not generate audio.', variant: 'destructive'});
-        } finally {
-            setIsGeneratingAudio(null);
-        }
-    };
-    
     const sendTutorRequest = async (currentQuestion?: string, action?: 'summarize' | 'quiz') => {
         if (!lesson || !user || !course) return;
         if (!currentQuestion && !action) return;
@@ -384,17 +332,6 @@ function AiTutor({ course, lesson, settings }: { course: Course, lesson: Lesson 
                                         )}
                                         <div className={`rounded-lg px-3 py-2 max-w-md ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}>
                                             <Markdown content={message.content} />
-                                            {message.role === 'assistant' && (
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="icon" 
-                                                    className="h-7 w-7 mt-1" 
-                                                    onClick={() => message.audioUrl ? playAudio(message.audioUrl) : handlePlayAudio(index, message.content)}
-                                                    disabled={isGeneratingAudio === String(index)}
-                                                >
-                                                    {isGeneratingAudio === String(index) ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4" />}
-                                                </Button>
-                                            )}
                                         </div>
                                             {message.role === 'user' && (
                                             <Avatar className="h-8 w-8 border">
@@ -517,8 +454,7 @@ export default function CoursePlayerPage() {
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const [unlockedLessonsCount, setUnlockedLessonsCount] = useState(0);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
+  const [activeTab, setActiveTab] = useState('lesson');
 
   useEffect(() => {
      if (!authLoading) {
@@ -588,6 +524,7 @@ export default function CoursePlayerPage() {
   const handleLessonClick = (lesson: Lesson, index: number) => {
       if(index < unlockedLessonsCount) {
           setCurrentLesson(lesson);
+          setActiveTab('lesson'); // Switch back to lesson tab when a new one is clicked
           if (isMobile) {
             setIsSheetOpen(false);
           }
@@ -648,29 +585,9 @@ export default function CoursePlayerPage() {
     }
   };
 
-  const handleVideoClick = async () => {
-    const videoUrl = currentLesson?.youtubeLinks?.[0]?.url;
-    if (videoUrl && videoRef.current) {
-        if(document.pictureInPictureElement) {
-            await document.exitPictureInPicture();
-        } else {
-            videoRef.current.src = getYouTubeEmbedUrl(videoUrl) || '';
-            videoRef.current.play().catch(() => { /* Autoplay might be blocked */ });
-            // Wait for video to load before requesting PiP
-            videoRef.current.onloadedmetadata = async () => {
-                 try {
-                    await videoRef.current?.requestPictureInPicture();
-                 } catch (error) {
-                    console.error("PiP failed:", error);
-                    toast({title: "Could not open Picture-in-Picture", description: "Your browser may not support this feature.", variant: "destructive"});
-                 }
-            };
-        }
-    }
-  };
-
   const progress = allLessons.length > 0 ? (completedLessons.size / allLessons.length) * 100 : 0;
   const hasVideo = !!currentLesson?.youtubeLinks?.[0]?.url;
+  const videoUrl = getYouTubeEmbedUrl(currentLesson?.youtubeLinks?.[0]?.url);
 
   if (loading || authLoading) {
     return (
@@ -724,7 +641,6 @@ export default function CoursePlayerPage() {
 
         <div className="flex h-[calc(100vh-4rem)]">
           <div className="flex-grow flex flex-col md:flex-row overflow-hidden relative">
-            <video ref={videoRef} className="hidden" />
             {!isMobile && (
               <aside className="w-full md:w-80 lg:w-96 bg-background border-r flex-shrink-0 overflow-y-auto">
                  <CourseOutline 
@@ -740,13 +656,13 @@ export default function CoursePlayerPage() {
             )}
 
             <main className="flex-grow p-6 md:p-8 overflow-y-auto bg-secondary relative flex flex-col">
-               <Tabs defaultValue="lesson" className="w-full flex-grow flex flex-col">
+               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-grow flex flex-col">
                   <TabsList className="mb-4 flex-shrink-0">
                     <TabsTrigger value="lesson">
                         <FileText className="mr-2 h-4 w-4" />
                         Lesson
                     </TabsTrigger>
-                     <TabsTrigger value="video" disabled={!hasVideo} onClick={handleVideoClick}>
+                     <TabsTrigger value="video" disabled={!hasVideo}>
                         <Video className="mr-2 h-4 w-4" />
                         Video
                     </TabsTrigger>
@@ -781,6 +697,22 @@ export default function CoursePlayerPage() {
                         </div>
                     )}
                   </TabsContent>
+                   <TabsContent value="video" className="h-full flex-grow">
+                        {videoUrl ? (
+                            <iframe
+                                src={videoUrl}
+                                title="YouTube video player"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowFullScreen
+                                className="w-full h-full aspect-video rounded-lg"
+                            ></iframe>
+                        ) : (
+                            <div className="flex items-center justify-center h-full bg-black rounded-lg">
+                                <p className="text-muted-foreground">No video for this lesson.</p>
+                            </div>
+                        )}
+                   </TabsContent>
                    <TabsContent value="discussion">
                      <DiscussionForum courseId={course.id} />
                   </TabsContent>
