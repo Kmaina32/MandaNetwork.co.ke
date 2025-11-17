@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -21,13 +20,14 @@ export default function OrganizationFormsPage() {
 
     useEffect(() => {
         const fetchFormsAndSubmissions = async () => {
-            setLoading(true);
-            if (!organization || !user) {
+            // This now correctly waits for both user and organization to be available.
+            if (!user || !organization) {
                 setLoading(false);
                 return;
             }
 
             try {
+                setLoading(true); // Explicitly set loading state at the start of fetch.
                 const [allForms, userSubmissions] = await Promise.all([
                     getAllForms(),
                     getFormSubmissionsByUserId(user.uid)
