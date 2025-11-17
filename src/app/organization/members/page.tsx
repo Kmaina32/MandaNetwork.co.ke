@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,9 +20,10 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { createInvitation } from '@/lib/firebase-service';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
+import { Textarea } from '@/components/ui/textarea';
 
 const inviteFormSchema = z.object({
-    email: z.string().email({ message: "Please enter a valid email address." }),
+    emails: z.string().min(1, { message: "Please enter at least one email address." }),
 });
 
 function InviteDialog() {
@@ -34,16 +34,19 @@ function InviteDialog() {
 
     const form = useForm<z.infer<typeof inviteFormSchema>>({
         resolver: zodResolver(inviteFormSchema),
-        defaultValues: { email: '' },
+        defaultValues: { emails: '' },
     });
 
     const onSubmit = async (values: z.infer<typeof inviteFormSchema>) => {
         if (!organization) return;
-        
-        if (organization.memberLimit && members.length >= organization.memberLimit) {
+
+        const emails = values.emails.split(/[\n,;]+/).map(email => email.trim()).filter(Boolean);
+        const availableSlots = (organization.memberLimit || 0) - members.length;
+
+        if (emails.length > availableSlots) {
             toast({
-                title: 'Member Limit Reached',
-                description: `You have reached the ${organization.memberLimit}-member limit for your plan. Please upgrade to add more members.`,
+                title: 'Member Limit Exceeded',
+                description: `You can only invite ${availableSlots} more members. Your current plan limit is ${organization.memberLimit}. Please upgrade to invite more.`,
                 variant: 'destructive',
                 duration: 7000
             });
@@ -51,40 +54,52 @@ function InviteDialog() {
         }
 
         setIsSending(true);
-        try {
-            const userToInvite = await getUserByEmail(values.email);
+        let successCount = 0;
+        let failCount = 0;
 
-            if (!userToInvite) {
-                toast({ title: "User Not Found", description: "No user with this email exists on the platform. Please ask them to sign up first.", variant: 'destructive'});
-                setIsSending(false);
-                return;
+        for (const email of emails) {
+            try {
+                const userToInvite = await getUserByEmail(email);
+
+                if (userToInvite) {
+                     if (userToInvite.organizationId === organization.id) {
+                        // Skip silently if already a member
+                        continue;
+                    }
+                    await createInvitation({
+                        email: email,
+                        userId: userToInvite.uid,
+                        organizationId: organization.id,
+                        organizationName: organization.name,
+                        status: 'pending',
+                        createdAt: new Date().toISOString(),
+                    });
+                } else {
+                    // User doesn't exist, add to a conceptual waiting list (or handle as needed)
+                    // For now, we'll just log it. A more robust solution might involve a separate "pending_invites" collection.
+                     await createInvitation({
+                        email: email,
+                        organizationId: organization.id,
+                        organizationName: organization.name,
+                        status: 'pending',
+                        createdAt: new Date().toISOString(),
+                    });
+                }
+                successCount++;
+            } catch (error) {
+                console.error(`Failed to invite ${email}:`, error);
+                failCount++;
             }
-            
-            if (userToInvite.organizationId === organization.id) {
-                toast({ title: "Already a Member", description: "This user is already a member of your organization.", variant: 'destructive'});
-                setIsSending(false);
-                return;
-            }
-
-            await createInvitation({
-                email: values.email,
-                userId: userToInvite.uid,
-                organizationId: organization.id,
-                organizationName: organization.name,
-                status: 'pending',
-                createdAt: new Date().toISOString(),
-            });
-
-            toast({ title: "Invitation Sent", description: `${userToInvite.displayName} has been sent an invitation to join your organization.`});
-            setIsOpen(false);
-            form.reset();
-
-        } catch (error) {
-            console.error(error);
-            toast({ title: "Error", description: "Could not send the invitation.", variant: 'destructive'});
-        } finally {
-            setIsSending(false);
         }
+        
+        toast({
+            title: 'Invitations Sent',
+            description: `${successCount} invitations were sent successfully. ${failCount > 0 ? `${failCount} failed.` : ''}`,
+        });
+
+        setIsSending(false);
+        setIsOpen(false);
+        form.reset();
     }
     
     return (
@@ -92,26 +107,30 @@ function InviteDialog() {
             <DialogTrigger asChild>
                 <Button>
                     <Mail className="mr-2 h-4 w-4" />
-                    Invite Member
+                    Invite Members
                 </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Invite a new member</DialogTitle>
+                    <DialogTitle>Invite New Members</DialogTitle>
                     <DialogDescription>
-                        Enter the email of an existing Edgewood International A.I College user to invite them to your organization. They will receive a notification to accept.
+                        Paste a list of email addresses, separated by commas, new lines, or semicolons.
                     </DialogDescription>
                 </DialogHeader>
                      <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                             <FormField
                                 control={form.control}
-                                name="email"
+                                name="emails"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Email Address</FormLabel>
+                                        <FormLabel>Email Addresses</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="name@company.com" {...field} />
+                                            <Textarea
+                                                placeholder="user1@example.com, user2@example.com"
+                                                className="min-h-32"
+                                                {...field}
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -120,7 +139,7 @@ function InviteDialog() {
                             <DialogFooter>
                                 <Button type="submit" disabled={isSending}>
                                     {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
-                                    Send Invitation
+                                    Send Invitations
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -147,6 +166,8 @@ export default function OrganizationMembersPage() {
     useEffect(() => {
         if (organization) {
             fetchMembers();
+        } else {
+            setLoading(false);
         }
     }, [organization]);
 
