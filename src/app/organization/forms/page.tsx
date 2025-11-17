@@ -19,15 +19,18 @@ export default function OrganizationFormsPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchFormsAndSubmissions = async () => {
-            // This now correctly waits for both user and organization to be available.
-            if (!user || !organization) {
-                setLoading(false);
-                return;
-            }
+        if (authLoading) {
+            return; // Wait until auth state is resolved
+        }
 
+        if (!user || !organization) {
+            setLoading(false); // No user or org, nothing to fetch
+            return;
+        }
+
+        const fetchFormsAndSubmissions = async () => {
+            setLoading(true);
             try {
-                setLoading(true); // Explicitly set loading state at the start of fetch.
                 const [allForms, userSubmissions] = await Promise.all([
                     getAllForms(),
                     getFormSubmissionsByUserId(user.uid)
@@ -48,10 +51,8 @@ export default function OrganizationFormsPage() {
             }
         };
 
-        if (!authLoading) {
-            fetchFormsAndSubmissions();
-        }
-    }, [organization, user, authLoading]);
+        fetchFormsAndSubmissions();
+    }, [user, organization, authLoading]);
 
 
     if (authLoading || loading) {
