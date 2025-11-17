@@ -64,10 +64,6 @@ export default function AdminMessagesPage() {
         }
     };
     
-    if (loading) {
-        return <div className="flex justify-center items-center h-full"><LoadingAnimation /></div>
-    }
-
     return (
         <div className="max-w-7xl mx-auto h-full flex flex-col">
             <Link href="/admin" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
@@ -81,48 +77,56 @@ export default function AdminMessagesPage() {
                     <CardDescription>Messages submitted through the public contact form.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                   <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>From</TableHead>
-                                <TableHead>Message</TableHead>
-                                <TableHead>Received</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {messages.length > 0 ? messages.map(message => (
-                                <TableRow 
-                                    key={message.id} 
-                                    className={cn(!message.read && "font-bold", "cursor-pointer")}
-                                    onClick={() => handleViewMessage(message)}
-                                >
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            {!message.read && <span className="h-2 w-2 rounded-full bg-primary flex-shrink-0"></span>}
-                                            <div>
-                                                <p>{message.name}</p>
-                                                <p className="text-xs font-normal text-muted-foreground">{message.email}</p>
-                                            </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="max-w-sm truncate font-normal text-muted-foreground">{message.message}</TableCell>
-                                    <TableCell className="font-normal text-muted-foreground">{formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}</TableCell>
-                                    <TableCell className="text-right">
-                                        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleViewMessage(message); }}>
-                                            <Eye className="mr-2 h-4 w-4"/> View
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            )) : (
+                    {loading ? (
+                       <div className="flex justify-center items-center py-10"><LoadingAnimation /></div>
+                    ) : (
+                        <Table>
+                            <TableHeader>
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
-                                        Your inbox is empty.
-                                    </TableCell>
+                                    <TableHead>From</TableHead>
+                                    <TableHead>Message</TableHead>
+                                    <TableHead>Received</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
-                            )}
-                        </TableBody>
-                   </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {messages.length > 0 ? messages.map(message => (
+                                    <TableRow 
+                                        key={message.id} 
+                                        className={cn(!message.read && "font-bold", "cursor-pointer")}
+                                        onClick={() => handleViewMessage(message)}
+                                    >
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                {!message.read && <span className="h-2 w-2 rounded-full bg-primary flex-shrink-0"></span>}
+                                                <div>
+                                                    <p>{message.name}</p>
+                                                    <p className="text-xs font-normal text-muted-foreground">{message.email}</p>
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="max-w-sm truncate font-normal text-muted-foreground">{message.message}</TableCell>
+                                        <TableCell className="font-normal text-muted-foreground">{formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleViewMessage(message); }}>
+                                                <Eye className="mr-2 h-4 w-4"/> View
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                )) : (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="h-48 text-center text-muted-foreground">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <Inbox className="h-10 w-10" />
+                                                <p className="font-semibold">Your inbox is empty.</p>
+                                                <p className="text-sm">New messages from your contact form will appear here.</p>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                   )}
                 </CardContent>
             </Card>
             
