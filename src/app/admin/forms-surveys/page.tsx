@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -27,6 +26,7 @@ export default function AdminFormsPage() {
   const { toast } = useToast();
 
   const fetchForms = async () => {
+    setLoading(true);
     try {
       const fetchedForms = await getAllForms();
       const formsWithCounts = await Promise.all(fetchedForms.map(async (form) => {

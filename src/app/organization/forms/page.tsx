@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
-import { FilePen, CheckCircle, ArrowRight } from 'lucide-react';
+import { FilePen, CheckCircle, ArrowRight, Eye } from 'lucide-react';
 import type { Form as FormType } from '@/lib/types';
 import { getAllForms, getFormSubmissionsByUserId } from '@/lib/firebase-service';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +23,12 @@ export default function OrganizationFormsPage() {
     useEffect(() => {
         if (authLoading) return;
 
-        if (!user || !organization) {
+        if (!user) {
+            router.push('/login');
+            return;
+        }
+        
+        if (!organization) {
             setLoading(false);
             return;
         }
@@ -36,6 +41,7 @@ export default function OrganizationFormsPage() {
                     getFormSubmissionsByUserId(user.uid)
                 ]);
 
+                // Forms are either public (no org id) or assigned to this specific org
                 const assignedForms = allForms.filter(form => !form.organizationId || form.organizationId === organization.id);
                 setForms(assignedForms);
 
@@ -50,11 +56,19 @@ export default function OrganizationFormsPage() {
         };
 
         fetchFormsAndSubmissions();
-    }, [user, organization, authLoading]);
+    }, [user, organization, authLoading, router]);
 
 
     if (authLoading || loading) {
         return <div className="flex justify-center items-center h-full"><LoadingAnimation /></div>
+    }
+
+    if (!organization) {
+         return (
+            <div className="text-center py-20 text-muted-foreground border-2 border-dashed rounded-lg">
+                <p>You are not part of an organization.</p>
+            </div>
+        )
     }
 
     return (
@@ -68,7 +82,7 @@ export default function OrganizationFormsPage() {
                 </CardHeader>
                 <CardContent>
                     {forms.length > 0 ? (
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             {forms.map(form => (
                                 <Card key={form.id} className="flex flex-col">
                                     <CardHeader>
@@ -83,13 +97,21 @@ export default function OrganizationFormsPage() {
                                             </Badge>
                                         )}
                                     </CardContent>
-                                    <CardFooter>
+                                    <CardFooter className="flex flex-col sm:flex-row gap-2">
                                         <Button asChild disabled={completedFormIds.has(form.id)} className="w-full">
                                             <Link href={`/forms/${form.id}`}>
                                                 {completedFormIds.has(form.id) ? 'Submitted' : 'Fill Form'}
                                                 {!completedFormIds.has(form.id) && <ArrowRight className="ml-2 h-4 w-4"/>}
                                             </Link>
                                         </Button>
+                                         {form.organizationId === organization.id && (
+                                            <Button asChild variant="outline" className="w-full">
+                                                <Link href={`/admin/forms-surveys/submissions/${form.id}`}>
+                                                    <Eye className="mr-2 h-4 w-4"/>
+                                                    View Submissions
+                                                </Link>
+                                            </Button>
+                                        )}
                                     </CardFooter>
                                 </Card>
                             ))}
