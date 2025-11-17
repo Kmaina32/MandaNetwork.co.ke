@@ -8,6 +8,7 @@ import type { Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notif
 import { getRemoteConfig, fetchAndActivate, getString } from 'firebase/remote-config';
 import { app } from './firebase';
 import { slugify } from './utils';
+import { getHeroData as getHeroDataServer } from './firebase-server';
 
 // Conditional import for server-side admin functionality
 let adminDb: any;
@@ -70,7 +71,7 @@ export async function uploadImage(path: string, file: File): Promise<string> {
 
 // Course Functions
 export async function getAllCourses(): Promise<Course[]> {
-  const dbRef = typeof window === 'undefined' ? adminDb.ref('courses') : ref(db, 'courses');
+  const dbRef = ref(db, 'courses');
   const snapshot = await get(dbRef);
   if (snapshot.exists()) {
     const coursesData = snapshot.val();
@@ -271,7 +272,7 @@ export async function getAllUsers(): Promise<RegisteredUser[]> {
 }
 
 export async function getPublicProfiles(): Promise<RegisteredUser[]> {
-  const dbRef = typeof window === 'undefined' ? adminDb.ref('publicProfiles') : query(ref(db, 'users'), orderByChild('portfolio/public'), equalTo(true));
+  const dbRef = ref(db, 'publicProfiles');
   const snapshot = await get(dbRef);
   if (snapshot.exists()) {
     const data = snapshot.val();
@@ -292,6 +293,11 @@ export async function deleteUser(userId: string): Promise<void> {
 
 // Hero Section Functions
 export async function getHeroData(): Promise<HeroData> {
+  if (typeof window === 'undefined') {
+    // On the server, use the admin SDK version
+    return getHeroDataServer();
+  }
+  // On the client, use the client SDK
   const heroRef = ref(db, 'hero');
   const snapshot = await get(heroRef);
   const defaults = {
@@ -619,7 +625,7 @@ export async function createProgram(programData: Omit<Program, 'id'>): Promise<s
 }
 
 export async function getAllPrograms(): Promise<Program[]> {
-    const dbRef = typeof window === 'undefined' ? adminDb.ref('programs') : ref(db, 'programs');
+    const dbRef = ref(db, 'programs');
     const snapshot = await get(dbRef);
     if (snapshot.exists()) {
         const programsData = snapshot.val();
@@ -989,7 +995,7 @@ export async function createBootcamp(bootcampData: Omit<Bootcamp, 'id'>): Promis
 }
 
 export async function getAllBootcamps(): Promise<Bootcamp[]> {
-    const dbRef = typeof window === 'undefined' ? adminDb.ref('bootcamps') : ref(db, 'bootcamps');
+    const dbRef = ref(db, 'bootcamps');
     const snapshot = await get(dbRef);
     if (snapshot.exists()) {
         const data = snapshot.val();
@@ -1196,8 +1202,8 @@ export async function getBlogPostById(id: string): Promise<BlogPost | null> {
     return null;
 }
 export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> {
-    const dbRef = typeof window === 'undefined' ? adminDb : db;
-    const postsRef = query(ref(dbRef, 'blog'), orderByChild('slug'), equalTo(slug));
+    const dbRef = ref(db, 'blog');
+    const postsRef = query(dbRef, orderByChild('slug'), equalTo(slug));
     const snapshot = await get(postsRef);
     if (snapshot.exists()) {
         const data = snapshot.val();
@@ -1234,21 +1240,6 @@ export async function deleteBlogPost(postId: string): Promise<void> {
   const postRef = ref(db, `blog/${postId}`);
   await remove(postRef);
 }
-
-export async function getAllBlogPosts(): Promise<BlogPost[]> {
-  const dbRef = typeof window === 'undefined' ? adminDb.ref('blog') : ref(db, 'blog');
-  const snapshot = await get(query(dbRef, orderByChild('createdAt')));
-  if (snapshot.exists()) {
-    const postsData = snapshot.val();
-    const posts = Object.keys(postsData).map(key => ({
-      id: key,
-      ...postsData[key]
-    }));
-    return posts.reverse();
-  }
-  return [];
-}
-
 
 // Activity Logging
 export async function logActivity(userId: string, data: { type: 'signup' | 'enrollment' | 'page_visit'; details: any }): Promise<void> {
@@ -1372,7 +1363,7 @@ export function getMessagesForConversation(conversationId: string, callback: (me
 
 // Portfolio Project Submission
 export async function createProjectSubmission(submissionData: Omit<ProjectSubmission, 'id'>): Promise<string> {
-    const projectSubmissionsRef = ref(db, `projectSubmissions`);
+    const projectSubmissionsRef = ref(db, 'projectSubmissions');
     const newSubmissionRef = push(projectSubmissionsRef);
     await set(newSubmissionRef, submissionData);
     return newSubmissionRef.key!;
