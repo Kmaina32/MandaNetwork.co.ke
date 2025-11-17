@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray, useFormContext, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,8 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { ArrowLeft, Loader2, PlusCircle, Trash2, FilePen, GripVertical } from 'lucide-react';
-// import { createForm } from '@/lib/firebase-service';
-import { FormQuestion } from '@/lib/types';
+import { createForm, getAllOrganizations } from '@/lib/firebase-service';
+import type { FormQuestion, Organization } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 
 const questionSchema = z.object({
@@ -31,6 +32,7 @@ const questionSchema = z.object({
 const formBuilderSchema = z.object({
   title: z.string().min(3, 'Form title is required.'),
   description: z.string().optional(),
+  organizationId: z.string().optional(),
   questions: z.array(questionSchema).min(1, "You must add at least one question."),
 });
 
@@ -91,12 +93,18 @@ export default function CreateFormPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+
+  useEffect(() => {
+      getAllOrganizations().then(setOrganizations);
+  }, []);
 
   const form = useForm<FormBuilderValues>({
     resolver: zodResolver(formBuilderSchema),
     defaultValues: {
       title: '',
       description: '',
+      organizationId: 'none',
       questions: [],
     },
   });
@@ -118,8 +126,11 @@ export default function CreateFormPage() {
   const onSubmit = async (values: FormBuilderValues) => {
     setIsLoading(true);
     try {
-      // await createForm(values);
-      console.log("Form values to save:", values);
+      const dataToSave = {
+        ...values,
+        organizationId: values.organizationId === 'none' ? undefined : values.organizationId,
+      };
+      await createForm(dataToSave);
       toast({
         title: 'Form Created!',
         description: `The form "${values.title}" has been saved.`,
@@ -159,6 +170,29 @@ export default function CreateFormPage() {
                          <FormField control={form.control} name="description" render={({ field }) => (
                             <FormItem><FormLabel>Description (Optional)</FormLabel><FormControl><Textarea placeholder="Instructions or context for the form." {...field} /></FormControl><FormMessage /></FormItem>
                          )}/>
+                         <FormField
+                            control={form.control}
+                            name="organizationId"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Target Organization (Optional)</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select an organization..." />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="none">All Users (Public)</SelectItem>
+                                        {organizations.map(org => (
+                                            <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                         />
                     </CardContent>
                 </Card>
 

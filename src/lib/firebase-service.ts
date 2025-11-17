@@ -5,7 +5,7 @@
 import { db, storage } from './firebase';
 import { ref, get, set, push, update, remove, query, orderByChild, equalTo, increment, limitToLast, onValue } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, Conversation, ConversationMessage, BlogPost, Referral, TeamMember, ContactMessage } from './types';
+import type { Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, Conversation, ConversationMessage, BlogPost, Referral, TeamMember, ContactMessage, Form as FormType, FormSubmission } from './types';
 import { getRemoteConfig, fetchAndActivate, getString } from 'firebase/remote-config';
 import { app } from './firebase';
 import { slugify } from './utils';
@@ -1449,4 +1449,16 @@ export async function markContactMessageAsRead(messageId: string): Promise<void>
 export async function deleteContactMessage(messageId: string): Promise<void> {
     const messageRef = ref(db, `contactMessages/${messageId}`);
     await remove(messageRef);
+}
+
+// Form Functions
+export async function createForm(formData: Omit<FormType, 'id' | 'createdAt'>): Promise<string> {
+  const formsRef = ref(db, 'forms');
+  const newFormRef = push(formsRef);
+  const dataToSave = {
+    ...formData,
+    createdAt: new Date().toISOString(),
+  };
+  await set(newFormRef, dataToSave);
+  return newFormRef.key!;
 }
