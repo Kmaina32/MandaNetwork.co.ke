@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,10 +8,14 @@ import { Footer } from "@/components/shared/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, PlusCircle, FilePen, Eye } from 'lucide-react';
+import { ArrowLeft, PlusCircle, FilePen, Eye, Edit, Trash2, Share2 } from 'lucide-react';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
-import { getAllForms, getFormSubmissions } from '@/lib/firebase-service';
+import { getAllForms, getFormSubmissions, deleteForm } from '@/lib/firebase-service';
 import type { Form as FormType } from '@/lib/types';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { MoreVertical } from 'lucide-react';
 
 interface FormWithSubmissions extends FormType {
     submissionCount: number;
@@ -19,24 +24,43 @@ interface FormWithSubmissions extends FormType {
 export default function AdminFormsPage() {
   const [forms, setForms] = useState<FormWithSubmissions[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  const fetchForms = async () => {
+    try {
+      const fetchedForms = await getAllForms();
+      const formsWithCounts = await Promise.all(fetchedForms.map(async (form) => {
+          const submissions = await getFormSubmissions(form.id);
+          return { ...form, submissionCount: submissions.length };
+      }));
+      setForms(formsWithCounts);
+    } catch (error) {
+      console.error("Failed to fetch forms:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchForms = async () => {
-      try {
-        const fetchedForms = await getAllForms();
-        const formsWithCounts = await Promise.all(fetchedForms.map(async (form) => {
-            const submissions = await getFormSubmissions(form.id);
-            return { ...form, submissionCount: submissions.length };
-        }));
-        setForms(formsWithCounts);
-      } catch (error) {
-        console.error("Failed to fetch forms:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchForms();
   }, []);
+
+  const handleDelete = async (formId: string) => {
+      try {
+          await deleteForm(formId);
+          toast({ title: "Form Deleted", description: "The form and its submissions have been deleted." });
+          fetchForms(); // Refresh the list
+      } catch (error) {
+          console.error("Failed to delete form:", error);
+          toast({ title: "Error", description: "Could not delete the form.", variant: "destructive" });
+      }
+  }
+  
+  const handleShare = (formId: string) => {
+    const url = `${window.location.origin}/forms/${formId}`;
+    navigator.clipboard.writeText(url);
+    toast({ title: "Link Copied!", description: "The public link to the form has been copied." });
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -88,10 +112,42 @@ export default function AdminFormsPage() {
                           <TableCell>{form.questions?.length || 0}</TableCell>
                           <TableCell>{form.submissionCount}</TableCell>
                           <TableCell className="text-right">
-                             <Button variant="outline" size="sm">
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Submissions
+                             <Button asChild variant="outline" size="sm" className="mr-2">
+                                <Link href={`/admin/forms-surveys/submissions/${form.id}`}>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    View Submissions
+                                </Link>
                             </Button>
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4"/></Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleShare(form.id)}>
+                                        <Share2 className="mr-2 h-4 w-4"/> Share
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href={`/admin/forms-surveys/edit/${form.id}`}><Edit className="mr-2 h-4 w-4"/> Edit</Link>
+                                    </DropdownMenuItem>
+                                    <AlertDialogTrigger asChild>
+                                        <DropdownMenuItem className="text-destructive">
+                                            <Trash2 className="mr-2 h-4 w-4"/> Delete
+                                        </DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                </DropdownMenuContent>
+                             </DropdownMenu>
+                             <AlertDialog>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>This will permanently delete the form "{form.title}" and all its submissions.</AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDelete(form.id)}>Delete</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                           </TableCell>
                         </TableRow>
                       ))

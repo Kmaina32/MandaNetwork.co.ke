@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -125,13 +126,13 @@ export function OrganizationSidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
-                         <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive('/organization/forms')} tooltip="Forms & Surveys">
+                        <SidebarMenuItem>
+                           <SidebarMenuButton asChild isActive={isActive('/organization/forms')} tooltip="Forms & Surveys">
                                 <Link href="/organization/forms">
                                     <FilePen />
                                     <span>Forms & Surveys</span>
                                 </Link>
-                            </SidebarMenuButton>
+                           </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                            <SidebarMenuButton asChild isActive={isActive('/organization/live')} tooltip="Live Classroom">
@@ -178,7 +179,7 @@ export function OrganizationSidebar() {
         </SidebarContent>
         <SidebarFooter>
             <div className="flex items-center gap-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-                <Tag />
+                <Tag className="h-3 w-3" />
                 <span>v{pkg.version}</span>
             </div>
         </SidebarFooter>

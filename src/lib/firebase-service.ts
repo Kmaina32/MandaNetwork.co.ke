@@ -112,9 +112,12 @@ export async function updateCourse(courseId: string, courseData: Partial<Course>
     const courseRef = ref(db, `courses/${courseId}`);
     const dataToUpdate = { ...courseData };
     if (dataToUpdate.prerequisiteCourseId === 'none') {
-        dataToUpdate.prerequisiteCourseId = undefined; // Will be removed by update
+        dataToUpdate.prerequisiteCourseId = undefined; // Will be filtered out
     }
-    await update(courseRef, dataToUpdate);
+     // Filter out undefined values before saving
+    const finalData = Object.fromEntries(Object.entries(dataToUpdate).filter(([_, v]) => v !== undefined));
+
+    await update(courseRef, finalData);
 }
 
 
@@ -1483,6 +1486,37 @@ export async function getAllForms(): Promise<FormType[]> {
         }));
     }
     return [];
+}
+
+export async function deleteForm(formId: string): Promise<void> {
+    const formRef = ref(db, `forms/${formId}`);
+    await remove(formRef);
+    // Optional: Also delete all submissions for this form
+    const submissionsRef = query(ref(db, 'formSubmissions'), orderByChild('formId'), equalTo(formId));
+    const snapshot = await get(submissionsRef);
+    if(snapshot.exists()){
+        const updates: Record<string, null> = {};
+        snapshot.forEach(child => {
+            updates[child.key!] = null;
+        });
+        await update(ref(db, 'formSubmissions'), updates);
+    }
+}
+
+export async function getFormById(formId: string): Promise<FormType | null> {
+    const formRef = ref(db, `forms/${formId}`);
+    const snapshot = await get(formRef);
+    if (snapshot.exists()) {
+        return { id: formId, ...snapshot.val() };
+    }
+    return null;
+}
+
+export async function createFormSubmission(submissionData: Omit<FormSubmission, 'id'>): Promise<string> {
+    const submissionsRef = ref(db, 'formSubmissions');
+    const newSubmissionRef = push(submissionsRef);
+    await set(newSubmissionRef, submissionData);
+    return newSubmissionRef.key!;
 }
 
 export async function getFormSubmissions(formId: string): Promise<FormSubmission[]> {
