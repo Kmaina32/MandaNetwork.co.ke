@@ -272,6 +272,7 @@ export default function CreateCoursePage() {
             ...values,
             imageUrl: 'https://placehold.co/600x400',
             exam: [], // Exams are now handled separately
+            project: undefined,
         };
 
         if (values.prerequisiteCourseId === 'none' || !values.prerequisiteCourseId) {
@@ -554,3 +555,5 @@ export default function CreateCoursePage() {
     </>
   );
 }
+
+    
