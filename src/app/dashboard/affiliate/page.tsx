@@ -28,6 +28,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { onValue, ref } from 'firebase/database';
+import { db } from '@/lib/firebase';
 
 export default function AffiliateDashboardPage() {
     const { user, dbUser: initialDbUser, loading: authLoading } = useAuth();
@@ -43,11 +45,18 @@ export default function AffiliateDashboardPage() {
         if (!authLoading) {
             if (!user) {
                 router.push('/login?redirect=/dashboard/affiliate');
-            } else if (user) {
-                // Fetch the latest user data, including affiliate stats
-                getUserById(user.uid).then(profile => {
-                    setDbUser(profile);
-                    if (profile?.affiliateId) {
+                return;
+            }
+
+            // Set up a real-time listener for the user's profile data
+            const userRef = ref(db, `users/${user.uid}`);
+            const unsubscribeUser = onValue(userRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const profile = snapshot.val();
+                    setDbUser({ uid: user.uid, ...profile });
+
+                    if (profile.affiliateId) {
+                        // Also fetch referrals. This doesn't need to be real-time for now.
                         getReferralsByAffiliate(profile.affiliateId).then(data => {
                             setReferrals(data);
                             setLoading(false);
@@ -55,8 +64,15 @@ export default function AffiliateDashboardPage() {
                     } else {
                         setLoading(false);
                     }
-                });
-            }
+                } else {
+                    setLoading(false);
+                }
+            });
+
+            return () => {
+                // Clean up the listener when the component unmounts
+                unsubscribeUser();
+            };
         }
     }, [user, authLoading, router]);
 
