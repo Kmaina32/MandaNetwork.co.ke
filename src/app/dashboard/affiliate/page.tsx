@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-import { getReferralsByAffiliate, getUserById } from '@/lib/firebase-service';
+import { getReferralsByAffiliate } from '@/lib/firebase-service';
 import type { Referral, RegisteredUser } from '@/lib/types';
 import { format } from 'date-fns';
 import {
@@ -32,7 +32,7 @@ import { onValue, ref } from 'firebase/database';
 import { db } from '@/lib/firebase';
 
 export default function AffiliateDashboardPage() {
-    const { user, dbUser: initialDbUser, loading: authLoading } from useAuth();
+    const { user, dbUser: initialDbUser, loading: authLoading } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
@@ -55,7 +55,7 @@ export default function AffiliateDashboardPage() {
         const unsubscribeUser = onValue(userRef, (snapshot) => {
             if (snapshot.exists()) {
                 const profile = snapshot.val();
-                const fullUserProfile = { uid: user.uid, ...profile };
+                const fullUserProfile: RegisteredUser = { uid: user.uid, ...profile };
                 setDbUser(fullUserProfile);
 
                 if (profile.affiliateId) {
