@@ -32,7 +32,7 @@ import { onValue, ref } from 'firebase/database';
 import { db } from '@/lib/firebase';
 
 export default function AffiliateDashboardPage() {
-    const { user, dbUser: initialDbUser, loading: authLoading } = useAuth();
+    const { user, dbUser: initialDbUser, loading: authLoading } from useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
@@ -42,38 +42,40 @@ export default function AffiliateDashboardPage() {
     const affiliateLink = user && dbUser?.affiliateId ? `${window.location.origin}/signup?ref=${dbUser.affiliateId}` : '';
 
     useEffect(() => {
-        if (!authLoading) {
-            if (!user) {
-                router.push('/login?redirect=/dashboard/affiliate');
-                return;
-            }
+        if (authLoading) {
+            return;
+        }
+        if (!user) {
+            router.push('/login?redirect=/dashboard/affiliate');
+            return;
+        }
 
-            // Set up a real-time listener for the user's profile data
-            const userRef = ref(db, `users/${user.uid}`);
-            const unsubscribeUser = onValue(userRef, (snapshot) => {
-                if (snapshot.exists()) {
-                    const profile = snapshot.val();
-                    setDbUser({ uid: user.uid, ...profile });
+        // Set up a real-time listener for the user's profile data
+        const userRef = ref(db, `users/${user.uid}`);
+        const unsubscribeUser = onValue(userRef, (snapshot) => {
+            if (snapshot.exists()) {
+                const profile = snapshot.val();
+                const fullUserProfile = { uid: user.uid, ...profile };
+                setDbUser(fullUserProfile);
 
-                    if (profile.affiliateId) {
-                        // Also fetch referrals. This doesn't need to be real-time for now.
-                        getReferralsByAffiliate(profile.affiliateId).then(data => {
-                            setReferrals(data);
-                            setLoading(false);
-                        });
-                    } else {
+                if (profile.affiliateId) {
+                    getReferralsByAffiliate(profile.affiliateId).then(data => {
+                        setReferrals(data);
+                    }).finally(() => {
                         setLoading(false);
-                    }
+                    });
                 } else {
                     setLoading(false);
                 }
-            });
+            } else {
+                setLoading(false);
+            }
+        });
 
-            return () => {
-                // Clean up the listener when the component unmounts
-                unsubscribeUser();
-            };
-        }
+        // Clean up the listener when the component unmounts or user changes
+        return () => {
+            unsubscribeUser();
+        };
     }, [user, authLoading, router]);
 
     const copyToClipboard = () => {
