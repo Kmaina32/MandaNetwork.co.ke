@@ -13,10 +13,9 @@ interface BlogPostContentProps {
 }
 
 // This is a custom renderer for paragraphs.
-const ParagraphRenderer = ({ children, node, ...props }: any) => {
+const ParagraphRenderer = ({ node, children, ...props }: { node: any, children: React.ReactNode, [key: string]: any }) => {
     // We check if it's the right place to insert an ad.
-    // `props.index` is the index of the element in the markdown document.
-    // We'll insert an ad every 6th element (roughly every 3rd paragraph, as there are other elements).
+    // We'll insert an ad every 6th element (roughly every 3rd paragraph).
     const showAd = props.index > 0 && props.index % 6 === 0;
     const adIndex = Math.floor(props.index / 6) - 1;
     
@@ -25,7 +24,7 @@ const ParagraphRenderer = ({ children, node, ...props }: any) => {
     if (showAd && promoItem) {
       return (
         <>
-          <p {...props}>{children}</p>
+          <p>{children}</p>
           <div className="not-prose my-8">
             <InContentAdCard item={promoItem} />
           </div>
@@ -33,7 +32,7 @@ const ParagraphRenderer = ({ children, node, ...props }: any) => {
       );
     }
 
-    return <p {...props}>{children}</p>;
+    return <p>{children}</p>;
 };
 
 export function BlogPostContent({ content, promoItems }: BlogPostContentProps) {
