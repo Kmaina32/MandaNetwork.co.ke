@@ -1,5 +1,5 @@
 
-import { getHeroData } from '@/lib/firebase-service';
+import { getHeroData } from '@/lib/firebase-server';
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { AppSidebar } from "@/components/Sidebar";
