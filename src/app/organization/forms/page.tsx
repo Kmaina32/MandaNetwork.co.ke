@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -85,7 +84,7 @@ export default function OrganizationFormsPage() {
                 </CardHeader>
                 <CardContent>
                     {forms.length > 0 ? (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             {forms.map(form => (
                                 <Card key={form.id} className="flex flex-col">
                                     <CardHeader>
@@ -107,9 +106,9 @@ export default function OrganizationFormsPage() {
                                                 {!completedFormIds.has(form.id) && <ArrowRight className="ml-2 h-4 w-4"/>}
                                             </Link>
                                         </Button>
-                                         {form.organizationId === organization.id && (
+                                         {organization.id === form.organizationId && (
                                             <Button asChild variant="outline" className="w-full">
-                                                <Link href={`/admin/forms-surveys/submissions/${form.id}`}>
+                                                <Link href={`/organization/forms/submissions/${form.id}`}>
                                                     <Eye className="mr-2 h-4 w-4"/>
                                                     View Submissions
                                                 </Link>

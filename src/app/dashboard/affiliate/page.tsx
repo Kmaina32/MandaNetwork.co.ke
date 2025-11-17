@@ -36,7 +36,7 @@ export default function AffiliateDashboardPage() {
     const [loading, setLoading] = useState(true);
     const [referrals, setReferrals] = useState<Referral[]>([]);
 
-    const affiliateLink = user && dbUser?.affiliateId ? `https://www.mandanetwork.co.ke/signup?ref=${dbUser.affiliateId}` : '';
+    const affiliateLink = user && dbUser?.affiliateId ? `${window.location.origin}/signup?ref=${dbUser.affiliateId}` : '';
 
     useEffect(() => {
         if (!authLoading) {
@@ -54,12 +54,15 @@ export default function AffiliateDashboardPage() {
     }, [user, authLoading, router, dbUser]);
 
     const copyToClipboard = () => {
+        if (!affiliateLink) return;
         navigator.clipboard.writeText(affiliateLink);
         toast({ title: "Link Copied!", description: "Your affiliate link has been copied." });
     };
 
-    const totalEarnings = referrals.reduce((sum, ref) => sum + ref.commissionAmount, 0);
+    const totalEarnings = dbUser?.affiliateStats?.earnings || 0;
     const totalClicks = dbUser?.affiliateStats?.clicks || 0;
+    const totalReferrals = dbUser?.affiliateStats?.referrals || 0;
+
 
     if (authLoading || loading) {
         return <div className="flex h-screen items-center justify-center"><LoadingAnimation /></div>;
@@ -91,7 +94,7 @@ export default function AffiliateDashboardPage() {
                                     <Label htmlFor="affiliate-link" className="font-semibold">Your Unique Referral Link</Label>
                                     <div className="flex gap-2 mt-2">
                                         <Input id="affiliate-link" value={affiliateLink} readOnly />
-                                        <Button onClick={copyToClipboard} variant="outline" size="icon">
+                                        <Button onClick={copyToClipboard} variant="outline" size="icon" disabled={!affiliateLink}>
                                             <Copy className="h-4 w-4" />
                                         </Button>
                                     </div>
@@ -115,7 +118,7 @@ export default function AffiliateDashboardPage() {
                                         <Users className="h-4 w-4 text-muted-foreground" />
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="text-2xl font-bold">{referrals.length}</div>
+                                        <div className="text-2xl font-bold">{totalReferrals}</div>
                                         <p className="text-xs text-muted-foreground">Users who signed up via your link</p>
                                     </CardContent>
                                 </Card>
