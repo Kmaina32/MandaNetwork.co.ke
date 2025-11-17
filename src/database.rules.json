@@ -1,5 +1,4 @@
 
-
 {
   "rules": {
     "users": {
@@ -136,10 +135,10 @@
       ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
     },
     "formSubmissions": {
-      ".indexOn": ["formId", "userId"],
       ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      ".indexOn": "formId",
       "$submissionId": {
-        ".write": "auth != null && newData.child('userId').val() === auth.uid"
+          ".write": "auth != null && newData.child('userId').val() === auth.uid"
       }
     },
      "userActivity": {
