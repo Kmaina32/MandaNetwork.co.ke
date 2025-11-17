@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray, Controller, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,6 +23,7 @@ import { generateCourseContent } from '@/app/actions';
 import { CourseReviewModal } from '@/components/shared/CourseReviewModal';
 import { GenerateCourseContentOutput } from '@/ai/flows/generate-course-content';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { RichTextEditor } from '@/components/shared/RichTextEditor';
 
 const youtubeLinkSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -95,6 +96,7 @@ function LessonFields({ moduleIndex, form }: { moduleIndex: number, form: UseFor
         control: form.control,
         name: `modules.${moduleIndex}.lessons`
     });
+     const contentRef = useRef<HTMLTextAreaElement>(null);
 
     return (
         <div className="space-y-4 pt-4">
@@ -136,7 +138,11 @@ function LessonFields({ moduleIndex, form }: { moduleIndex: number, form: UseFor
                             <FormItem> 
                                 <FormLabel>Lesson Content</FormLabel> 
                                 <FormControl> 
-                                    <Textarea {...field} className="min-h-[100px]" /> 
+                                   <RichTextEditor 
+                                        content={field.value}
+                                        onChange={field.onChange}
+                                        textareaRef={contentRef}
+                                   />
                                 </FormControl> 
                                 <FormMessage /> 
                             </FormItem> 
