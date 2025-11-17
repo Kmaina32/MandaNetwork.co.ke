@@ -7,11 +7,13 @@ const BASE_URL = 'https://www.mandanetwork.co.ke';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Fetch dynamic data
-  const courses = await getAllCourses();
-  const programs = await getAllPrograms();
-  const bootcamps = await getAllBootcamps();
-  const portfolios = await getPublicProfiles();
-  const blogPosts = await getAllBlogPosts();
+  const [courses, programs, bootcamps, portfolios, blogPosts] = await Promise.all([
+    getAllCourses(),
+    getAllPrograms(),
+    getAllBootcamps(),
+    getPublicProfiles(),
+    getAllBlogPosts()
+  ]);
 
   const courseEntries: MetadataRoute.Sitemap = courses.map((course) => ({
     url: `${BASE_URL}/courses/${slugify(course.title)}`,

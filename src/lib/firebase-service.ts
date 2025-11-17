@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { db, storage } from './firebase';
@@ -9,6 +8,15 @@ import type { Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notif
 import { getRemoteConfig, fetchAndActivate, getString } from 'firebase/remote-config';
 import { app } from './firebase';
 import { slugify } from './utils';
+
+// Conditional import for server-side admin functionality
+let adminDb: any;
+if (typeof window === 'undefined') {
+  import('@/lib/firebase-admin').then(admin => {
+    adminDb = admin.adminDb;
+  }).catch(e => console.error("Failed to load firebase-admin", e));
+}
+
 
 export type { RegisteredUser } from './types';
 
@@ -62,8 +70,8 @@ export async function uploadImage(path: string, file: File): Promise<string> {
 
 // Course Functions
 export async function getAllCourses(): Promise<Course[]> {
-  const coursesRef = ref(db, 'courses');
-  const snapshot = await get(coursesRef);
+  const dbRef = typeof window === 'undefined' ? adminDb.ref('courses') : ref(db, 'courses');
+  const snapshot = await get(dbRef);
   if (snapshot.exists()) {
     const coursesData = snapshot.val();
     const courses = Object.keys(coursesData).map(key => ({
@@ -263,16 +271,16 @@ export async function getAllUsers(): Promise<RegisteredUser[]> {
 }
 
 export async function getPublicProfiles(): Promise<RegisteredUser[]> {
-    const publicProfilesRef = query(ref(db, 'users'), orderByChild('portfolio/public'), equalTo(true));
-    const snapshot = await get(publicProfilesRef);
-     if (snapshot.exists()) {
-        const usersData = snapshot.val();
-        return Object.keys(usersData).map(uid => ({
-            uid,
-            ...usersData[uid],
-        }));
-    }
-    return [];
+  const dbRef = typeof window === 'undefined' ? adminDb.ref('publicProfiles') : query(ref(db, 'users'), orderByChild('portfolio/public'), equalTo(true));
+  const snapshot = await get(dbRef);
+  if (snapshot.exists()) {
+    const data = snapshot.val();
+    return Object.keys(data).map(uid => ({
+      uid,
+      ...data[uid],
+    }));
+  }
+  return [];
 }
 
 
@@ -611,8 +619,8 @@ export async function createProgram(programData: Omit<Program, 'id'>): Promise<s
 }
 
 export async function getAllPrograms(): Promise<Program[]> {
-    const programsRef = ref(db, 'programs');
-    const snapshot = await get(programsRef);
+    const dbRef = typeof window === 'undefined' ? adminDb.ref('programs') : ref(db, 'programs');
+    const snapshot = await get(dbRef);
     if (snapshot.exists()) {
         const programsData = snapshot.val();
         return Object.keys(programsData).map(key => ({
@@ -981,8 +989,8 @@ export async function createBootcamp(bootcampData: Omit<Bootcamp, 'id'>): Promis
 }
 
 export async function getAllBootcamps(): Promise<Bootcamp[]> {
-    const bootcampsRef = ref(db, 'bootcamps');
-    const snapshot = await get(bootcampsRef);
+    const dbRef = typeof window === 'undefined' ? adminDb.ref('bootcamps') : ref(db, 'bootcamps');
+    const snapshot = await get(dbRef);
     if (snapshot.exists()) {
         const data = snapshot.val();
         return Object.keys(data).map(key => ({
@@ -1188,7 +1196,8 @@ export async function getBlogPostById(id: string): Promise<BlogPost | null> {
     return null;
 }
 export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> {
-    const postsRef = query(ref(db, 'blog'), orderByChild('slug'), equalTo(slug));
+    const dbRef = typeof window === 'undefined' ? adminDb : db;
+    const postsRef = query(ref(dbRef, 'blog'), orderByChild('slug'), equalTo(slug));
     const snapshot = await get(postsRef);
     if (snapshot.exists()) {
         const data = snapshot.val();
@@ -1227,8 +1236,8 @@ export async function deleteBlogPost(postId: string): Promise<void> {
 }
 
 export async function getAllBlogPosts(): Promise<BlogPost[]> {
-  const postsRef = ref(db, 'blog');
-  const snapshot = await get(query(postsRef, orderByChild('createdAt')));
+  const dbRef = typeof window === 'undefined' ? adminDb.ref('blog') : ref(db, 'blog');
+  const snapshot = await get(query(dbRef, orderByChild('createdAt')));
   if (snapshot.exists()) {
     const postsData = snapshot.val();
     const posts = Object.keys(postsData).map(key => ({
