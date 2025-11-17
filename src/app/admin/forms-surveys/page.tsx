@@ -9,21 +9,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, PlusCircle, FilePen } from 'lucide-react';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
-// import { getAllForms, deleteForm } from '@/lib/firebase-service';
-// import type { Form as FormType } from '@/lib/types';
+import { getAllForms } from '@/lib/firebase-service';
+import type { Form as FormType } from '@/lib/types';
 
 export default function AdminFormsPage() {
-  const [forms, setForms] = useState<any[]>([]);
+  const [forms, setForms] = useState<FormType[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // const fetchForms = async () => {
-    //   // const fetchedForms = await getAllForms();
-    //   // setForms(fetchedForms);
-    //   setLoading(false);
-    // };
-    // fetchForms();
-    setLoading(false); // Placeholder
+    const fetchForms = async () => {
+      try {
+        const fetchedForms = await getAllForms();
+        setForms(fetchedForms);
+      } catch (error) {
+        console.error("Failed to fetch forms:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchForms();
   }, []);
 
   return (
