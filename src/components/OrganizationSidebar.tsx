@@ -12,7 +12,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { GitBranch, LayoutDashboard, Users, BookOpen, CreditCard, Settings, ExternalLink, Tag, LogOut, Home, Clapperboard, Users as PortfoliosIcon } from 'lucide-react';
+import { GitBranch, LayoutDashboard, Users, BookOpen, CreditCard, Settings, ExternalLink, Tag, LogOut, Home, Clapperboard, Users as PortfoliosIcon, FilePen } from 'lucide-react';
 import { Button } from './ui/button';
 import { Separator } from './ui/separator';
 import { useAuth } from '@/hooks/use-auth';
@@ -113,6 +113,14 @@ export function OrganizationSidebar() {
                                 <Link href="/organization/home">
                                     <Home />
                                     <span>Home</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                         <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/organization/forms')} tooltip="Forms">
+                                <Link href="/organization/forms">
+                                    <FilePen />
+                                    <span>Forms & Surveys</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

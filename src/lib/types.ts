@@ -508,4 +508,25 @@ export interface ContactMessage {
     read: boolean;
 }
 
-    
+export interface FormQuestion {
+    id: string;
+    text: string;
+    type: 'short-text' | 'long-text' | 'multiple-choice' | 'rating';
+    options?: string[]; // For multiple-choice
+}
+
+export interface Form {
+    id: string;
+    title: string;
+    description?: string;
+    questions: FormQuestion[];
+    createdAt: string; // ISO String
+}
+
+export interface FormSubmission {
+    id: string;
+    formId: string;
+    userId: string;
+    submittedAt: string; // ISO String
+    answers: Record<string, any>; // questionId: answer
+}

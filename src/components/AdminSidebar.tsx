@@ -43,6 +43,7 @@ import {
   Users,
   LineChart,
   Mail,
+  FilePen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -231,6 +232,15 @@ export function AdminSidebar() {
               <Link href="/admin/live">
                 <Clapperboard className="h-4 w-4 mr-2" />
                 Live Classroom
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/forms-surveys')} tooltip="Forms & Surveys">
+              <Link href="/admin/forms-surveys">
+                <FilePen className="h-4 w-4 mr-2" />
+                Forms & Surveys
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
