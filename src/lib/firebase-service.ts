@@ -1462,3 +1462,29 @@ export async function createForm(formData: Omit<FormType, 'id' | 'createdAt'>): 
   await set(newFormRef, dataToSave);
   return newFormRef.key!;
 }
+
+export async function getAllForms(): Promise<FormType[]> {
+    const formsRef = ref(db, 'forms');
+    const snapshot = await get(formsRef);
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        return Object.keys(data).map(key => ({
+            id: key,
+            ...data[key]
+        }));
+    }
+    return [];
+}
+
+export async function getFormSubmissions(formId: string): Promise<FormSubmission[]> {
+    const submissionsRef = query(ref(db, 'formSubmissions'), orderByChild('formId'), equalTo(formId));
+    const snapshot = await get(submissionsRef);
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        return Object.keys(data).map(key => ({
+            id: key,
+            ...data[key]
+        }));
+    }
+    return [];
+}
