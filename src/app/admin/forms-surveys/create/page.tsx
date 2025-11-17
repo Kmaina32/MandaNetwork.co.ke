@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm, useFieldArray, useFormContext } from 'react-hook-form';
+import { useForm, useFieldArray, useFormContext, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
@@ -38,7 +38,10 @@ type FormBuilderValues = z.infer<typeof formBuilderSchema>;
 
 function QuestionCard({ index, remove }: { index: number, remove: (index: number) => void }) {
     const { control } = useFormContext<FormBuilderValues>();
-    const questionType = control.getValues(`questions.${index}.type`);
+    const questionType = useWatch({
+      control,
+      name: `questions.${index}.type`,
+    });
 
     return (
         <Card className="p-4 bg-secondary/50 relative">
