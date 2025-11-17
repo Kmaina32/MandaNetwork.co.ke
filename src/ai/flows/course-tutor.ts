@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -31,7 +32,6 @@ export type CourseTutorInput = z.infer<typeof CourseTutorInputSchema>;
 
 const CourseTutorOutputSchema = z.object({
   answer: z.string().describe("Gina's helpful answer to the student's question or the next step in the tutoring session."),
-  answerAudio: z.string().optional().describe('The data URI of the spoken answer audio.'),
   suggestions: z.array(z.string()).optional().describe('A list of 2-3 relevant follow-up questions the student might have.'),
 });
 export type CourseTutorOutput = z.infer<typeof CourseTutorOutputSchema>;
