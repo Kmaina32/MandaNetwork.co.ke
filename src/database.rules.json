@@ -2,7 +2,7 @@
 {
   "rules": {
     "users": {
-      ".indexOn": ["email", "organizationId", "portfolio/public"],
+      ".indexOn": ["email", "organizationId", "portfolio/public", "displayName"],
       "$userId": {
         ".read": "data.child('portfolio/public').val() === true || (auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('isAdmin').val() === true || root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true))",
         ".write": "auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('isAdmin').val() === true)",

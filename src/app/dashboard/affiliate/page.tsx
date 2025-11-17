@@ -17,8 +17,8 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-import { getReferralsByAffiliate } from '@/lib/firebase-service';
-import type { Referral } from '@/lib/types';
+import { getReferralsByAffiliate, getUserById } from '@/lib/firebase-service';
+import type { Referral, RegisteredUser } from '@/lib/types';
 import { format } from 'date-fns';
 import {
   Table,
@@ -30,11 +30,12 @@ import {
 } from "@/components/ui/table";
 
 export default function AffiliateDashboardPage() {
-    const { user, dbUser, loading: authLoading } = useAuth();
+    const { user, dbUser: initialDbUser, loading: authLoading } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [referrals, setReferrals] = useState<Referral[]>([]);
+    const [dbUser, setDbUser] = useState<RegisteredUser | null>(initialDbUser);
 
     const affiliateLink = user && dbUser?.affiliateId ? `${window.location.origin}/signup?ref=${dbUser.affiliateId}` : '';
 
@@ -42,16 +43,22 @@ export default function AffiliateDashboardPage() {
         if (!authLoading) {
             if (!user) {
                 router.push('/login?redirect=/dashboard/affiliate');
-            } else if (dbUser?.affiliateId) {
-                getReferralsByAffiliate(dbUser.affiliateId).then(data => {
-                    setReferrals(data);
-                    setLoading(false);
+            } else if (user) {
+                // Fetch the latest user data, including affiliate stats
+                getUserById(user.uid).then(profile => {
+                    setDbUser(profile);
+                    if (profile?.affiliateId) {
+                        getReferralsByAffiliate(profile.affiliateId).then(data => {
+                            setReferrals(data);
+                            setLoading(false);
+                        });
+                    } else {
+                        setLoading(false);
+                    }
                 });
-            } else {
-                 setLoading(false);
             }
         }
-    }, [user, authLoading, router, dbUser]);
+    }, [user, authLoading, router]);
 
     const copyToClipboard = () => {
         if (!affiliateLink) return;
