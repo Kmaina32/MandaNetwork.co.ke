@@ -131,12 +131,12 @@
       ".indexOn": "createdAt"
     },
     "forms": {
-      ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true || root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true)",
       ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
     },
     "formSubmissions": {
-      ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
-      ".indexOn": "formId",
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true || (query.orderByChild === 'userId' && query.equalTo === auth.uid))",
+      ".indexOn": ["formId", "userId"],
       "$submissionId": {
           ".write": "auth != null && newData.child('userId').val() === auth.uid"
       }

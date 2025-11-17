@@ -99,13 +99,22 @@ export async function createCourse(courseData: Omit<Course, 'id'>): Promise<stri
         modules: courseData.modules || [],
         exam: courseData.exam || [],
     };
+
+    if (dataToSave.prerequisiteCourseId === 'none' || !dataToSave.prerequisiteCourseId) {
+        delete dataToSave.prerequisiteCourseId;
+    }
+
     await set(newCourseRef, dataToSave);
     return newCourseRef.key!;
 }
 
 export async function updateCourse(courseId: string, courseData: Partial<Course>): Promise<void> {
     const courseRef = ref(db, `courses/${courseId}`);
-    await update(courseRef, courseData);
+    const dataToUpdate = { ...courseData };
+    if (dataToUpdate.prerequisiteCourseId === 'none') {
+        dataToUpdate.prerequisiteCourseId = undefined; // Will be removed by update
+    }
+    await update(courseRef, dataToUpdate);
 }
 
 
@@ -1478,6 +1487,19 @@ export async function getAllForms(): Promise<FormType[]> {
 
 export async function getFormSubmissions(formId: string): Promise<FormSubmission[]> {
     const submissionsRef = query(ref(db, 'formSubmissions'), orderByChild('formId'), equalTo(formId));
+    const snapshot = await get(submissionsRef);
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        return Object.keys(data).map(key => ({
+            id: key,
+            ...data[key]
+        }));
+    }
+    return [];
+}
+
+export async function getFormSubmissionsByUserId(userId: string): Promise<FormSubmission[]> {
+    const submissionsRef = query(ref(db, 'formSubmissions'), orderByChild('userId'), equalTo(userId));
     const snapshot = await get(submissionsRef);
     if (snapshot.exists()) {
         const data = snapshot.val();

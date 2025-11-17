@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,28 +6,46 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
-import { FilePen } from 'lucide-react';
+import { FilePen, CheckCircle, ArrowRight } from 'lucide-react';
 import type { Form as FormType } from '@/lib/types';
+import { getAllForms, getFormSubmissionsByUserId } from '@/lib/firebase-service';
+import { Badge } from '@/components/ui/badge';
 
 export default function OrganizationFormsPage() {
-    const { organization, loading } = useAuth();
+    const { organization, user, loading } = useAuth();
     const [forms, setForms] = useState<FormType[]>([]);
+    const [completedFormIds, setCompletedFormIds] = useState<Set<string>>(new Set());
     const [loadingForms, setLoadingForms] = useState(true);
 
     useEffect(() => {
-        const fetchForms = async () => {
-            if (!organization) return;
+        const fetchFormsAndSubmissions = async () => {
+            if (!organization || !user) return;
             setLoadingForms(true);
-            // TODO: Implement getFormsByOrganization(organization.id)
-            // For now, it will be an empty array.
-            setForms([]); 
-            setLoadingForms(false);
+            try {
+                const [allForms, userSubmissions] = await Promise.all([
+                    getAllForms(),
+                    getFormSubmissionsByUserId(user.uid)
+                ]);
+
+                // Filter forms assigned to the org or public
+                const assignedForms = allForms.filter(form => !form.organizationId || form.organizationId === organization.id);
+                setForms(assignedForms);
+
+                // Create a set of completed form IDs for quick lookup
+                const completedIds = new Set(userSubmissions.map(sub => sub.formId));
+                setCompletedFormIds(completedIds);
+
+            } catch (error) {
+                console.error("Failed to fetch forms and submissions:", error);
+            } finally {
+                setLoadingForms(false);
+            }
         };
 
         if (!loading) {
             fetchForms();
         }
-    }, [organization, loading]);
+    }, [organization, user, loading]);
 
 
     if (loading || loadingForms) {
@@ -41,13 +58,32 @@ export default function OrganizationFormsPage() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><FilePen /> Forms & Surveys</CardTitle>
                     <CardDescription>
-                       Respond to forms and surveys assigned by the platform administrators.
+                       Respond to forms and surveys assigned by your organization or the platform administrators.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     {forms.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Map through forms here */}
+                        <div className="space-y-4">
+                            {forms.map(form => (
+                                <Card key={form.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4">
+                                    <div className="flex-grow">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-semibold">{form.title}</h3>
+                                            {completedFormIds.has(form.id) && (
+                                                <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
+                                                    <CheckCircle className="h-3 w-3 mr-1"/>
+                                                    Completed
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        <p className="text-sm text-muted-foreground mt-1">{form.description}</p>
+                                    </div>
+                                    <Button disabled={completedFormIds.has(form.id)}>
+                                        {completedFormIds.has(form.id) ? 'Submitted' : 'Fill Form'}
+                                        {!completedFormIds.has(form.id) && <ArrowRight className="ml-2 h-4 w-4"/>}
+                                    </Button>
+                                </Card>
+                            ))}
                         </div>
                     ) : (
                        <div className="text-center py-20 text-muted-foreground border-2 border-dashed rounded-lg">
