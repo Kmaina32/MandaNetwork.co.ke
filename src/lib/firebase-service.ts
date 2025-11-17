@@ -8,16 +8,6 @@ import type { Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notif
 import { getRemoteConfig, fetchAndActivate, getString } from 'firebase/remote-config';
 import { app } from './firebase';
 import { slugify } from './utils';
-import { getHeroData as getHeroDataServer } from './firebase-server';
-
-// Conditional import for server-side admin functionality
-let adminDb: any;
-if (typeof window === 'undefined') {
-  import('@/lib/firebase-admin').then(admin => {
-    adminDb = admin.adminDb;
-  }).catch(e => console.error("Failed to load firebase-admin", e));
-}
-
 
 export type { RegisteredUser } from './types';
 
@@ -293,11 +283,6 @@ export async function deleteUser(userId: string): Promise<void> {
 
 // Hero Section Functions
 export async function getHeroData(): Promise<HeroData> {
-  if (typeof window === 'undefined') {
-    // On the server, use the admin SDK version
-    return getHeroDataServer();
-  }
-  // On the client, use the client SDK
   const heroRef = ref(db, 'hero');
   const snapshot = await get(heroRef);
   const defaults = {
@@ -1239,6 +1224,20 @@ export async function updateBlogPost(postId: string, postData: Partial<Omit<Blog
 export async function deleteBlogPost(postId: string): Promise<void> {
   const postRef = ref(db, `blog/${postId}`);
   await remove(postRef);
+}
+
+export async function getAllBlogPosts(): Promise<BlogPost[]> {
+    const dbRef = ref(db, 'blog');
+    const snapshot = await get(dbRef);
+    if (snapshot.exists()) {
+        const postsData = snapshot.val();
+        const posts = Object.keys(postsData).map(key => ({
+            id: key,
+            ...postsData[key]
+        }));
+        return posts.reverse();
+    }
+    return [];
 }
 
 // Activity Logging

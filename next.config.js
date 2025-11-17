@@ -25,6 +25,8 @@ const nextConfig = {
     ],
   },
   webpack: (config, { isServer }) => {
+    config.experiments = { ...config.experiments, asyncWebAssembly: true };
+    
     if (isServer) {
       config.externals.push('handlebars');
     }
