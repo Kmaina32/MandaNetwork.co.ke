@@ -1,12 +1,12 @@
 
 import type { MetadataRoute } from 'next';
-import { getAllCourses, getAllPrograms, getAllBootcamps, getPublicProfiles, getAllBlogPosts } from '@/lib/firebase-service';
+import { getAllCourses, getAllPrograms, getAllBootcamps, getPublicProfiles, getAllBlogPosts } from '@/lib/firebase-server';
 import { slugify } from '@/lib/utils';
 
 const BASE_URL = 'https://www.mandanetwork.co.ke';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  // Fetch dynamic data
+  // Fetch dynamic data using server-side functions
   const [courses, programs, bootcamps, portfolios, blogPosts] = await Promise.all([
     getAllCourses(),
     getAllPrograms(),
