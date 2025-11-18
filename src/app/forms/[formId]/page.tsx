@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { notFound, useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { getFormById, createFormSubmission } from '@/lib/firebase-service';
+import { getFormBySlug, createFormSubmission } from '@/lib/firebase-service';
 import type { Form as FormType, FormSubmission } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -46,7 +47,7 @@ const buildSchema = (form: FormType) => {
 };
 
 export default function FillFormPage() {
-    const params = useParams<{ formId: string }>();
+    const params = useParams<{ slug: string }>();
     const router = useRouter();
     const { user, loading: authLoading } = useAuth();
     const { toast } = useToast();
@@ -64,13 +65,13 @@ export default function FillFormPage() {
     });
 
     useEffect(() => {
-        const formId = params.formId;
-        if (!formId) return;
+        const formSlug = params.slug;
+        if (!formSlug) return;
 
         const fetchForm = async () => {
             setLoading(true);
             try {
-                const formData = await getFormById(formId as string);
+                const formData = await getFormBySlug(formSlug as string);
                 if (!formData) {
                     notFound();
                     return;
@@ -84,7 +85,7 @@ export default function FillFormPage() {
             }
         };
         fetchForm();
-    }, [params.formId]);
+    }, [params.slug]);
 
     const onSubmit = async (values: FormValues) => {
         if (!user || !formDef) return;
@@ -114,7 +115,7 @@ export default function FillFormPage() {
     }
 
     if (!user) {
-        router.push('/login?redirect=/forms/' + params.formId);
+        router.push('/login?redirect=/forms/' + params.slug);
         return null;
     }
 
@@ -175,32 +176,32 @@ export default function FillFormPage() {
                                                     render={({ field }) => (
                                                         <FormItem>
                                                             <FormControl>
-                                                                {q.type === 'short-text' && <Input {...field} />}
-                                                                {q.type === 'long-text' && <Textarea className="min-h-24" {...field} />}
-                                                                {q.type === 'multiple-choice' && (
-                                                                    <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-2">
-                                                                        {q.options?.map((option, i) => (
-                                                                            <FormItem key={i} className="flex items-center space-x-3 space-y-0">
-                                                                                <FormControl>
-                                                                                    <RadioGroupItem value={option} />
-                                                                                </FormControl>
-                                                                                <FormLabel className="font-normal">{option}</FormLabel>
-                                                                            </FormItem>
-                                                                        ))}
-                                                                    </RadioGroup>
-                                                                )}
-                                                                {q.type === 'rating' && (
-                                                                    <div className="flex items-center gap-4">
-                                                                        <Slider
-                                                                            defaultValue={[3]}
-                                                                            min={1}
-                                                                            max={5}
-                                                                            step={1}
-                                                                            onValueChange={(value) => field.onChange(value[0])}
-                                                                        />
-                                                                        <span className="font-bold w-12 text-center">{field.value || '...'}</span>
-                                                                    </div>
-                                                                )}
+                                                                <>
+                                                                    {q.type === 'short-text' && <Input {...field} />}
+                                                                    {q.type === 'long-text' && <Textarea className="min-h-24" {...field} />}
+                                                                    {q.type === 'multiple-choice' && (
+                                                                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="space-y-1">
+                                                                            {q.options?.map((option, i) => (
+                                                                                <FormItem key={i} className="flex items-center space-x-3 space-y-0">
+                                                                                    <FormControl><RadioGroupItem value={option.value} /></FormControl>
+                                                                                    <FormLabel className="font-normal">{option.value}</FormLabel>
+                                                                                </FormItem>
+                                                                            ))}
+                                                                        </RadioGroup>
+                                                                    )}
+                                                                    {q.type === 'rating' && (
+                                                                        <div className="flex items-center gap-4">
+                                                                            <Slider
+                                                                                defaultValue={[3]}
+                                                                                min={1}
+                                                                                max={5}
+                                                                                step={1}
+                                                                                onValueChange={(value) => field.onChange(value[0])}
+                                                                            />
+                                                                            <span className="font-bold w-12 text-center text-lg text-primary">{field.value || '-'}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </>
                                                             </FormControl>
                                                             <FormMessage />
                                                         </FormItem>

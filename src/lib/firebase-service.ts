@@ -1340,7 +1340,11 @@ export async function deleteContactMessage(id: string): Promise<void> {
 export async function createForm(formData: Omit<FormType, 'id'>): Promise<string> {
   const formsRef = ref(db, 'forms');
   const newFormRef = push(formsRef);
-  await set(newFormRef, formData);
+  const dataToSave = {
+    ...formData,
+    slug: slugify(formData.title),
+  };
+  await set(newFormRef, dataToSave);
 
   // If it's a general survey, create a notification for it
   if (!formData.organizationId) {
@@ -1349,7 +1353,7 @@ export async function createForm(formData: Omit<FormType, 'id'>): Promise<string
       body: `We'd love your feedback! Please take a moment to complete the "${formData.title}" survey.`,
       actions: [{
         title: 'Start Survey',
-        action: 'open_form_dialog' as any, // This is a custom client-side action
+        action: 'open_form_dialog' as any,
         payload: {
           formId: newFormRef.key!,
         }
@@ -1362,7 +1366,11 @@ export async function createForm(formData: Omit<FormType, 'id'>): Promise<string
 
 export async function updateForm(id: string, formData: Omit<FormType, 'id'>): Promise<void> {
     const formRef = ref(db, `forms/${id}`);
-    await update(formRef, formData);
+    const dataToSave = {
+        ...formData,
+        slug: slugify(formData.title),
+    };
+    await update(formRef, dataToSave);
 }
 
 export async function getAllForms(): Promise<FormType[]> {
@@ -1380,6 +1388,17 @@ export async function getFormById(id: string): Promise<FormType | null> {
     const snapshot = await get(formRef);
     if (snapshot.exists()) {
         return { id, ...snapshot.val() };
+    }
+    return null;
+}
+
+export async function getFormBySlug(slug: string): Promise<FormType | null> {
+    const formsRef = query(ref(db, 'forms'), orderByChild('slug'), equalTo(slug));
+    const snapshot = await get(formsRef);
+    if (snapshot.exists()) {
+        const formsData = snapshot.val();
+        const formId = Object.keys(formsData)[0];
+        return { id: formId, ...formsData[formId] };
     }
     return null;
 }

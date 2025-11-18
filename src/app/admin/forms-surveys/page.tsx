@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -56,8 +57,8 @@ export default function AdminFormsPage() {
       }
   }
   
-  const handleShare = (formId: string) => {
-    const url = `${window.location.origin}/forms/${formId}`;
+  const handleShare = (slug: string) => {
+    const url = `${window.location.origin}/forms/${slug}`;
     navigator.clipboard.writeText(url);
     toast({ title: "Link Copied!", description: "The public link to the form has been copied." });
   }
@@ -118,7 +119,7 @@ export default function AdminFormsPage() {
                                         <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4"/></Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => handleShare(form.id)}>
+                                        <DropdownMenuItem onClick={() => handleShare(form.slug)}>
                                             <Share2 className="mr-2 h-4 w-4"/> Share
                                         </DropdownMenuItem>
                                         <DropdownMenuItem asChild>
