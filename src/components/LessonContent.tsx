@@ -66,7 +66,7 @@ export function LessonContent({ lesson, onComplete }: LessonContentProps) {
       <ScrollArea className="flex-grow">
         <div className="pr-4">
           <h1 className="text-3xl font-bold font-headline mb-4">{lesson.title}</h1>
-          <div className="prose max-w-none text-foreground/90 mb-6">
+          <div className="prose prose-p:my-6 max-w-none text-foreground/90 mb-6">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
