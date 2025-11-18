@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { db, storage } from './firebase';
@@ -102,6 +100,11 @@ export async function createCourse(courseData: Omit<Course, 'id' | 'createdAt'>)
 
     if (dataToSave.prerequisiteCourseId === 'none' || !dataToSave.prerequisiteCourseId) {
         delete dataToSave.prerequisiteCourseId;
+    }
+    
+    // Ensure project is not undefined
+    if (dataToSave.project === undefined) {
+        delete (dataToSave as Partial<Course>).project;
     }
 
     await set(newCourseRef, dataToSave);
@@ -1062,30 +1065,49 @@ export async function getHackathonSubmissions(hackathonId: string): Promise<Hack
 }
 
 export async function createHackathonSubmission(submissionData: Omit<HackathonSubmission, 'id'>): Promise<string> {
-    const refPath = ref(db, 'hackathonSubmissions');
-    const newRef = push(refPath);
-    await set(newRef, submissionData);
+  const userSubmissionsRef = query(
+    ref(db, 'hackathonSubmissions'),
+    orderByChild('userId'),
+    equalTo(submissionData.userId)
+  );
+  const snapshot = await get(userSubmissionsRef);
+  let userSubmissionsForThisHackathon = 0;
+  if (snapshot.exists()) {
+    snapshot.forEach((childSnapshot) => {
+      if (childSnapshot.val().hackathonId === submissionData.hackathonId) {
+        userSubmissionsForThisHackathon++;
+      }
+    });
+  }
 
-    // Leaderboard logic
-    const leaderboardRef = ref(db, `leaderboard/${submissionData.userId}`);
-    const leaderboardSnapshot = await get(leaderboardRef);
-    if (leaderboardSnapshot.exists()) {
-        await update(leaderboardRef, {
-            score: increment(10), // +10 points for submission
-            hackathonCount: increment(1)
-        });
-    } else {
-        const user = await getUserById(submissionData.userId);
-        await set(leaderboardRef, {
-            userId: submissionData.userId,
-            userName: user?.displayName || 'Anonymous',
-            userAvatar: user?.photoURL || '',
-            score: 10,
-            hackathonCount: 1,
-        });
-    }
+  if (userSubmissionsForThisHackathon >= 3) {
+    throw new Error("You have reached the maximum of 3 submissions for this hackathon.");
+  }
+  
+  const refPath = ref(db, 'hackathonSubmissions');
+  const newRef = push(refPath);
+  await set(newRef, submissionData);
 
-    return newRef.key!;
+  // Leaderboard logic
+  const leaderboardRef = ref(db, `leaderboard/${submissionData.userId}`);
+  const leaderboardSnapshot = await get(leaderboardRef);
+  if (leaderboardSnapshot.exists()) {
+    await update(leaderboardRef, {
+      score: increment(10), // +10 points for submission
+      hackathonCount: increment(1)
+    });
+  } else {
+    const user = await getUserById(submissionData.userId);
+    await set(leaderboardRef, {
+      userId: submissionData.userId,
+      userName: user?.displayName || 'Anonymous',
+      userAvatar: user?.photoURL || '',
+      score: 10,
+      hackathonCount: 1,
+    });
+  }
+
+  return newRef.key!;
 }
 
 export async function awardLeaderboardPoints(userId: string, points: number): Promise<void> {

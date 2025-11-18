@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { getAllHackathons, Hackathon, getHeroData, registerForHackathon } from '@/lib/firebase-service';
-import { Loader2, Trophy, FileText, Scale, Star } from 'lucide-react';
+import { Loader2, Trophy, FileText, Scale, Star, GitBranch } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -128,6 +127,17 @@ function HackathonGuidelines() {
                     <AccordionItem value="item-2">
                         <AccordionTrigger>
                             <div className="flex items-center gap-3">
+                                <GitBranch className="h-5 w-5 text-primary" />
+                                <span className="font-semibold">Submission Policy</span>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                           You can make up to 3 submissions for each hackathon. Your last submission before the deadline will be considered your final entry for judging.
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="item-3">
+                        <AccordionTrigger>
+                            <div className="flex items-center gap-3">
                                 <Star className="h-5 w-5 text-primary" />
                                 <span className="font-semibold">Judging Criteria</span>
                             </div>
@@ -136,7 +146,7 @@ function HackathonGuidelines() {
                            Projects are judged on four main criteria: Technical Complexity, Creativity & Innovation, Design & User Experience, and Presentation/Pitch. Make sure your project addresses the hackathon theme.
                         </AccordionContent>
                     </AccordionItem>
-                     <AccordionItem value="item-3">
+                     <AccordionItem value="item-4">
                         <AccordionTrigger>
                              <div className="flex items-center gap-3">
                                 <Scale className="h-5 w-5 text-primary" />
