@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -9,9 +9,10 @@ import type { Lesson } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { Progress } from './ui/progress';
 
 const GoogleDriveIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" {...props}>
@@ -60,6 +61,41 @@ interface LessonContentProps {
 }
 
 export function LessonContent({ lesson, onComplete }: LessonContentProps) {
+  const [timerProgress, setTimerProgress] = useState(0);
+  
+  useEffect(() => {
+    if (!lesson) return;
+
+    // Reset progress when lesson changes
+    setTimerProgress(0);
+
+    const durationInMinutes = parseInt(lesson.duration.split(' ')[0], 10);
+    if (isNaN(durationInMinutes) || durationInMinutes <= 0) {
+        // If duration is invalid, mark as complete after a short delay
+        setTimeout(onComplete, 2000);
+        return;
+    }
+    
+    const durationInSeconds = durationInMinutes * 60;
+    const interval = 100; // Update every 100ms
+    const totalSteps = durationInSeconds * 1000 / interval;
+    let step = 0;
+
+    const timer = setInterval(() => {
+      step++;
+      const progress = (step / totalSteps) * 100;
+      setTimerProgress(progress);
+
+      if (progress >= 100) {
+        clearInterval(timer);
+        onComplete();
+      }
+    }, interval);
+
+    return () => clearInterval(timer);
+  }, [lesson, onComplete]);
+
+
   if (!lesson) return null;
 
   return (
@@ -67,7 +103,7 @@ export function LessonContent({ lesson, onComplete }: LessonContentProps) {
       <ScrollArea className="flex-grow">
         <div className="pr-4">
           <h1 className="text-3xl font-bold font-headline mb-4">{lesson.title}</h1>
-          <div className="prose dark:prose-invert text-foreground/90 mb-6" style={{ whiteSpace: 'pre-wrap' }}>
+          <div className="prose text-foreground/90 mb-6" style={{ whiteSpace: 'pre-wrap' }}>
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeRaw]}
@@ -119,13 +155,12 @@ export function LessonContent({ lesson, onComplete }: LessonContentProps) {
       </ScrollArea>
 
       <div className="pt-6 mt-auto flex-shrink-0">
-        <Button
-          size="lg"
-          className="w-full bg-accent hover:bg-accent/90"
-          onClick={onComplete}
-        >
-          Mark as Completed &amp; Continue
-        </Button>
+         <div className="flex items-center gap-4">
+            <Progress value={timerProgress} className="h-2"/>
+            <span className="text-xs text-muted-foreground w-28 text-right">
+                {timerProgress < 100 ? 'Marking complete...' : 'Completed!'}
+            </span>
+         </div>
       </div>
     </div>
   );

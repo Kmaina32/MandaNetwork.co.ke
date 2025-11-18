@@ -249,7 +249,7 @@ export default function CoursePlayerPage() {
            </Header>
          ) : <Header />}
         
-        <CoursePlayerHeader course={course} progress={progress} />
+        <CoursePlayerHeader progress={progress} />
 
         <div className="flex flex-grow overflow-hidden">
           <div className="flex-grow flex flex-col md:flex-row overflow-hidden relative">

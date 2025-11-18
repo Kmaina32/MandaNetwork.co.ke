@@ -9,7 +9,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import {
   SheetHeader,
@@ -68,7 +67,6 @@ export function CourseOutline({
         </SheetHeader>
       ) : (
         <div className="mb-4">
-            <h2 className="text-xl font-bold font-headline truncate" title={course.title}>{course.title}</h2>
             <button
                 onClick={() => router.push(`/courses/${slugify(course.title)}`)}
                 className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
@@ -90,16 +88,7 @@ export function CourseOutline({
             <AccordionItem value={module.id} key={module.id}>
               <AccordionTrigger className="font-semibold px-4 py-2 hover:no-underline text-left">
                 <div className="w-full">
-                  <p className="break-words">{module.title}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Progress
-                      value={moduleProgress}
-                      className="h-1 flex-grow bg-secondary"
-                    />
-                    <span className="text-xs font-normal text-muted-foreground">
-                      {Math.round(moduleProgress)}%
-                    </span>
-                  </div>
+                  <p className="break-words font-headline">{module.title}</p>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
