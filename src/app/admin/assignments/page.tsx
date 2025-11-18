@@ -74,7 +74,7 @@ function SubmissionsList() {
                 {submission.graded ? (
                     <Badge>
                         <CheckCircle className="mr-1 h-3 w-3" />
-                        Graded ({submission.pointsAwarded || 0} / 10)
+                        Graded ({submission.pointsAwarded || 0} / {(submission.course?.exam?.reduce((acc, q) => acc + q.maxPoints, 0)) || 10})
                     </Badge>
                 ) : (
                     <Badge variant="secondary">Pending Review</Badge>

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -119,7 +120,7 @@ export function AdminSidebar() {
             <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/assignments')} tooltip="Exams & Projects">
               <Link href="/admin/assignments">
                 <Briefcase className="h-4 w-4 mr-2" />
-                Exams & Projects
+                Assignments
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

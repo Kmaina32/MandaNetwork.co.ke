@@ -109,7 +109,7 @@ export default function GradeSubmissionPage() {
     }
   };
   
-  const totalMaxPoints = course?.exam.reduce((acc, q) => acc + q.maxPoints, 0) || 0;
+  const totalMaxPoints = course?.exam?.reduce((acc, q) => acc + q.maxPoints, 0) || 0;
   const totalPointsAwarded = Array.from(gradeResults.values()).reduce((acc, r) => acc + r.pointsAwarded, 0);
   const finalPercentage = totalMaxPoints > 0 ? (totalPointsAwarded / totalMaxPoints) * 100 : 0;
 
@@ -132,7 +132,7 @@ export default function GradeSubmissionPage() {
         if (achievement) {
             toast({
                 title: 'Achievement Unlocked!',
-                description: `${'achievement.name'}: ${'achievement.description'}`
+                description: `${achievement.name}: ${achievement.description}`
             });
         }
         
@@ -193,7 +193,7 @@ export default function GradeSubmissionPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                {course.exam.map((question, index) => {
+                {course.exam && course.exam.map((question, index) => {
                     const studentAnswer = submission.answers.find(a => a.questionId === question.id);
                     const grade = gradeResults.get(question.id);
 
@@ -231,7 +231,7 @@ export default function GradeSubmissionPage() {
                                 </>
                             ) : (
                                 <div className='space-y-2'>
-                                   {question.options.map((option, i) => {
+                                   {question.options?.map((option, i) => {
                                         const isSelected = i === studentAnswer?.answer;
                                         const isCorrect = i === question.correctAnswer;
                                         return (
@@ -264,13 +264,13 @@ export default function GradeSubmissionPage() {
                      </div>
                      <div className="flex justify-end">
                         {!submission.graded && (
-                            <Button onClick={handleApproveGrade} disabled={isSaving || gradeResults.size < course.exam.length}>
+                            <Button onClick={handleApproveGrade} disabled={isSaving || gradeResults.size < (course.exam?.length || 0)}>
                                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
                                 Approve & Save Grade
                             </Button>
                         )}
                     </div>
-                    {!submission.graded && gradeResults.size < course.exam.length && (
+                    {!submission.graded && gradeResults.size < (course.exam?.length || 0) && (
                         <p className='text-xs text-muted-foreground text-right'>Grade all short-answer questions to enable saving.</p>
                     )}
                 </div>

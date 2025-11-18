@@ -67,8 +67,8 @@ export function AdminSidebar() {
                     </SidebarMenuButton>
                  </SidebarMenuItem>
                  <SidebarMenuItem>
-                     <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/assignments')} tooltip="Exams & Projects">
-                        <Link href="/admin/assignments"><Briefcase className="h-4 w-4 mr-2"/>Exams & Projects</Link>
+                     <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/assignments')} tooltip="Assignments">
+                        <Link href="/admin/assignments"><Briefcase className="h-4 w-4 mr-2"/>Assignments</Link>
                     </SidebarMenuButton>
                  </SidebarMenuItem>
                   <SidebarMenuItem>
@@ -112,7 +112,7 @@ export function AdminSidebar() {
                     <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/organizations')} tooltip="Organizations">
                         <Link href="/admin/organizations"><Building className="h-4 w-4 mr-2"/>Organizations</Link>
                     </SidebarMenuButton>
-                </SidebarMenuItem>
+                 </SidebarMenuItem>
                  <SidebarMenuItem>
                     <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/affiliates')} tooltip="Affiliates">
                         <Link href="/admin/affiliates"><Handshake className="h-4 w-4 mr-2"/>Affiliates</Link>
