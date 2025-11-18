@@ -10,6 +10,7 @@ import type { Lesson, Course } from '@/lib/types';
 
 interface CoursePlayerTabsProps {
     lesson: Lesson;
+    course: Course;
     onComplete: () => void;
 }
 
@@ -29,7 +30,7 @@ function getYouTubeEmbedUrl(url: string | undefined): string | null {
     }
 }
 
-export function CoursePlayerTabs({ lesson, onComplete }: CoursePlayerTabsProps) {
+export function CoursePlayerTabs({ lesson, course, onComplete }: CoursePlayerTabsProps) {
     const [activeTab, setActiveTab] = useState('lesson');
     
     const hasVideo = !!lesson.youtubeLinks?.[0]?.url;
@@ -71,8 +72,7 @@ export function CoursePlayerTabs({ lesson, onComplete }: CoursePlayerTabsProps) 
                 )}
             </TabsContent>
             <TabsContent value="discussion">
-                {/* The course ID needs to be available here */}
-                {/* <DiscussionForum courseId={course.id} /> */}
+                <DiscussionForum courseId={course.id} />
             </TabsContent>
         </Tabs>
     );

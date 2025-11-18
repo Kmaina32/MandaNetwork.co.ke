@@ -253,6 +253,7 @@ export default function CoursePlayerPage() {
             <main className="flex-grow p-6 md:p-8 overflow-y-auto bg-secondary relative flex flex-col">
                {currentLesson ? (
                     <CoursePlayerTabs
+                        course={course}
                         lesson={currentLesson}
                         onComplete={handleCompleteLesson}
                     />
