@@ -1,13 +1,16 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Lesson } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Check, Copy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 const GoogleDriveIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" {...props}>
@@ -16,6 +19,39 @@ const GoogleDriveIcon = (props: React.SVGProps<SVGSVGElement>) => (
         <path d="M375.1 368.8L440 256H199.3l-47.5 82.3 223.3.5z" fill="#4caf50"/>
     </svg>
 );
+
+const CodeBlock = ({ node, inline, className, children, ...props }: any) => {
+    const { toast } = useToast();
+    const [hasCopied, setHasCopied] = useState(false);
+    const match = /language-(\w+)/.exec(className || '');
+    const codeString = String(children).replace(/\n$/, '');
+
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(codeString);
+        setHasCopied(true);
+        toast({ title: "Copied to clipboard!" });
+        setTimeout(() => setHasCopied(false), 2000);
+    };
+
+    if (inline) {
+      return <code className="bg-muted px-1.5 py-1 rounded-sm text-sm font-mono">{children}</code>;
+    }
+
+    return (
+        <div className="my-4 not-prose">
+            <div className={cn("rounded-md border", match ? `language-${match[1]}` : '')}>
+                <div className="flex items-center justify-between bg-secondary px-4 py-2 rounded-t-md">
+                    <span className="text-xs font-semibold uppercase text-muted-foreground">{match ? match[1] : 'code'}</span>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={copyToClipboard}>
+                        {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                </div>
+                 <pre className="p-4 bg-background rounded-b-md overflow-x-auto text-sm font-mono">{children}</pre>
+            </div>
+        </div>
+    );
+};
+
 
 interface LessonContentProps {
   lesson: Lesson | null;
@@ -31,7 +67,14 @@ export function LessonContent({ lesson, onComplete }: LessonContentProps) {
         <div className="pr-4">
           <h1 className="text-3xl font-bold font-headline mb-4">{lesson.title}</h1>
           <div className="prose max-w-none text-foreground/90 mb-6">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{lesson.content}</ReactMarkdown>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                    code: CodeBlock,
+                }}
+              >
+                  {lesson.content}
+              </ReactMarkdown>
           </div>
 
           {lesson.googleDriveLinks && lesson.googleDriveLinks.length > 0 && (
