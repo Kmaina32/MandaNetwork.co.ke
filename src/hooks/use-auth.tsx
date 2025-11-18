@@ -235,11 +235,13 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
             commissionAmount: 0,
             createdAt: new Date().toISOString(),
         });
-        const affiliateUser = await getUserById(affiliateRef);
-        if (affiliateUser) {
+        const affiliateUserRef = ref(db, `users/${affiliateRef}`);
+        const affiliateSnapshot = await get(affiliateUserRef);
+        if (affiliateSnapshot.exists()) {
             const affiliateStatsRef = ref(db, `users/${affiliateRef}/affiliateStats`);
             await update(affiliateStatsRef, {
                 clicks: increment(1),
+                referrals: increment(1)
             });
         }
     }

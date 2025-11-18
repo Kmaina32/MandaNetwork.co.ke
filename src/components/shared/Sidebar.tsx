@@ -103,7 +103,7 @@ export function AppSidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
-                         <SidebarMenuItem>
+                        <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/programs')} tooltip="Certificate Programs" onClick={() => onLinkClick('/programs')}>
                                 <Link href="/programs">
                                     <Library />
@@ -111,7 +111,7 @@ export function AppSidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
-                         <SidebarMenuItem>
+                        <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/bootcamps')} tooltip="Bootcamps" onClick={() => onLinkClick('/bootcamps')}>
                                 <Link href="/bootcamps">
                                     <Rocket />
@@ -119,7 +119,7 @@ export function AppSidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
-                         <SidebarMenuItem>
+                        <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/portal/hackathons')} tooltip="Hackathons" onClick={() => onLinkClick('/portal/hackathons')}>
                                 <Link href="/portal/hackathons">
                                     <Trophy />
@@ -277,7 +277,7 @@ export function AppSidebar() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive('/for-business')} tooltip="For Organizations" onClick={onLinkClick}>
+                            <SidebarMenuButton asChild isActive={isActive('/for-business')} tooltip="For Organizations" onClick={() => onLinkClick('/for-business')}>
                                 <Link href="/for-business">
                                     <Building />
                                     <span>Organization</span>

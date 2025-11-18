@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -13,7 +14,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { GitBranch, Home, LayoutDashboard, ListTodo, Calendar, User, HelpCircle, Mail, Info, UserPlus, Book, Shield, Notebook as NotebookIcon, Clapperboard, Library, Briefcase, Tag, Building, Users as PortfoliosIcon, Rocket, Trophy, Rss, CreditCard, Handshake, FilePen } from 'lucide-react';
+import { GitBranch, Home, LayoutDashboard, ListTodo, Calendar, User, HelpCircle, Mail, Info, UserPlus, Book, Shield, Notebook as NotebookIcon, Clapperboard, Library, Briefcase, Tag, Building, Users as PortfoliosIcon, Rocket, Trophy, Rss, CreditCard, Handshake } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Separator } from './ui/separator';
 import pkg from '../../package.json';
@@ -118,11 +119,6 @@ export function AppSidebar() {
                          <SidebarMenuItem>
                            <SidebarMenuButton asChild size="sm" isActive={isActive('/assignments')} tooltip="My Exams" onClick={() => onLinkClick('/assignments')}>
                                 <Link href="/assignments"><ListTodo className="mr-2"/>My Exams</Link>
-                           </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                           <SidebarMenuButton asChild size="sm" isActive={isActive('/messages')} tooltip="Message Center" onClick={() => onLinkClick('/messages')}>
-                                <Link href="/messages"><Mail className="mr-2"/>Message Center</Link>
                            </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>

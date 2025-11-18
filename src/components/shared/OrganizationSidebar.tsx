@@ -13,7 +13,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { GitBranch, LayoutDashboard, Users, BookOpen, CreditCard, Settings, ExternalLink, Tag, LogOut, Home, Clapperboard } from 'lucide-react';
+import { GitBranch, LayoutDashboard, Users, BookOpen, CreditCard, Settings, ExternalLink, Tag, LogOut, Home, Clapperboard, Users as PortfoliosIcon } from 'lucide-react';
 import pkg from '../../../package.json';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
@@ -80,6 +80,14 @@ export function OrganizationSidebar() {
                                 <Link href="/organization/live">
                                     <Clapperboard />
                                     <span>Live Classroom</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/portfolios')} tooltip="Hiring Center">
+                                <Link href="/portfolios">
+                                    <PortfoliosIcon />
+                                    <span>Hiring Center</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

@@ -350,6 +350,12 @@ export interface RegisteredUser {
     learningGoals?: Record<string, LearningGoal>;
     achievements?: Record<string, Achievement>;
     photoURL?: string;
+    affiliateId?: string;
+    affiliateStats?: {
+        clicks: number;
+        referrals: number;
+        earnings: number;
+    };
 }
 
 export interface PermissionRequest {
