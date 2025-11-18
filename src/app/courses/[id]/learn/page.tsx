@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { notFound, useRouter, useParams } from 'next/navigation';
 import type { Course, Lesson, TutorSettings } from '@/lib/types';
 import { getCourseById, updateUserCourseProgress, getUserCourses, getTutorSettings, getAllCourses } from '@/lib/firebase-service';
@@ -156,7 +156,7 @@ export default function CoursePlayerPage() {
         if (achievement) {
             toast({
                 title: 'Achievement Unlocked!',
-                description: `${'achievement.name'}: ${'achievement.description'}`
+                description: `${achievement.name}: ${achievement.description}`
             });
         }
     }
@@ -270,8 +270,9 @@ export default function CoursePlayerPage() {
                             </>
                         ) : (
                             <Alert>
+                                <AlertTitle>No lesson selected</AlertTitle>
                                 <AlertDescription>
-                                    Select an unlocked lesson from the sidebar to begin.
+                                    Please select an unlocked lesson from the sidebar to begin.
                                 </AlertDescription>
                             </Alert>
                         )}

@@ -39,7 +39,7 @@ const CodeBlock = ({ node, inline, className, children, ...props }: any) => {
     }
 
     return (
-        <div className="my-4 not-prose">
+        <div className="my-4">
             <div className={cn("rounded-md border", match ? `language-${match[1]}` : '')}>
                 <div className="flex items-center justify-between bg-secondary px-4 py-2 rounded-t-md">
                     <span className="text-xs font-semibold uppercase text-muted-foreground">{match ? match[1] : 'code'}</span>
@@ -67,7 +67,7 @@ export function LessonContent({ lesson, onComplete }: LessonContentProps) {
       <ScrollArea className="flex-grow">
         <div className="pr-4">
           <h1 className="text-3xl font-bold font-headline mb-4">{lesson.title}</h1>
-          <div className="prose prose-p:my-6 dark:prose-invert text-foreground/90 mb-6">
+          <div className="prose dark:prose-invert text-foreground/90 mb-6">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeRaw]}
