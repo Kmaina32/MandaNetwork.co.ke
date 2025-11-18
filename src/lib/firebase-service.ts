@@ -112,7 +112,7 @@ export async function updateCourse(courseId: string, courseData: Partial<Course>
     const courseRef = ref(db, `courses/${courseId}`);
     const dataToUpdate = { ...courseData };
     if (dataToUpdate.prerequisiteCourseId === 'none') {
-        dataToUpdate.prerequisiteCourseId = undefined; // Will be filtered out
+        dataToUpdate.prerequisiteCourseId = undefined; // This will get filtered out
     }
      // Filter out undefined values before saving
     const finalData = Object.fromEntries(Object.entries(dataToUpdate).filter(([_, v]) => v !== undefined));
@@ -1392,4 +1392,39 @@ export async function getReferralsByAffiliate(affiliateId: string): Promise<Refe
         return Object.keys(data).map(key => ({ id: key, ...data[key] }));
     }
     return [];
+}
+
+export async function createOrUpdateConversation(conversation: Partial<any>): Promise<void> {
+  const conversationRef = ref(db, `conversations/${conversation.studentId}`);
+  const snapshot = await get(conversationRef);
+  if (snapshot.exists()) {
+    const existingMessages = snapshot.val().messages || [];
+    const newMessages = [...existingMessages, {
+      senderId: 'employer', // Assuming employer starts or replies
+      text: conversation.initialMessage,
+      timestamp: new Date().toISOString(),
+    }];
+    await update(conversationRef, { messages: newMessages, lastMessageAt: new Date().toISOString() });
+  } else {
+    await set(conversationRef, {
+      studentId: conversation.studentId,
+      studentName: conversation.studentName,
+      employerName: conversation.employerName,
+      employerPhotoUrl: conversation.employerPhotoUrl,
+      organizationName: conversation.organizationName,
+      lastMessageAt: new Date().toISOString(),
+      messages: [{
+        senderId: 'employer',
+        text: conversation.initialMessage,
+        timestamp: new Date().toISOString(),
+      }]
+    });
+  }
+}
+
+export async function sendMessage(conversationId: string, message: { senderId: string; text: string; timestamp: string }): Promise<void> {
+  const messagesRef = ref(db, `conversations/${conversationId}/messages`);
+  const newMessageRef = push(messagesRef);
+  await set(newMessageRef, message);
+  await update(ref(db, `conversations/${conversationId}`), { lastMessageAt: new Date().toISOString() });
 }
