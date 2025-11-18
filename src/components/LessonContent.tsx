@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import type { Lesson } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -69,8 +70,28 @@ export function LessonContent({ lesson, onComplete }: LessonContentProps) {
           <div className="prose prose-p:my-6 max-w-none text-foreground/90 mb-6">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
                 components={{
-                    code: CodeBlock,
+                    div: ({ node, ...props }) => {
+                        const isCodeBlock = node.children.some(
+                          (child: any) => child.tagName === 'pre'
+                        );
+                        if (isCodeBlock) {
+                          const preNode = node.children.find(
+                            (child: any) => child.tagName === 'pre'
+                          );
+                          const codeNode = preNode?.children[0];
+                          return <CodeBlock node={codeNode} {...(codeNode?.properties || {})} >{codeNode?.children[0]?.value}</CodeBlock>;
+                        }
+                        return <div {...props} />;
+                    },
+                    code({ node, inline, className, children, ...props }) {
+                        if (inline) {
+                            return <code className="bg-muted px-1.5 py-1 rounded-sm text-sm font-mono" {...props}>{children}</code>
+                        }
+                        // This will be handled by the div renderer above for block code
+                        return null;
+                    }
                 }}
               >
                   {lesson.content}
