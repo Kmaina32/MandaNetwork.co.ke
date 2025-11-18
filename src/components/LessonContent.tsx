@@ -35,7 +35,7 @@ const CodeBlock = ({ node, inline, className, children, ...props }: any) => {
     };
 
     if (inline) {
-      return <code className="bg-muted px-1.5 py-1 rounded-sm text-sm font-mono">{children}</code>;
+      return <code className="bg-muted px-1.5 py-1 rounded-sm text-sm font-mono" {...props}>{children}</code>;
     }
 
     return (
