@@ -12,13 +12,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, Loader2, Send } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const ADMIN_UID = 'YlyqSWedlPfEqI9LlGzjN7zlRtC2';
 
 const getInitials = (name: string | null | undefined) => {
     if (!name) return 'U';
     const names = name.split(' ');
-    return names.length > 1 ? `${'names[0][0]'}${names[names.length - 1][0]}` : names[0]?.[0] || 'U';
+    return names.length > 1 ? `${names[0][0]}${names[names.length - 1][0]}` : names[0]?.[0] || 'U';
 };
 
 interface DiscussionForumProps {
@@ -114,7 +116,9 @@ export function DiscussionForum({ courseId }: DiscussionForumProps) {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <p className="whitespace-pre-wrap pb-6 border-b">{selectedThread.content}</p>
+                    <div className="prose dark:prose-invert max-w-none pb-6 border-b">
+                       <ReactMarkdown remarkPlugins={[remarkGfm]}>{selectedThread.content}</ReactMarkdown>
+                    </div>
 
                     <div className="space-y-4 mt-6">
                         <h3 className="font-semibold">{replies.length} Submissions</h3>
@@ -129,7 +133,9 @@ export function DiscussionForum({ courseId }: DiscussionForumProps) {
                                         <span className="font-semibold">{reply.authorName}</span>
                                         <span className="text-muted-foreground">{formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}</span>
                                     </div>
-                                    <p className="text-sm whitespace-pre-wrap">{reply.content}</p>
+                                     <div className="prose prose-sm dark:prose-invert max-w-none">
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{reply.content}</ReactMarkdown>
+                                     </div>
                                 </div>
                             </div>
                         ))}

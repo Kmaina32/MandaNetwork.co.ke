@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -9,7 +8,7 @@ import { getCourseById, updateUserCourseProgress, getUserCourses, saveTutorHisto
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { CheckCircle, Lock, PlayCircle, Star, Loader2, ArrowLeft, Youtube, Video, AlertCircle, Menu, Bot, User, Send, MessageSquare, Volume2, Mic, MicOff, BrainCircuit, FileText, Sparkles, Pencil, VolumeX, Link as LinkIcon, Download, Gem, MessageCircle, ArrowRight } from 'lucide-react';
+import { CheckCircle, Lock, PlayCircle, Star, Loader2, ArrowLeft, Youtube, Video, AlertCircle, Menu, Bot, User, Send, MessageSquare, Volume2, Mic, MicOff, BrainCircuit, FileText, Sparkles, Pencil, VolumeX, Link as LinkIcon, Download, Gem, MessageCircle, ArrowRight, X } from 'lucide-react';
 import { AppSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
@@ -18,7 +17,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { format as formatDate, isWeekend, differenceInDays, differenceInWeeks } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,6 +33,8 @@ import { slugify } from '@/lib/utils';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
 import { NotebookSheet } from '@/components/NotebookSheet';
 import { checkCourseCompletionAchievements } from '@/lib/achievements';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 
 function getYouTubeEmbedUrl(url: string | undefined): string | null {
@@ -72,13 +73,6 @@ function getWeekdayCount(startDate: Date, endDate: Date): number {
   return count;
 }
 
-function Markdown({ content }: { content: string }) {
-    const html = content
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/\n/g, '<br />');
-    return <p className="text-sm whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: html }} />;
-}
 
 const GoogleDriveIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" {...props}>
@@ -331,7 +325,9 @@ function AiTutor({ course, lesson, settings }: { course: Course, lesson: Lesson 
                                             </Avatar>
                                         )}
                                         <div className={`rounded-lg px-3 py-2 max-w-md ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}>
-                                            <Markdown content={message.content} />
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose prose-sm dark:prose-invert max-w-none">
+                                                {message.content}
+                                            </ReactMarkdown>
                                         </div>
                                             {message.role === 'user' && (
                                             <Avatar className="h-8 w-8 border">
@@ -402,7 +398,7 @@ function LessonContent({ lesson, onComplete }: { lesson: Lesson | null; onComple
           <div className="pr-4">
             <h1 className="text-3xl font-bold font-headline mb-4">{lesson.title}</h1>
             <div className="prose max-w-none text-foreground/90 mb-6">
-                <p>{lesson.content}</p>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{lesson.content}</ReactMarkdown>
             </div>
 
             {lesson.googleDriveLinks && lesson.googleDriveLinks.length > 0 && (

@@ -14,10 +14,6 @@ interface BlogPostContentProps {
 
 // This is a custom renderer for thematic breaks (---)
 const ThematicBreakRenderer = ({ node, ...props }: { node: any, [key: string]: any }) => {
-    // Check if the thematic break is our special ad marker
-    // The markdown parser will see `--- ad ---` as a thematic break with text inside, but we can't easily access that text here.
-    // A simpler convention is to just use a standard thematic break `---` as the ad placeholder.
-    // We will use a counter to cycle through ads.
     const adIndex = props.adCounter.current % props.promoItems.length;
     const promoItem = props.promoItems[adIndex];
     
@@ -34,13 +30,12 @@ const ThematicBreakRenderer = ({ node, ...props }: { node: any, [key: string]: a
     return <hr />;
 };
 
-
 export function BlogPostContent({ content, promoItems }: BlogPostContentProps) {
-  // Use a ref to keep track of which ad to show next, so we can cycle through them.
   const adCounter = React.useRef(0);
 
-  if (promoItems.length === 0 || !content.includes('---')) {
-    // If no ads or no ad markers, just render the content as is.
+  const hasAdMarkers = content.includes('---');
+  
+  if (promoItems.length === 0 || !hasAdMarkers) {
     return <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>;
   }
 
@@ -48,8 +43,6 @@ export function BlogPostContent({ content, promoItems }: BlogPostContentProps) {
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
-        // We override the thematic break (`---`) component.
-        // When the markdown parser finds a `---`, it will render our ad card instead.
         hr: (props) => (
             <ThematicBreakRenderer {...props} promoItems={promoItems} adCounter={adCounter} />
         ),
