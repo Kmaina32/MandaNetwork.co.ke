@@ -8,7 +8,7 @@ import { getCourseById, updateUserCourseProgress, getUserCourses, saveTutorHisto
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { CheckCircle, Lock, PlayCircle, Star, Loader2, ArrowLeft, Youtube, Video, AlertCircle, Menu, Bot, User, Send, MessageSquare, Volume2, Mic, MicOff, BrainCircuit, FileText, Sparkles, Pencil, VolumeX, Link as LinkIcon, Download, Gem, MessageCircle, ArrowRight } from 'lucide-react';
+import { CheckCircle, Lock, PlayCircle, Star, Loader2, ArrowLeft, Youtube, Video, AlertCircle, Menu, Bot, User, Send, MessageSquare, Volume2, Mic, MicOff, BrainCircuit, FileText, Sparkles, Pencil, VolumeX, Link as LinkIcon, Download, Gem, MessageCircle, ArrowRight, X } from 'lucide-react';
 import { AppSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
@@ -17,11 +17,11 @@ import { useAuth } from '@/hooks/use-auth';
 import { format as formatDate, isWeekend, differenceInDays, differenceInWeeks } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
-import { courseTutor } from '@/app/actions';
+import { courseTutor, speechToText, textToSpeech } from '@/app/actions';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useRecorder } from '@/hooks/use-recorder';
 import { Separator } from '@/components/ui/separator';
@@ -33,6 +33,8 @@ import { slugify } from '@/lib/utils';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
 import { NotebookSheet } from '@/components/NotebookSheet';
 import { checkCourseCompletionAchievements } from '@/lib/achievements';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 
 function getYouTubeEmbedUrl(url: string | undefined): string | null {
@@ -71,13 +73,6 @@ function getWeekdayCount(startDate: Date, endDate: Date): number {
   return count;
 }
 
-function Markdown({ content }: { content: string }) {
-    const html = content
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/\n/g, '<br />');
-    return <p className="text-sm whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: html }} />;
-}
 
 const GoogleDriveIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" {...props}>
@@ -330,7 +325,9 @@ function AiTutor({ course, lesson, settings }: { course: Course, lesson: Lesson 
                                             </Avatar>
                                         )}
                                         <div className={`rounded-lg px-3 py-2 max-w-md ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}>
-                                            <Markdown content={message.content} />
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose prose-sm dark:prose-invert max-w-none">
+                                                {message.content}
+                                            </ReactMarkdown>
                                         </div>
                                             {message.role === 'user' && (
                                             <Avatar className="h-8 w-8 border">
@@ -401,7 +398,7 @@ function LessonContent({ lesson, onComplete }: { lesson: Lesson | null; onComple
           <div className="pr-4">
             <h1 className="text-3xl font-bold font-headline mb-4">{lesson.title}</h1>
             <div className="prose max-w-none text-foreground/90 mb-6">
-                <p>{lesson.content}</p>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{lesson.content}</ReactMarkdown>
             </div>
 
             {lesson.googleDriveLinks && lesson.googleDriveLinks.length > 0 && (
@@ -453,8 +450,7 @@ export default function CoursePlayerPage() {
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const [unlockedLessonsCount, setUnlockedLessonsCount] = useState(0);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
+  const [activeTab, setActiveTab] = useState('lesson');
 
   useEffect(() => {
      if (!authLoading) {
@@ -524,6 +520,7 @@ export default function CoursePlayerPage() {
   const handleLessonClick = (lesson: Lesson, index: number) => {
       if(index < unlockedLessonsCount) {
           setCurrentLesson(lesson);
+          setActiveTab('lesson'); // Switch back to lesson tab when a new one is clicked
           if (isMobile) {
             setIsSheetOpen(false);
           }
@@ -584,29 +581,9 @@ export default function CoursePlayerPage() {
     }
   };
 
-  const handleVideoClick = async () => {
-    const videoUrl = currentLesson?.youtubeLinks?.[0]?.url;
-    if (videoUrl && videoRef.current) {
-        if(document.pictureInPictureElement) {
-            await document.exitPictureInPicture();
-        } else {
-            videoRef.current.src = getYouTubeEmbedUrl(videoUrl) || '';
-            videoRef.current.play().catch(() => { /* Autoplay might be blocked */ });
-            // Wait for video to load before requesting PiP
-            videoRef.current.onloadedmetadata = async () => {
-                 try {
-                    await videoRef.current?.requestPictureInPicture();
-                 } catch (error) {
-                    console.error("PiP failed:", error);
-                    toast({title: "Could not open Picture-in-Picture", description: "Your browser may not support this feature.", variant: "destructive"});
-                 }
-            };
-        }
-    }
-  };
-
   const progress = allLessons.length > 0 ? (completedLessons.size / allLessons.length) * 100 : 0;
   const hasVideo = !!currentLesson?.youtubeLinks?.[0]?.url;
+  const videoUrl = getYouTubeEmbedUrl(currentLesson?.youtubeLinks?.[0]?.url);
 
   if (loading || authLoading) {
     return (
@@ -660,7 +637,6 @@ export default function CoursePlayerPage() {
 
         <div className="flex h-[calc(100vh-4rem)]">
           <div className="flex-grow flex flex-col md:flex-row overflow-hidden relative">
-            <video ref={videoRef} className="hidden" />
             {!isMobile && (
               <aside className="w-full md:w-80 lg:w-96 bg-background border-r flex-shrink-0 overflow-y-auto">
                  <CourseOutline 
@@ -676,13 +652,13 @@ export default function CoursePlayerPage() {
             )}
 
             <main className="flex-grow p-6 md:p-8 overflow-y-auto bg-secondary relative flex flex-col">
-               <Tabs defaultValue="lesson" className="w-full flex-grow flex flex-col">
+               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-grow flex flex-col">
                   <TabsList className="mb-4 flex-shrink-0">
                     <TabsTrigger value="lesson">
                         <FileText className="mr-2 h-4 w-4" />
                         Lesson
                     </TabsTrigger>
-                     <TabsTrigger value="video" disabled={!hasVideo} onClick={handleVideoClick}>
+                     <TabsTrigger value="video" disabled={!hasVideo}>
                         <Video className="mr-2 h-4 w-4" />
                         Video
                     </TabsTrigger>
@@ -717,6 +693,22 @@ export default function CoursePlayerPage() {
                         </div>
                     )}
                   </TabsContent>
+                   <TabsContent value="video" className="h-full flex-grow">
+                        {videoUrl ? (
+                            <iframe
+                                src={videoUrl}
+                                title="YouTube video player"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowFullScreen
+                                className="w-full h-full aspect-video rounded-lg"
+                            ></iframe>
+                        ) : (
+                            <div className="flex items-center justify-center h-full bg-black rounded-lg">
+                                <p className="text-muted-foreground">No video for this lesson.</p>
+                            </div>
+                        )}
+                   </TabsContent>
                    <TabsContent value="discussion">
                      <DiscussionForum courseId={course.id} />
                   </TabsContent>
