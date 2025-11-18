@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -17,16 +16,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, PlusCircle, Trash2, FilePen, GripVertical } from 'lucide-react';
+import { ArrowLeft, Loader2, PlusCircle, Trash2, FilePen, GripVertical, MoreVertical, MessageSquare, Star, Type, List, Heading2 } from 'lucide-react';
 import { createForm, getAllOrganizations } from '@/lib/firebase-service';
 import type { FormQuestion, Organization } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
+const optionSchema = z.object({
+  id: z.string(),
+  value: z.string().min(1, "Option cannot be empty."),
+});
 
 const questionSchema = z.object({
   id: z.string(),
   text: z.string().min(1, "Question text cannot be empty."),
   type: z.enum(['short-text', 'long-text', 'multiple-choice', 'rating']),
-  options: z.array(z.string()).optional(),
+  options: z.array(optionSchema).optional(),
 });
 
 const formBuilderSchema = z.object({
@@ -44,16 +49,20 @@ function QuestionCard({ index, remove }: { index: number, remove: (index: number
       control,
       name: `questions.${index}.type`,
     });
+    
+    const { fields: optionFields, append: appendOption, remove: removeOption } = useFieldArray({
+        control,
+        name: `questions.${index}.options`
+    });
 
     return (
         <Card className="p-4 bg-secondary/50 relative">
              <div className="absolute top-2 right-2 flex items-center gap-1">
-                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 cursor-grab"><GripVertical className="h-4 w-4" /></Button>
                 <Button type="button" variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => remove(index)}><Trash2 className="h-4 w-4"/></Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={control} name={`questions.${index}.text`} render={({ field }) => (
-                    <FormItem><FormLabel>Question Text</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem className="md:col-span-2"><FormLabel>Question Text</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
                 <FormField control={control} name={`questions.${index}.type`} render={({ field }) => (
                     <FormItem><FormLabel>Question Type</FormLabel>
@@ -73,16 +82,19 @@ function QuestionCard({ index, remove }: { index: number, remove: (index: number
             {questionType === 'multiple-choice' && (
                 <div className="mt-4 pl-2 space-y-2">
                     <FormLabel>Options</FormLabel>
-                    <p className="text-xs text-muted-foreground">Enter one option per line.</p>
-                     <FormField control={control} name={`questions.${index}.options`} render={({ field }) => (
-                        <FormItem><FormControl>
-                            <Textarea
-                                className="min-h-[100px]"
-                                onChange={(e) => field.onChange(e.target.value.split('\n'))}
-                                value={field.value?.join('\n') || ''}
-                            />
-                        </FormControl><FormMessage /></FormItem>
-                    )}/>
+                    <div className="space-y-2">
+                        {optionFields.map((option, optionIndex) => (
+                           <div key={option.id} className="flex items-center gap-2">
+                                <FormField control={control} name={`questions.${index}.options.${optionIndex}.value`} render={({ field }) => (
+                                    <FormItem className="flex-grow"><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeOption(optionIndex)}><Trash2 className="h-4 w-4"/></Button>
+                           </div>
+                        ))}
+                    </div>
+                     <Button type="button" size="sm" variant="outline" onClick={() => appendOption({ id: uuidv4(), value: '' })}>
+                        <PlusCircle className="h-4 w-4 mr-2" /> Add Option
+                    </Button>
                 </div>
             )}
         </Card>
@@ -119,7 +131,7 @@ export default function CreateFormPage() {
         id: uuidv4(),
         text: '',
         type: type,
-        ...(type === 'multiple-choice' && { options: [] }),
+        ...(type === 'multiple-choice' && { options: [{id: uuidv4(), value: ''}] }),
     });
   }
 
@@ -206,11 +218,18 @@ export default function CreateFormPage() {
                             <QuestionCard key={field.id} index={index} remove={remove} />
                         ))}
 
-                        <div className="flex flex-wrap gap-2 pt-4 border-t">
-                            <Button type="button" variant="outline" size="sm" onClick={() => addQuestion('short-text')}><PlusCircle className="mr-2 h-4 w-4"/>Short Text</Button>
-                            <Button type="button" variant="outline" size="sm" onClick={() => addQuestion('long-text')}><PlusCircle className="mr-2 h-4 w-4"/>Paragraph</Button>
-                            <Button type="button" variant="outline" size="sm" onClick={() => addQuestion('multiple-choice')}><PlusCircle className="mr-2 h-4 w-4"/>Multiple Choice</Button>
-                            <Button type="button" variant="outline" size="sm" onClick={() => addQuestion('rating')}><PlusCircle className="mr-2 h-4 w-4"/>Rating Scale</Button>
+                        <div className="pt-4 border-t">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline"><PlusCircle className="mr-2 h-4 w-4"/> Add Question</Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuItem onClick={() => addQuestion('short-text')}><Type className="mr-2 h-4 w-4"/>Short Text</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => addQuestion('long-text')}><MessageSquare className="mr-2 h-4 w-4"/>Paragraph</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => addQuestion('multiple-choice')}><List className="mr-2 h-4 w-4"/>Multiple Choice</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => addQuestion('rating')}><Star className="mr-2 h-4 w-4"/>Rating Scale</DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                          {form.formState.errors.questions && (
                              <p className="text-sm font-medium text-destructive">{form.formState.errors.questions.message}</p>
