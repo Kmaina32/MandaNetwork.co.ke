@@ -92,9 +92,9 @@ export function CourseOutline({
           const moduleProgress = calculateModuleProgress(module, completedLessons);
           return (
             <AccordionItem value={module.id} key={module.id}>
-              <AccordionTrigger className="font-semibold px-4">
-                <div className="w-full">
-                  <p>{module.title}</p>
+              <AccordionTrigger className="font-semibold px-4 py-2 hover:no-underline">
+                <div className="w-full text-left">
+                  <p className="break-words">{module.title}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <Progress
                       value={moduleProgress}
@@ -130,15 +130,15 @@ export function CourseOutline({
                               : 'hover:bg-primary/5'
                           } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
                             {isCompleted ? (
-                              <CheckCircle className="h-5 w-5 text-green-500" />
+                              <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
                             ) : isUnlocked ? (
-                              <PlayCircle className="h-5 w-5 text-muted-foreground" />
+                              <PlayCircle className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                             ) : (
-                              <Lock className="h-5 w-5 text-muted-foreground" />
+                              <Lock className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                             )}
-                            <span className="text-sm">{lesson.title}</span>
+                            <span className="text-sm break-words">{lesson.title}</span>
                           </div>
                           {hasVideo && (
                             <Youtube className="h-4 w-4 text-red-500 flex-shrink-0" />
@@ -153,7 +153,7 @@ export function CourseOutline({
           );
         })}
         <AccordionItem value="exam">
-          <AccordionTrigger className="font-semibold px-4">
+          <AccordionTrigger className="font-semibold px-4 py-2 hover:no-underline">
             Final Exam
           </AccordionTrigger>
           <AccordionContent>

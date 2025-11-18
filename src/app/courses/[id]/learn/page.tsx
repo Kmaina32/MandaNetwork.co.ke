@@ -263,12 +263,14 @@ export default function CoursePlayerPage() {
               </aside>
             )}
 
-            <main className="flex-grow p-4 overflow-y-auto bg-secondary relative flex flex-col">
-              <CoursePlayerTabs
-                  course={course}
-                  lesson={currentLesson}
-                  onComplete={handleCompleteLesson}
-              />
+            <main className="flex-grow p-4 overflow-y-auto bg-secondary relative flex flex-col items-center">
+              <div className="w-full max-w-4xl flex-grow flex flex-col">
+                <CoursePlayerTabs
+                    course={course}
+                    lesson={currentLesson}
+                    onComplete={handleCompleteLesson}
+                />
+              </div>
               <AiTutor course={course} lesson={currentLesson} settings={tutorSettings} />
               <NotebookSheet courseId={course.id} courseTitle={course.title} />
             </main>
