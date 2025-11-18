@@ -235,6 +235,7 @@ export default function CoursePlayerPage() {
                     <SheetContent side="right" className="w-[300px] sm:w-[400px] p-0">
                        <CourseOutline 
                             course={course}
+                            progress={progress}
                             completedLessons={completedLessons}
                             unlockedLessonsCount={unlockedLessonsCount}
                             currentLesson={currentLesson}
@@ -256,6 +257,7 @@ export default function CoursePlayerPage() {
               <aside className="w-full md:w-80 lg:w-96 bg-background border-r flex-shrink-0 overflow-y-auto">
                  <CourseOutline 
                     course={course}
+                    progress={progress}
                     completedLessons={completedLessons}
                     unlockedLessonsCount={unlockedLessonsCount}
                     currentLesson={currentLesson}

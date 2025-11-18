@@ -39,6 +39,7 @@ function calculateModuleProgress(
 
 interface CourseOutlineProps {
     course: Course;
+    progress: number;
     completedLessons: Set<string>;
     unlockedLessonsCount: number;
     currentLesson: Lesson | null;
@@ -49,6 +50,7 @@ interface CourseOutlineProps {
 
 export function CourseOutline({
   course,
+  progress,
   completedLessons,
   unlockedLessonsCount,
   currentLesson,
@@ -66,7 +68,7 @@ export function CourseOutline({
         </SheetHeader>
       ) : (
         <div className="mb-4">
-            <h2 className="text-xl font-bold font-headline truncate">{course.title}</h2>
+            <h2 className="text-xl font-bold font-headline truncate" title={course.title}>{course.title}</h2>
             <button
                 onClick={() => router.push(`/courses/${slugify(course.title)}`)}
                 className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
