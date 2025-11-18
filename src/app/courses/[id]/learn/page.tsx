@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -300,7 +301,7 @@ export default function CoursePlayerPage() {
             )}
 
             <main className="flex-grow p-4 md:p-6 lg:p-8 overflow-y-auto bg-secondary relative flex flex-col items-center">
-              <div className="w-full max-w-4xl flex-grow flex flex-col">
+              <div className="w-full max-w-3xl flex-grow flex flex-col">
                 <CoursePlayerTabs
                     course={course}
                     lesson={currentLesson}
