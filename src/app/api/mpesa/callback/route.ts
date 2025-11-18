@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
             const phoneNumber = metadata.find((i: any) => i.Name === 'PhoneNumber').Value;
             
             // Enroll the user in the course
-            await enrollUserInCourse(userId, courseId);
+            await enrollUserInCourse(userId, courseId, 'mpesa');
             
             console.log(`User ${userId} enrolled in course ${courseId}. M-Pesa receipt: ${mpesaReceiptNumber}`);
 

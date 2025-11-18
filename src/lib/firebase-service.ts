@@ -1146,6 +1146,22 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
 }
 
 // Activity Logging
+export async function logPageVisit(userId: string, path: string): Promise<void> {
+    const user = await getUserById(userId);
+    if (!user) return;
+    const logRef = ref(db, 'userActivity');
+    const newLogRef = push(logRef);
+    await set(newLogRef, {
+        userId,
+        userName: user.displayName || 'Unknown',
+        userAvatar: user.photoURL || '',
+        type: 'page_visit',
+        path,
+        timestamp: new Date().toISOString(),
+    });
+}
+
+
 export async function logActivity(userId: string, data: { type: 'signup' | 'enrollment'; details: any }): Promise<void> {
     const user = await getUserById(userId);
     const logRef = ref(db, 'userActivity');

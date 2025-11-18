@@ -40,7 +40,14 @@ const BundleSuggestionSchema = z.object({
 
 
 export async function runContentStrategy(): Promise<ContentStrategyOutput> {
-  return runContentStrategyFlow();
+  try {
+    return await runContentStrategyFlow();
+  } catch (error) {
+    console.error("Error in runContentStrategy:", error);
+    // Propagate a more specific error message if available
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during content strategy generation.';
+    throw new Error(errorMessage);
+  }
 }
 
 const runContentStrategyFlow = ai.defineFlow(

@@ -20,7 +20,7 @@ import type { GenerateHackathonIdeasInput, GenerateHackathonIdeasOutput } from '
 import type { StudentHelpInput, StudentHelpOutput } from '@/ai/flows/student-help';
 import type { SpeechToTextInput, SpeechToTextOutput, TextToSpeechInput, TextToSpeechOutput } from '@/ai/flows/text-to-speech';
 import type { GetPortfolioFeedbackInput, GetPortfolioFeedbackOutput } from '@/ai/flows/portfolio-advisor';
-import { createNotification, createProjectSubmission as saveProjectSubmission, createOrUpdateConversation, sendMessage as saveMessage, awardLeaderboardPoints, createContactMessage } from '@/lib/firebase-service';
+import { createNotification, createProjectSubmission as saveProjectSubmission, createOrUpdateConversation, saveMessage, awardLeaderboardPoints, createContactMessage } from '@/lib/firebase-service';
 import { checkHackathonParticipantAchievement } from '@/lib/achievements';
 
 // Each function dynamically imports its corresponding flow, ensuring that the AI logic

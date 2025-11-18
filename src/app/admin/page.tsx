@@ -9,7 +9,7 @@ import { Users, BookOpen, UserPlus, DollarSign, BarChart3, Activity, UserPlus2, 
 import type { Course, RegisteredUser, UserCourse, UserActivity } from '@/lib/types';
 import { getAllCourses, getAllUsers, getAllOrganizations, getAllHackathons, getActivityLogs, getHeroData } from '@/lib/firebase-service';
 import { Loader2 } from 'lucide-react';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Line, ComposedChart, Legend, PieChart, Pie, Cell } from "recharts"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ComposedChart, Legend, PieChart, Pie, Cell } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { format, subDays, parseISO, isValid, formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/hooks/use-auth';
@@ -67,6 +67,7 @@ export default function AdminDashboardPage() {
     const [loading, setLoading] = useState(true);
     const { user, isAdmin } = useAuth();
     const [activityTrackingEnabled, setActivityTrackingEnabled] = useState(false);
+    const [formattedSignupDates, setFormattedSignupDates] = useState<{ date: string; count: number }[]>([]);
 
 
     useEffect(() => {
@@ -108,7 +109,7 @@ export default function AdminDashboardPage() {
                          recentSignups.push({ type: 'signup', text: `${user.displayName || 'A new user'} signed up`, time: signupDate.toISOString() });
                     }
 
-                    const signupDateKey = format(signupDate, 'yyyy-MM-dd');
+                    const signupDateKey = signupDate.toISOString().split('T')[0];
                     userSignupCounts[signupDateKey] = (userSignupCounts[signupDateKey] || 0) + 1;
         
                     if (user.purchasedCourses) {
@@ -164,6 +165,15 @@ export default function AdminDashboardPage() {
              setLoading(false);
         }
     }, [user]);
+
+    useEffect(() => {
+        if (analyticsData?.userSignups) {
+            setFormattedSignupDates(analyticsData.userSignups.map(d => ({
+                ...d,
+                date: format(new Date(d.date), 'MMM d')
+            })));
+        }
+    }, [analyticsData]);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -250,9 +260,9 @@ export default function AdminDashboardPage() {
                     </CardHeader>
                     <CardContent>
                         <ChartContainer config={chartConfig} className="h-[250px] w-full">
-                             <ComposedChart data={analyticsData.userSignups}>
+                             <ComposedChart data={formattedSignupDates}>
                                 <CartesianGrid vertical={false} />
-                                <XAxis dataKey="date" tickFormatter={(value) => format(new Date(value), 'MMM d')} tickLine={false} axisLine={false} />
+                                <XAxis dataKey="date" tickLine={false} axisLine={false} />
                                 <YAxis />
                                 <Tooltip content={<ChartTooltipContent />} />
                                 <Legend />

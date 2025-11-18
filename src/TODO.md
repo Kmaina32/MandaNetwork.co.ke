@@ -1,4 +1,3 @@
-
 # Manda Network - Project Roadmap & TODO
 
 This document outlines the strategic priorities and actionable tasks for the Manda Network platform. The list is organized by priority and category.
@@ -16,10 +15,10 @@ This document outlines the strategic priorities and actionable tasks for the Man
 
 ### Critical Bug Fixes
 6. [x] **Fix Real-time Listener Memory Leaks**: Ensure all Firebase `onValue` and `onChildAdded` listeners have proper cleanup functions. *(Completed)*
-7. [ ] **Resolve AI Flow Errors**: Add robust `try...catch` blocks and user-friendly error messages for all Genkit flows when they fail.
-8. [ ] **Fix Course Progress Tracking**: Ensure progress is accurately calculated and saved, especially with drip-fed content.
-9. [ ] **Correct Payment Status Mismatches**: Implement a webhook verification system to ensure M-Pesa callback data is legitimate and reflects actual payment status.
-10. [ ] **Solve Hydration Errors**: Systematically find and fix all client/server render mismatches, especially with date/time displays.
+7. [x] **Resolve AI Flow Errors**: Add robust `try...catch` blocks and user-friendly error messages for all Genkit flows when they fail. *(Completed)*
+8. [x] **Fix Course Progress Tracking**: Ensure progress is accurately calculated and saved, especially with drip-fed content. *(Completed)*
+9. [x] **Correct Payment Status Mismatches**: Implement a webhook verification system to ensure M-Pesa callback data is legitimate and reflects actual payment status. *(Completed)*
+10. [x] **Solve Hydration Errors**: Systematically find and fix all client/server render mismatches, especially with date/time displays. *(Completed)*
 
 ### Performance
 11. [ ] **Optimize Largest Contentful Paint (LCP)**: Defer loading of non-critical images and scripts on the homepage and course pages.
@@ -134,13 +133,3 @@ This document outlines the strategic priorities and actionable tasks for the Man
 98. [ ] **Document Environment Variables**: List all required `.env` variables and explain their purpose.
 99. [ ] **Write a Guide on Using the Admin Panel**: For onboarding new administrators.
 100. [ ] **Document the Theming System**: Explain how to create and apply new visual themes.
-
----
-
-## 🟢 Priority 4: Deeper LMS Integration (In Progress)
-
-101. [x] **Leaderboard Rank Display:** Automatically display the student's rank from the hackathon leaderboard on their portfolio page. *(Completed)*
-102. [ ] **Peer Skill Endorsements:** Similar to LinkedIn, allow other Manda Network students to "endorse" the skills listed on a portfolio, adding a layer of community validation.
-103. [ ] **Course-Specific Project Galleries:** On each course page, automatically generate a gallery showcasing the public portfolio projects submitted by students who completed that course.
-104. [ ] **Learning Path Visualization:** A graphical representation of their learning journey, showing completed courses as a skill tree or timeline, demonstrating their growth over time.
-105. [ ] **Cross-Course Skill Tracking:** A system that tracks skills across all completed courses and visualizes the student's proficiency level in different domains (e.g., "Python: Advanced", "UI/UX Design: Intermediate").

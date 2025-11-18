@@ -69,7 +69,16 @@ async function getMpesaAccessToken(): Promise<string> {
 export async function processMpesaPayment(
   input: MpesaPaymentInput
 ): Promise<MpesaPaymentOutput> {
-  return mpesaPaymentFlow(input);
+  try {
+    return await mpesaPaymentFlow(input);
+  } catch (error) {
+    console.error("Error in processMpesaPayment:", error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during M-Pesa payment processing.';
+    return {
+        success: false,
+        message: errorMessage,
+    }
+  }
 }
 
 const mpesaPaymentFlow = ai.defineFlow(
