@@ -3,7 +3,7 @@
 'use client';
 
 import Link from 'next/link';
-import { User, LogOut, Bell, Calendar, Sparkles, PartyPopper, GitBranch, Moon, Sun, BellRing, Code, Trash2, Clapperboard } from 'lucide-react';
+import { User, LogOut, Bell, Calendar, Sparkles, PartyPopper, GitBranch, Moon, Sun, BellRing, Code, Trash2, Clapperboard, FilePen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger, useSidebar } from '../ui/sidebar';
 import { useAuth } from '@/hooks/use-auth';
@@ -29,6 +29,7 @@ import { onValue, ref } from 'firebase/database';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { FormDialog } from '../FormDialog';
 
 type Notification = {
     id: string;
@@ -40,15 +41,16 @@ type Notification = {
     isLive?: boolean;
     actions?: Array<{
         title: string;
-        action: 'accept_org_invite';
+        action: 'accept_org_invite' | 'open_form_dialog';
         payload: {
-            inviteId: string;
-            organizationId: string;
+            inviteId?: string;
+            organizationId?: string;
+            formId?: string;
         };
     }>
 };
 
-function NotificationsPopover() {
+function NotificationsPopover({ onOpenFormDialog }: { onOpenFormDialog: (formId: string) => void }) {
     const { user, loading: authLoading, fetchUserData } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
@@ -64,7 +66,6 @@ function NotificationsPopover() {
             setReadNotificationIds(new Set(JSON.parse(storedIds)));
         }
 
-        // Listen for live session status changes
         const liveSessionRef = ref(db, 'webrtc-offers/live-session');
         const unsubscribe = onValue(liveSessionRef, (snapshot) => {
             setIsLive(snapshot.exists());
@@ -88,18 +89,16 @@ function NotificationsPopover() {
             const userProfile = await getUserById(user.uid);
             const userCohort = userProfile?.cohort;
 
-            // 1. Fetch DB notifications
             try {
                 const dbNotifications = await getAllNotifications();
                 const formattedDbNotifications = dbNotifications
                     .filter(n => new Date(n.createdAt) > userCreationTime)
-                     // Filter based on cohort or if it's a targeted notification for the user
                     .filter(n => !n.cohort || n.cohort === userCohort || n.userId === user.uid)
-                    .map((n: DbNotification) => ({
+                    .map((n: DbNotification): Notification => ({
                         id: `db-${n.id}`,
-                        icon: n.title.includes('Live Now') ? Clapperboard : BellRing,
+                        icon: n.title.includes('Live Now') ? Clapperboard : n.actions?.[0]?.action === 'open_form_dialog' ? FilePen : BellRing,
                         title: n.title,
-                        description: n.body,
+                        description: n.body as string,
                         href: n.link || '#',
                         date: n.createdAt,
                         isLive: n.title.includes('Live Now'),
@@ -110,61 +109,6 @@ function NotificationsPopover() {
                 console.error("Failed to fetch DB notifications", error);
             }
 
-            // 2. Welcome Message
-            try {
-                if (differenceInDays(new Date(), userCreationTime) <= 1) {
-                    combinedNotifications.push({
-                        id: 'welcome',
-                        icon: PartyPopper,
-                        title: 'Welcome to Manda Network!',
-                        description: 'We are glad to have you here. Explore our courses.',
-                        href: '/',
-                        date: userCreationTime.toISOString()
-                    });
-                }
-            } catch (error) {
-                console.error("Failed to generate welcome notification", error);
-            }
-
-            // 3. New Course Alerts
-            try {
-                const courses = await getAllCourses();
-                const recentCourses = courses.filter(course =>
-                    course.createdAt && new Date(course.createdAt) > userCreationTime
-                );
-                recentCourses.forEach(course => {
-                    combinedNotifications.push({
-                        id: `new-course-${course.id}`,
-                        icon: Sparkles,
-                        title: `New Course: ${course.title}`,
-                        description: 'Check out this new course we just added.',
-                        href: `/courses/${course.id}`,
-                        date: course.createdAt
-                    });
-                });
-            } catch (error) {
-                console.error("Failed to generate new course notifications", error);
-            }
-            
-            // 4. Upcoming Events
-            try {
-                const events = await getAllCalendarEvents();
-                const upcomingEvents = events.filter(event => new Date(event.date) > userCreationTime);
-                upcomingEvents.forEach(event => {
-                     combinedNotifications.push({
-                        id: `event-${event.id}`,
-                        icon: Calendar,
-                        title: `Upcoming: ${event.title}`,
-                        description: 'An event is scheduled. Check your calendar.',
-                        href: '/calendar',
-                        date: event.date
-                    });
-                });
-            } catch (error) {
-                console.error("Failed to generate event notifications", error);
-            }
-            
-            // Sort all notifications by date, descending
             combinedNotifications.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
             
             setNotifications(combinedNotifications);
@@ -202,9 +146,9 @@ function NotificationsPopover() {
                 title: 'Invitation Accepted!',
                 description: "You have successfully joined the organization.",
             });
-            await fetchUserData(user); // Re-fetch user and org data
+            await fetchUserData(user);
             setNotifications(prev => prev.filter(n => n.actions?.[0].payload.inviteId !== payload.inviteId));
-            router.push('/organization/home'); // Redirect to new member dashboard
+            router.push('/organization/home');
         } catch (error) {
             console.error("Failed to accept invitation:", error);
             toast({ title: 'Error', description: 'Could not accept the invitation.', variant: 'destructive'});
@@ -238,8 +182,10 @@ function NotificationsPopover() {
                                     onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
-                                        if (action.action === 'accept_org_invite') {
-                                            handleAcceptInvitation(action.payload);
+                                        if (action.action === 'accept_org_invite' && action.payload.inviteId && action.payload.organizationId) {
+                                            handleAcceptInvitation(action.payload as { inviteId: string; organizationId: string });
+                                        } else if (action.action === 'open_form_dialog' && action.payload.formId) {
+                                            onOpenFormDialog(action.payload.formId);
                                         }
                                     }}
                                     disabled={isAccepting === action.payload.inviteId}
@@ -322,8 +268,6 @@ function ThemeToggle() {
     const [theme, setTheme] = useState('dark');
 
     useEffect(() => {
-        // Since dark mode is forced, this component just shows the toggle
-        // but doesn't need to read from localStorage.
         setTheme('dark');
     }, []);
     
@@ -342,6 +286,7 @@ export function Header({ children }: { children?: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [activityTrackingEnabled, setActivityTrackingEnabled] = useState(false);
+  const [formDialogState, setFormDialogState] = useState<{ isOpen: boolean; formId: string | null }>({ isOpen: false, formId: null });
 
   useEffect(() => {
     getHeroData().then(settings => {
@@ -386,65 +331,72 @@ export function Header({ children }: { children?: React.ReactNode }) {
   }
 
   return (
-    <header className="flex h-16 items-center border-b bg-background px-4 md:px-6 sticky top-0 z-30">
-        <div className="flex items-center gap-2">
-            <SidebarTrigger />
-             <div className={cn("md:hidden", isMobile ? "block" : "hidden")}>
-                 <Link href="/" className="flex items-center gap-2 font-bold text-lg font-headline">
-                    <GitBranch className="h-6 w-6 text-primary" />
-                    <span>Manda Network</span>
-                </Link>
-            </div>
-        </div>
-      
-        <div className="flex w-full items-center justify-end gap-2">
-            <ThemeToggle />
-            {loading ? (
-            <Skeleton className="h-8 w-8 rounded-full" />
-            ) : user ? (
-            <>
-                <NotificationsPopover />
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-full">
-                        <Avatar className="h-8 w-8">
-                        <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || 'User'}/>
-                        <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
-                        </Avatar>
-                    </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>
-                            <p className="font-medium">{user.displayName || 'User'}</p>
-                            <p className="text-xs font-normal text-muted-foreground">{user.email}</p>
-                        </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem asChild>
-                            <Link href="/profile">
-                            <User className="mr-2 h-4 w-4" />
-                            <span>Profile</span>
-                            </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={logout}>
-                            <LogOut className="mr-2 h-4 w-4" />
-                            <span>Logout</span>
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </>
-            ) : (
-                <div className="flex items-center gap-2">
-                    <Button asChild variant="outline">
-                        <Link href="/login">Login</Link>
-                    </Button>
-                    <Button asChild>
-                        <Link href="/signup">Sign Up</Link>
-                    </Button>
+    <>
+        <header className="flex h-16 items-center border-b bg-background px-4 md:px-6 sticky top-0 z-30">
+            <div className="flex items-center gap-2">
+                <SidebarTrigger />
+                <div className={cn("md:hidden", isMobile ? "block" : "hidden")}>
+                    <Link href="/" className="flex items-center gap-2 font-bold text-lg font-headline">
+                        <GitBranch className="h-6 w-6 text-primary" />
+                        <span>Manda Network</span>
+                    </Link>
                 </div>
-            )}
-        </div>
-    </header>
+            </div>
+        
+            <div className="flex w-full items-center justify-end gap-2">
+                <ThemeToggle />
+                {loading ? (
+                <Skeleton className="h-8 w-8 rounded-full" />
+                ) : user ? (
+                <>
+                    <NotificationsPopover onOpenFormDialog={(formId) => setFormDialogState({ isOpen: true, formId })} />
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="rounded-full">
+                            <Avatar className="h-8 w-8">
+                            <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || 'User'}/>
+                            <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
+                            </Avatar>
+                        </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>
+                                <p className="font-medium">{user.displayName || 'User'}</p>
+                                <p className="text-xs font-normal text-muted-foreground">{user.email}</p>
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                                <Link href="/profile">
+                                <User className="mr-2 h-4 w-4" />
+                                <span>Profile</span>
+                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={logout}>
+                                <LogOut className="mr-2 h-4 w-4" />
+                                <span>Logout</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </>
+                ) : (
+                    <div className="flex items-center gap-2">
+                        <Button asChild variant="outline">
+                            <Link href="/login">Login</Link>
+                        </Button>
+                        <Button asChild>
+                            <Link href="/signup">Sign Up</Link>
+                        </Button>
+                    </div>
+                )}
+            </div>
+        </header>
+        <FormDialog
+            isOpen={formDialogState.isOpen}
+            formId={formDialogState.formId}
+            onClose={() => setFormDialogState({ isOpen: false, formId: null })}
+        />
+    </>
   );
 }
 

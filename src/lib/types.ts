@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { z } from 'zod';
@@ -181,10 +182,11 @@ export interface Notification {
     read?: boolean;
     actions?: Array<{
         title: string;
-        action: 'accept_org_invite';
+        action: 'accept_org_invite' | 'open_form_dialog';
         payload: {
-            inviteId: string;
-            organizationId: string;
+            inviteId?: string;
+            organizationId?: string;
+            formId?: string;
         };
     }>
 }
@@ -440,7 +442,7 @@ export interface UserActivity {
     userId: string;
     userName: string;
     userAvatar: string;
-    type: 'signup' | 'enrollment';
+    type: 'signup' | 'enrollment' | 'page_visit';
     details: any;
     timestamp: string; // ISO string;
     path: string;
@@ -466,6 +468,23 @@ export interface Referral {
     purchaseAmount: number;
     commissionAmount: number;
     createdAt: string; // ISO String
+}
+
+export interface TeamMember {
+    id: string;
+    name: string;
+    role: string;
+    description: string;
+    avatar: string;
+}
+
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  message: string;
+  createdAt: string; // ISO String
+  read: boolean;
 }
 
 export interface Form {

@@ -90,7 +90,7 @@ export async function getCourseBySlug(slug: string): Promise<Course | null> {
 }
 
 
-export async function createCourse(courseData: Omit<Course, 'id'>): Promise<string> {
+export async function createCourse(courseData: Omit<Course, 'id' | 'createdAt'>): Promise<string> {
     const coursesRef = ref(db, 'courses');
     const newCourseRef = push(coursesRef);
     const dataToSave = {
@@ -114,7 +114,7 @@ export async function updateCourse(courseId: string, courseData: Partial<Course>
     if (dataToUpdate.prerequisiteCourseId === 'none') {
         dataToUpdate.prerequisiteCourseId = undefined; // This will get filtered out
     }
-     // Filter out undefined values before saving
+     // Filter out undefined values to avoid overwriting with null in Firebase
     const finalData = Object.fromEntries(Object.entries(dataToUpdate).filter(([_, v]) => v !== undefined));
 
     await update(courseRef, finalData);
@@ -474,10 +474,12 @@ export async function saveRemoteConfigValues(data: Record<string, string>): Prom
 
 
 // Notification Functions
-export async function createNotification(notificationData: Omit<Notification, 'id' | 'createdAt'>): Promise<string> {
+export async function createNotification(notificationData: Partial<Omit<Notification, 'id'>>): Promise<string> {
     const notificationsRef = ref(db, 'notifications');
     const newNotificationRef = push(notificationsRef);
     const dataToSave = {
+        read: false,
+        archived: false,
         ...notificationData,
         createdAt: new Date().toISOString(),
     };
@@ -1336,10 +1338,26 @@ export async function deleteContactMessage(id: string): Promise<void> {
 
 // Forms & Surveys
 export async function createForm(formData: Omit<FormType, 'id'>): Promise<string> {
-    const formsRef = ref(db, 'forms');
-    const newFormRef = push(formsRef);
-    await set(newFormRef, formData);
-    return newFormRef.key!;
+  const formsRef = ref(db, 'forms');
+  const newFormRef = push(formsRef);
+  await set(newFormRef, formData);
+
+  // If it's a general survey, create a notification for it
+  if (!formData.organizationId) {
+    await createNotification({
+      title: 'New Survey Available',
+      body: `We'd love your feedback! Please take a moment to complete the "${formData.title}" survey.`,
+      actions: [{
+        title: 'Start Survey',
+        action: 'open_form_dialog' as any, // This is a custom client-side action
+        payload: {
+          formId: newFormRef.key!,
+        }
+      }]
+    });
+  }
+
+  return newFormRef.key!;
 }
 
 export async function getAllForms(): Promise<FormType[]> {
@@ -1364,6 +1382,16 @@ export async function getFormById(id: string): Promise<FormType | null> {
 export async function deleteForm(id: string): Promise<void> {
     const formRef = ref(db, `forms/${id}`);
     await remove(formRef);
+    // Also delete submissions
+    const submissionsRef = query(ref(db, 'formSubmissions'), orderByChild('formId'), equalTo(id));
+    const snapshot = await get(submissionsRef);
+    if (snapshot.exists()) {
+        const updates: Record<string, null> = {};
+        snapshot.forEach((child) => {
+            updates[child.key!] = null;
+        });
+        await update(ref(db, 'formSubmissions'), updates);
+    }
 }
 
 export async function createFormSubmission(submissionData: Omit<FormSubmission, 'id'>): Promise<string> {
