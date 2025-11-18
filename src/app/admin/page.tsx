@@ -9,7 +9,7 @@ import { Users, BookOpen, UserPlus, DollarSign, BarChart3, Activity, UserPlus2, 
 import type { Course, RegisteredUser, UserCourse, UserActivity } from '@/lib/types';
 import { getAllCourses, getAllUsers, getAllOrganizations, getAllHackathons, getActivityLogs, getHeroData } from '@/lib/firebase-service';
 import { Loader2 } from 'lucide-react';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ComposedChart, Legend, PieChart, Pie, Cell } from "recharts"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ComposedChart, Legend, PieChart, Pie, Cell, ResponsiveContainer, Line } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { format, subDays, parseISO, isValid, formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/hooks/use-auth';
@@ -355,5 +355,7 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    
 
     
