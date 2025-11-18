@@ -1,9 +1,9 @@
-
 'use client';
 
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import type { Lesson } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,6 @@ import { Separator } from '@/components/ui/separator';
 import { Check, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import rehypeRaw from 'rehype-raw';
 
 const GoogleDriveIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" {...props}>
@@ -35,7 +34,7 @@ const CodeBlock = ({ node, inline, className, children, ...props }: any) => {
     };
 
     if (inline) {
-      return <code className="bg-muted px-1.5 py-1 rounded-sm text-sm font-mono" {...props}>{children}</code>;
+      return <code className="bg-muted px-1.5 py-1 rounded-sm text-sm font-mono">{children}</code>;
     }
 
     return (
