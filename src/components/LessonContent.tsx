@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -34,7 +35,7 @@ const CodeBlock = ({ node, inline, className, children, ...props }: any) => {
     };
 
     if (inline) {
-      return <code className="bg-muted px-1.5 py-1 rounded-sm text-sm font-mono">{children}</code>;
+      return <code className="bg-muted px-1.5 py-1 rounded-sm text-sm font-mono" {...props}>{children}</code>;
     }
 
     return (
@@ -46,7 +47,7 @@ const CodeBlock = ({ node, inline, className, children, ...props }: any) => {
                         {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                     </Button>
                 </div>
-                 <pre className="p-4 bg-background rounded-b-md overflow-x-auto text-sm font-mono">{children}</pre>
+                 <pre className="p-4 bg-background rounded-b-md overflow-x-auto text-sm font-mono" {...props}>{children}</pre>
             </div>
         </div>
     );
@@ -74,7 +75,7 @@ export function LessonContent({ lesson, onComplete }: LessonContentProps) {
                     pre: ({node, ...props}) => {
                         const codeChild = node?.children[0];
                         if (codeChild && 'tagName' in codeChild && codeChild.tagName === 'code') {
-                            const className = codeChild.properties?.className?.[0] || '';
+                            const className = (codeChild.properties?.className as string[] | undefined)?.join(' ') || '';
                             const codeContent = codeChild.children[0] && 'value' in codeChild.children[0] ? codeChild.children[0].value : '';
                             return <CodeBlock className={className}>{codeContent}</CodeBlock>;
                         }
