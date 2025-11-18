@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
-import { getSubmissionById, getCourseById, updateSubmission, updateUserCourseProgress } from '@/lib/firebase-service';
+import { getSubmissionById, getCourseById, updateSubmission, updateUserCourseProgress, awardLeaderboardPoints } from '@/lib/firebase-service';
 import type { Submission, Course, ExamQuestion, ShortAnswerQuestion } from '@/lib/types';
 import { gradeShortAnswerExam } from '@/app/actions';
 import type { GradeShortAnswerExamOutput } from '@/ai/flows/grade-short-answer-exam';
@@ -134,6 +134,13 @@ export default function GradeSubmissionPage() {
                 title: 'Achievement Unlocked!',
                 description: `${'achievement.name'}: ${'achievement.description'}`
             });
+        }
+        
+        // Award points for passing
+        if (finalPercentage >= 80) {
+            await awardLeaderboardPoints(submission.userId, 25);
+        } else {
+            await awardLeaderboardPoints(submission.userId, 5); // 5 points for attempting
         }
 
         if (finalPercentage >= CERTIFICATE_THRESHOLD_PERCENTAGE) {

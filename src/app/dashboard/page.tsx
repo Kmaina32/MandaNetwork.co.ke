@@ -3,7 +3,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -262,7 +262,8 @@ function CommunityLeaderboard() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="font-headline">Hackathon Leaderboard</CardTitle>
+                <CardTitle className="font-headline">Community Leaderboard</CardTitle>
+                <CardDescription>Top performers across all activities.</CardDescription>
             </CardHeader>
             <CardContent>
                 {loading ? <div className="flex justify-center"><Loader2 className="animate-spin" /></div> : (
@@ -407,8 +408,11 @@ export default function DashboardPage() {
                  <div className="lg:col-span-1">
                      <LearningGoalsWidget dbUser={dbUser} onGoalUpdate={fetchDashboardData} />
                 </div>
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-1">
                      <AchievementsWidget achievements={achievementsToDisplay as Achievement[]} isSuperAdmin={isSuperAdmin} />
+                </div>
+                 <div className="lg:col-span-1">
+                    <CommunityLeaderboard />
                 </div>
             </div>
 
