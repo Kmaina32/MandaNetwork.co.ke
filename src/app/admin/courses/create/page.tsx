@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Sparkles, PlusCircle, Trash2, BookText } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, PlusCircle, Trash2, BookText, Link as LinkIcon } from 'lucide-react';
 import { createCourse, getAllCourses } from '@/lib/firebase-service';
 import type { Course } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -67,16 +67,16 @@ function YouTubeLinkFields({ moduleIndex, lessonIndex, form }: { moduleIndex: nu
 
     return (
         <div className="space-y-2">
-            <FormLabel>YouTube Video Links</FormLabel>
+            <FormLabel className='flex items-center gap-2'><LinkIcon className='h-4 w-4' /> Video & Resource Links</FormLabel>
             {linkFields.map((link, linkIndex) => (
                 <div key={link.id} className="flex items-start gap-2">
                     <div className="flex-grow grid grid-cols-2 gap-2">
                         <Input
-                            placeholder="Video Title"
+                            placeholder="Link Title (e.g., Intro Video, GitHub Repo)"
                             {...form.register(`modules.${moduleIndex}.lessons.${lessonIndex}.youtubeLinks.${linkIndex}.title`)}
                         />
                          <Input
-                            placeholder="https://youtube.com/watch?v=..."
+                            placeholder="https://youtube.com/watch?v=... or https://github.com/..."
                             {...form.register(`modules.${moduleIndex}.lessons.${lessonIndex}.youtubeLinks.${linkIndex}.url`)}
                         />
                     </div>
@@ -84,7 +84,7 @@ function YouTubeLinkFields({ moduleIndex, lessonIndex, form }: { moduleIndex: nu
                 </div>
             ))}
              <Button type="button" variant="outline" size="sm" onClick={() => appendLink({ title: '', url: ''})}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Video Link
+                <PlusCircle className="mr-2 h-4 w-4" /> Add Link
             </Button>
         </div>
     )
@@ -278,7 +278,6 @@ export default function CreateCoursePage() {
             ...values,
             imageUrl: 'https://placehold.co/600x400',
             exam: [], // Exams are now handled separately
-            project: undefined,
         };
 
         if (values.prerequisiteCourseId === 'none' || !values.prerequisiteCourseId) {
@@ -561,5 +560,4 @@ export default function CreateCoursePage() {
     </>
   );
 }
-
     
