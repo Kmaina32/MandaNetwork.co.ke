@@ -1,3 +1,4 @@
+
 'use client';
 
 import { z } from 'zod';
@@ -465,4 +466,27 @@ export interface Referral {
     purchaseAmount: number;
     commissionAmount: number;
     createdAt: string; // ISO String
+}
+
+export interface Form {
+  id: string;
+  title: string;
+  description?: string;
+  organizationId?: string; // If it's for a specific org
+  questions: FormQuestion[];
+}
+
+export interface FormQuestion {
+  id: string;
+  text: string;
+  type: 'short-text' | 'long-text' | 'multiple-choice' | 'rating';
+  options?: string[]; // For multiple-choice
+}
+
+export interface FormSubmission {
+  id: string;
+  formId: string;
+  userId: string;
+  submittedAt: string; // ISO String
+  answers: Record<string, string | number>; // questionId -> answer
 }
