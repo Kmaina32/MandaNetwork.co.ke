@@ -67,7 +67,7 @@ export function LessonContent({ lesson, onComplete }: LessonContentProps) {
       <ScrollArea className="flex-grow">
         <div className="pr-4">
           <h1 className="text-3xl font-bold font-headline mb-4">{lesson.title}</h1>
-          <div className="prose dark:prose-invert text-foreground/90 mb-6">
+          <div className="prose dark:prose-invert text-foreground/90 mb-6" style={{ whiteSpace: 'pre-wrap' }}>
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeRaw]}
@@ -79,13 +79,12 @@ export function LessonContent({ lesson, onComplete }: LessonContentProps) {
                             const codeContent = codeChild.children[0] && 'value' in codeChild.children[0] ? codeChild.children[0].value : '';
                             return <CodeBlock className={className}>{codeContent}</CodeBlock>;
                         }
-                        return <pre {...props} />;
+                        return <pre {...props} style={{ whiteSpace: 'pre-wrap' }} />;
                     },
                     code({node, inline, className, children, ...props}) {
                          if (inline) {
                             return <code className="bg-muted px-1.5 py-1 rounded-sm text-sm font-mono" {...props}>{children}</code>;
                         }
-                        // Block code is now handled by the `pre` component above.
                         return null;
                     },
                 }}

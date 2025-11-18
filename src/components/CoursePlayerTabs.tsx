@@ -7,9 +7,14 @@ import { FileText, Video, MessageCircle } from 'lucide-react';
 import { LessonContent } from '@/components/LessonContent';
 import { DiscussionForum } from '@/components/DiscussionForum';
 import type { Lesson, Course } from '@/lib/types';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Button } from './ui/button';
+import { CheckCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { slugify } from '@/lib/utils';
 
 interface CoursePlayerTabsProps {
-    lesson: Lesson;
+    lesson: Lesson | null;
     course: Course;
     onComplete: () => void;
 }
@@ -32,9 +37,24 @@ function getYouTubeEmbedUrl(url: string | undefined): string | null {
 
 export function CoursePlayerTabs({ lesson, course, onComplete }: CoursePlayerTabsProps) {
     const [activeTab, setActiveTab] = useState('lesson');
-    
-    const hasVideo = !!lesson.youtubeLinks?.[0]?.url;
-    const videoUrl = getYouTubeEmbedUrl(lesson.youtubeLinks?.[0]?.url);
+    const router = useRouter();
+
+    const hasVideo = !!lesson?.youtubeLinks?.[0]?.url;
+    const videoUrl = getYouTubeEmbedUrl(lesson?.youtubeLinks?.[0]?.url);
+    const progress = lesson ? 100 : 0; // Simplified for this component context
+
+    if (!lesson) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+                <CheckCircle className="h-24 w-24 text-green-500 mb-4" />
+                <h1 className="text-3xl font-bold mb-2 font-headline">You've completed all lessons!</h1>
+                <p className="text-muted-foreground mb-6">Great job. Now it's time to test your knowledge.</p>
+                <Button size="lg" onClick={() => router.push(`/courses/${slugify(course.title)}/exam`)}>
+                    Go to Final Exam
+                </Button>
+            </div>
+        )
+    }
 
     return (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-grow flex flex-col">

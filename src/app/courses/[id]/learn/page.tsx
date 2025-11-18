@@ -6,14 +6,13 @@ import { notFound, useRouter, useParams } from 'next/navigation';
 import type { Course, Lesson, TutorSettings } from '@/lib/types';
 import { getCourseById, updateUserCourseProgress, getUserCourses, getTutorSettings, getAllCourses } from '@/lib/firebase-service';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Lock, ArrowLeft, Menu } from 'lucide-react';
+import { ArrowLeft, Menu } from 'lucide-react';
 import { AppSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { useAuth } from '@/hooks/use-auth';
-import { isWeekend, differenceInDays, differenceInWeeks } from 'date-fns';
+import { isWeekend, differenceInWeeks } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { slugify } from '@/lib/utils';
@@ -23,6 +22,20 @@ import { checkCourseCompletionAchievements } from '@/lib/achievements';
 import { CourseOutline } from '@/components/CourseOutline';
 import { AiTutor } from '@/components/AiTutor';
 import { CoursePlayerTabs } from '@/components/CoursePlayerTabs';
+
+// Calculate the number of weekdays between two dates
+function getWeekdayCount(startDate: Date, endDate: Date): number {
+  let count = 0;
+  let currentDate = new Date(startDate);
+
+  while (currentDate <= endDate) {
+    if (!isWeekend(currentDate)) {
+      count++;
+    }
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  return count;
+}
 
 export default function CoursePlayerPage() {
   const router = useRouter();
@@ -156,7 +169,7 @@ export default function CoursePlayerPage() {
         if (achievement) {
             toast({
                 title: 'Achievement Unlocked!',
-                description: `${achievement.name}: ${achievement.description}`
+                description: `${'achievement.name'}: ${'achievement.description'}`
             });
         }
     }
@@ -251,36 +264,13 @@ export default function CoursePlayerPage() {
             )}
 
             <main className="flex-grow p-6 md:p-8 overflow-y-auto bg-secondary relative flex flex-col">
-               {currentLesson ? (
-                    <CoursePlayerTabs
-                        course={course}
-                        lesson={currentLesson}
-                        onComplete={handleCompleteLesson}
-                    />
-               ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-center">
-                        {progress >= 100 ? (
-                            <>
-                                <CheckCircle className="h-24 w-24 text-green-500 mb-4" />
-                                <h1 className="text-3xl font-bold mb-2 font-headline">You've completed all lessons!</h1>
-                                <p className="text-muted-foreground mb-6">Great job. Now it's time to test your knowledge.</p>
-                                <Button size="lg" onClick={() => router.push(`/courses/${slugify(course.title)}/exam`)}>
-                                    Go to Final Exam
-                                </Button>
-                            </>
-                        ) : (
-                            <Alert>
-                                <AlertTitle>No lesson selected</AlertTitle>
-                                <AlertDescription>
-                                    Please select an unlocked lesson from the sidebar to begin.
-                                </AlertDescription>
-                            </Alert>
-                        )}
-                    </div>
-               )}
-
-                <AiTutor course={course} lesson={currentLesson} settings={tutorSettings} />
-                <NotebookSheet courseId={course.id} courseTitle={course.title} />
+              <CoursePlayerTabs
+                  course={course}
+                  lesson={currentLesson}
+                  onComplete={handleCompleteLesson}
+              />
+              <AiTutor course={course} lesson={currentLesson} settings={tutorSettings} />
+              <NotebookSheet courseId={course.id} courseTitle={course.title} />
             </main>
           </div>
         </div>
