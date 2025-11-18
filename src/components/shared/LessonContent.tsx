@@ -67,7 +67,7 @@ export function LessonContent({ lesson, onComplete }: LessonContentProps) {
       <ScrollArea className="flex-grow">
         <div className="pr-4">
           <h1 className="text-3xl font-bold font-headline mb-4">{lesson.title}</h1>
-          <div className="prose dark:prose-invert max-w-none text-foreground/90 mb-6" style={{ whiteSpace: 'pre-wrap' }}>
+          <div className="prose dark:prose-invert text-foreground/90 mb-6" style={{ whiteSpace: 'pre-wrap' }}>
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeRaw]}
