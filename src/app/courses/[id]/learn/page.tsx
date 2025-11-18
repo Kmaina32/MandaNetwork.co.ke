@@ -263,7 +263,7 @@ export default function CoursePlayerPage() {
               </aside>
             )}
 
-            <main className="flex-grow p-6 md:p-8 overflow-y-auto bg-secondary relative flex flex-col">
+            <main className="flex-grow p-4 overflow-y-auto bg-secondary relative flex flex-col">
               <CoursePlayerTabs
                   course={course}
                   lesson={currentLesson}
