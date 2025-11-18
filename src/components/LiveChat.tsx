@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { ref, push, onChildAdded, serverTimestamp, query, limitToLast } from 'firebase/database';
+import { ref, push, onChildAdded, serverTimestamp, query, limitToLast, off } from 'firebase/database';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -41,11 +41,14 @@ export function LiveChat({ sessionId }: LiveChatProps) {
 
     useEffect(() => {
         const chatRef = query(ref(db, `liveChat/${sessionId}`), limitToLast(50));
-        const unsubscribe = onChildAdded(chatRef, (snapshot) => {
+        const handleNewMessage = (snapshot: any) => {
             const newMessage = { id: snapshot.key!, ...snapshot.val() };
             setMessages(prev => [...prev, newMessage].slice(-50));
-        });
-        return () => unsubscribe();
+        };
+        
+        onChildAdded(chatRef, handleNewMessage);
+
+        return () => off(chatRef, 'child_added', handleNewMessage);
     }, [sessionId]);
 
     useEffect(() => {

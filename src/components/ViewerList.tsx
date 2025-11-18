@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { getUserById } from '@/lib/firebase-service';
 import { Hand, Users } from 'lucide-react';
-import { onValue, ref, onChildAdded } from 'firebase/database';
+import { onValue, ref, onChildAdded, off } from 'firebase/database';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export function ViewerList({ sessionId }: { sessionId: string }) {
@@ -24,7 +24,7 @@ export function ViewerList({ sessionId }: { sessionId: string }) {
                 setViewers(prev => new Map(prev).set(studentId, { name: user?.displayName || 'Anonymous', handRaised }));
             }
         };
-
+        
         const valueUnsubscribe = onValue(answersRef, (snapshot) => {
              if (!snapshot.exists()) {
                 setViewers(new Map());
@@ -43,10 +43,11 @@ export function ViewerList({ sessionId }: { sessionId: string }) {
             });
         });
         
-        onChildAdded(answersRef, handleChildAdded);
+        const childAddedListener = onChildAdded(answersRef, handleChildAdded);
 
         return () => {
             valueUnsubscribe();
+            off(answersRef, 'child_added', childAddedListener);
         };
     }, [sessionId]);
 

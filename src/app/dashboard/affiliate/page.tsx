@@ -42,9 +42,8 @@ export default function AffiliateDashboardPage() {
     const affiliateLink = user && dbUser?.affiliateId ? `${window.location.origin}/signup?ref=${dbUser.affiliateId}` : '';
 
     useEffect(() => {
-        if (authLoading) {
-            return;
-        }
+        if (authLoading) return;
+        
         if (!user) {
             router.push('/login?redirect=/dashboard/affiliate');
             return;
@@ -70,6 +69,9 @@ export default function AffiliateDashboardPage() {
             } else {
                 setLoading(false);
             }
+        }, (error) => {
+            console.error("Firebase listener error:", error);
+            setLoading(false);
         });
 
         // Clean up the listener when the component unmounts or user changes

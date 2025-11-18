@@ -180,7 +180,7 @@ export function AdminHostView({ sessionId, isSessionActive }: { sessionId: strin
             if (isSessionActive) {
                 handleStopLive();
             }
-        }
+        };
     }, []);
 
      const handleGoLive = async (event: CalendarEvent) => {
@@ -214,7 +214,7 @@ export function AdminHostView({ sessionId, isSessionActive }: { sessionId: strin
         
         toast({ title: 'You are now live!', description: 'Waiting for members to join.' });
 
-        onChildAdded(answersRef, async (snapshot) => {
+        const answersListener = onChildAdded(answersRef, async (snapshot) => {
             const studentId = snapshot.key;
             const studentAnswer = snapshot.val();
             
@@ -242,6 +242,9 @@ export function AdminHostView({ sessionId, isSessionActive }: { sessionId: strin
                 }
             });
         });
+        
+        // This is a simplified cleanup. In a real app, you'd want a more robust listener management.
+        return () => answersListener();
     };
 
     const handleStopLive = async () => {
@@ -273,7 +276,7 @@ export function AdminHostView({ sessionId, isSessionActive }: { sessionId: strin
     }
 
     if (!isSessionActive) {
-        return <NoSessionControls onGoLive={handleGoLive} onScheduleSuccess={() => setEventsNeedRefresh(true)} />;
+        return <NoSessionControls onGoLive={handleGoLive} onScheduleSuccess={() => setEventsNeedRefresh(prev => !prev)} />;
     }
 
     return (

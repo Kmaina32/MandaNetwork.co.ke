@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { Hand, Loader2, PhoneOff, Maximize } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { onValue, ref, onChildAdded, set, remove } from 'firebase/database';
+import { onValue, ref, onChildAdded, set, remove, off } from 'firebase/database';
 import { useToast } from '@/hooks/use-toast';
 import { ViewerList } from '@/components/ViewerList';
 import { SessionInfo } from '@/components/SessionInfo';
@@ -65,8 +65,12 @@ export function MemberViewer({ sessionId, isSessionActive }: { sessionId: string
         };
 
         const offerRef = ref(db, `webrtc-offers/${sessionId}`);
+        const candidatesRef = ref(db, `webrtc-candidates/${sessionId}/admin/${user.uid}`);
+        let unsubscribeOffer: () => void;
+        let unsubscribeCandidates: () => void;
 
-        const unsubscribe = onValue(offerRef, async (snapshot) => {
+
+        unsubscribeOffer = onValue(offerRef, async (snapshot) => {
             if (snapshot.exists()) {
                 if (connectionStateRef.current !== 'new' && connectionStateRef.current !== 'closed') return;
                 
@@ -104,11 +108,12 @@ export function MemberViewer({ sessionId, isSessionActive }: { sessionId: string
                     type: answerDescription.type,
                     sdp: answerDescription.sdp,
                 });
-
-                onChildAdded(ref(db, `webrtc-candidates/${sessionId}/admin/${user.uid}`), (candidateSnapshot) => {
+                
+                unsubscribeCandidates = onChildAdded(candidatesRef, (candidateSnapshot) => {
                     const candidate = candidateSnapshot.val();
                     if(candidate) pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(e => console.error("Error adding ICE candidate:", e));
                 });
+
 
             } else {
                 setLiveSessionDetails(null);
@@ -123,7 +128,8 @@ export function MemberViewer({ sessionId, isSessionActive }: { sessionId: string
         });
 
         return () => {
-            unsubscribe();
+            if (unsubscribeOffer) unsubscribeOffer();
+            if (unsubscribeCandidates) unsubscribeCandidates();
             if (peerConnectionRef.current) peerConnectionRef.current.close();
             if (user) {
                 remove(ref(db, `webrtc-answers/${sessionId}/${user.uid}`));

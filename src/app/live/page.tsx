@@ -51,6 +51,9 @@ export default function LivePage() {
             setIsSessionActive(sessionExists);
             setLiveSessionDetails(sessionExists ? snapshot.val() : null);
             setCheckingSession(false);
+        }, (error) => {
+            console.error("Firebase listener error:", error);
+            setCheckingSession(false);
         });
         return () => unsubscribe();
     }, [sessionId]);
