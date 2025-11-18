@@ -3,8 +3,8 @@
 
 import { useState, useEffect } from 'react';
 import { notFound, useParams, usePathname, useRouter } from 'next/navigation';
-import { getUserById, getUserCourses, getAllCourses } from '@/lib/firebase-service';
-import type { RegisteredUser, Course, UserCourse } from '@/lib/types';
+import { getUserById, getUserCourses, getAllCourses, getLeaderboard } from '@/lib/firebase-service';
+import type { RegisteredUser, Course, UserCourse, LeaderboardEntry } from '@/lib/types';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Award, Github, Linkedin, Loader2, Twitter, ExternalLink, ArrowLeft, Mail, Briefcase, GraduationCap, Phone, MapPin } from 'lucide-react';
+import { Award, Github, Linkedin, Loader2, Twitter, ExternalLink, ArrowLeft, Mail, Briefcase, GraduationCap, Phone, MapPin, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import { slugify } from '@/lib/utils';
 import { Icon } from '@iconify/react';
@@ -60,6 +60,7 @@ export default function PortfolioPage() {
     const pathname = usePathname();
     const [user, setUser] = useState<RegisteredUser | null>(null);
     const [completedCourses, setCompletedCourses] = useState<CourseWithDetails[]>([]);
+    const [leaderboardRank, setLeaderboardRank] = useState<{ rank: number, score: number } | null>(null);
     const [loading, setLoading] = useState(true);
     const { user: authUser, loading: authLoading, isAdmin, isOrganizationAdmin } = useAuth();
     const [selectedStudent, setSelectedStudent] = useState<RegisteredUser | null>(null);
@@ -81,7 +82,16 @@ export default function PortfolioPage() {
                 
                 setUser(userData);
 
-                const allCourses = await getAllCourses();
+                const [allCourses, leaderboardData] = await Promise.all([
+                    getAllCourses(),
+                    getLeaderboard()
+                ]);
+                
+                const userRankIndex = leaderboardData.findIndex(entry => entry.userId === userData.uid);
+                if (userRankIndex !== -1) {
+                    setLeaderboardRank({ rank: userRankIndex + 1, score: leaderboardData[userRankIndex].score });
+                }
+
                 let coursesToDisplay: CourseWithDetails[];
 
                 if (userData.uid === ADMIN_UID) {
@@ -193,6 +203,21 @@ export default function PortfolioPage() {
                                    </>
                                )}
                             </Card>
+
+                             {leaderboardRank && (
+                                <Card className="mb-8 bg-primary/10 border-primary/20">
+                                    <CardHeader className="text-center">
+                                        <div className="mx-auto bg-primary/20 p-3 rounded-full w-fit mb-2">
+                                            <Trophy className="h-8 w-8 text-primary" />
+                                        </div>
+                                        <CardTitle className="font-headline">Community Leaderboard</CardTitle>
+                                        <CardDescription>
+                                            Ranked <span className="font-bold text-primary">#{leaderboardRank.rank}</span> with a score of <span className="font-bold text-primary">{leaderboardRank.score}</span>
+                                        </CardDescription>
+                                    </CardHeader>
+                                </Card>
+                            )}
+
 
                             {user.portfolio?.workExperience && user.portfolio.workExperience.length > 0 && (
                                 <Card className="mb-8">
