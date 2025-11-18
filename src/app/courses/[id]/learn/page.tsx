@@ -22,6 +22,7 @@ import { checkCourseCompletionAchievements } from '@/lib/achievements';
 import { CourseOutline } from '@/components/CourseOutline';
 import { AiTutor } from '@/components/AiTutor';
 import { CoursePlayerTabs } from '@/components/CoursePlayerTabs';
+import { CoursePlayerHeader } from '@/components/CoursePlayerHeader';
 
 // Calculate the number of weekdays between two dates
 function getWeekdayCount(startDate: Date, endDate: Date): number {
@@ -213,6 +214,7 @@ export default function CoursePlayerPage() {
      <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
+         <div className="flex flex-col h-screen">
          {isMobile ? (
            <Header>
               <div className="flex items-center gap-2">
@@ -233,7 +235,6 @@ export default function CoursePlayerPage() {
                     <SheetContent side="right" className="w-[300px] sm:w-[400px] p-0">
                        <CourseOutline 
                             course={course}
-                            progress={progress}
                             completedLessons={completedLessons}
                             unlockedLessonsCount={unlockedLessonsCount}
                             currentLesson={currentLesson}
@@ -246,14 +247,15 @@ export default function CoursePlayerPage() {
               </div>
            </Header>
          ) : <Header />}
+        
+        <CoursePlayerHeader course={course} progress={progress} />
 
-        <div className="flex h-[calc(100vh-4rem)]">
+        <div className="flex flex-grow overflow-hidden">
           <div className="flex-grow flex flex-col md:flex-row overflow-hidden relative">
             {!isMobile && (
               <aside className="w-full md:w-80 lg:w-96 bg-background border-r flex-shrink-0 overflow-y-auto">
                  <CourseOutline 
                     course={course}
-                    progress={progress}
                     completedLessons={completedLessons}
                     unlockedLessonsCount={unlockedLessonsCount}
                     currentLesson={currentLesson}
@@ -275,6 +277,7 @@ export default function CoursePlayerPage() {
               <NotebookSheet courseId={course.id} courseTitle={course.title} />
             </main>
           </div>
+        </div>
         </div>
       </SidebarInset>
     </SidebarProvider>

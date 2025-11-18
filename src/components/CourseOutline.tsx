@@ -39,7 +39,6 @@ function calculateModuleProgress(
 
 interface CourseOutlineProps {
     course: Course;
-    progress: number;
     completedLessons: Set<string>;
     unlockedLessonsCount: number;
     currentLesson: Lesson | null;
@@ -50,7 +49,6 @@ interface CourseOutlineProps {
 
 export function CourseOutline({
   course,
-  progress,
   completedLessons,
   unlockedLessonsCount,
   currentLesson,
@@ -67,22 +65,18 @@ export function CourseOutline({
           <SheetTitle>Course Outline</SheetTitle>
         </SheetHeader>
       ) : (
-        <button
-          onClick={() => router.push(`/courses/${slugify(course.title)}`)}
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Course Details
-        </button>
+        <div className="mb-4">
+            <h2 className="text-xl font-bold font-headline truncate">{course.title}</h2>
+            <button
+                onClick={() => router.push(`/courses/${slugify(course.title)}`)}
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Details
+            </button>
+        </div>
       )}
-      <h2 className="text-xl font-bold mb-1 font-headline">{course.title}</h2>
-      <p className="text-sm text-muted-foreground mb-2">{course.duration}</p>
-      <div className="flex items-center gap-2 mb-4">
-        <Progress value={progress} className="h-2 flex-grow" />
-        <span className="text-xs text-muted-foreground">
-          {Math.round(progress)}%
-        </span>
-      </div>
+      
       <Accordion
         type="multiple"
         defaultValue={course.modules?.map((m) => m.id)}
@@ -92,8 +86,8 @@ export function CourseOutline({
           const moduleProgress = calculateModuleProgress(module, completedLessons);
           return (
             <AccordionItem value={module.id} key={module.id}>
-              <AccordionTrigger className="font-semibold px-4 py-2 hover:no-underline">
-                <div className="w-full text-left">
+              <AccordionTrigger className="font-semibold px-4 py-2 hover:no-underline text-left">
+                <div className="w-full">
                   <p className="break-words">{module.title}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <Progress
@@ -110,7 +104,7 @@ export function CourseOutline({
                 <ul className="space-y-1 p-2">
                   {module.lessons.map((lesson, lessonIndex) => {
                     const overallLessonIndex =
-                      course.modules
+                      (course.modules || [])
                         .slice(0, moduleIndex)
                         .reduce((acc, m) => acc + m.lessons.length, 0) +
                       lessonIndex;
