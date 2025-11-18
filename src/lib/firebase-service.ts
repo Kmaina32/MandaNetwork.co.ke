@@ -1360,6 +1360,11 @@ export async function createForm(formData: Omit<FormType, 'id'>): Promise<string
   return newFormRef.key!;
 }
 
+export async function updateForm(id: string, formData: Omit<FormType, 'id'>): Promise<void> {
+    const formRef = ref(db, `forms/${id}`);
+    await update(formRef, formData);
+}
+
 export async function getAllForms(): Promise<FormType[]> {
     const formsRef = ref(db, 'forms');
     const snapshot = await get(formsRef);
@@ -1466,7 +1471,7 @@ export async function createOrUpdateConversation(conversation: Partial<any>): Pr
   }
 }
 
-export async function sendMessage(conversationId: string, message: { senderId: string; text: string; timestamp: string }): Promise<void> {
+export async function saveMessage(conversationId: string, message: { senderId: string; text: string; timestamp: string }): Promise<void> {
   const messagesRef = ref(db, `conversations/${conversationId}/messages`);
   const newMessageRef = push(messagesRef);
   await set(newMessageRef, message);

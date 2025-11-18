@@ -1,0 +1,274 @@
+
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter, useParams, notFound } from 'next/navigation';
+import { useForm, useFieldArray, useFormContext } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { v4 as uuidv4 } from 'uuid';
+import { Footer } from '@/components/shared/Footer';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
+import { ArrowLeft, Loader2, PlusCircle, Trash2, FilePen } from 'lucide-react';
+import { getFormById, updateForm, getAllOrganizations } from '@/lib/firebase-service';
+import type { Form as FormType, FormQuestion, Organization } from '@/lib/types';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { MessageSquare, Star, Type, List } from 'lucide-react';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
+
+const optionSchema = z.object({
+  id: z.string(),
+  value: z.string().min(1, "Option cannot be empty."),
+});
+
+const questionSchema = z.object({
+  id: z.string(),
+  text: z.string().min(1, "Question text cannot be empty."),
+  type: z.enum(['short-text', 'long-text', 'multiple-choice', 'rating']),
+  options: z.array(optionSchema).optional(),
+});
+
+const formBuilderSchema = z.object({
+  title: z.string().min(3, 'Form title is required.'),
+  description: z.string().optional(),
+  organizationId: z.string().optional(),
+  questions: z.array(questionSchema).min(1, "You must add at least one question."),
+});
+
+type FormBuilderValues = z.infer<typeof formBuilderSchema>;
+
+function QuestionCard({ index, remove }: { index: number, remove: (index: number) => void }) {
+    const { control, watch } = useFormContext<FormBuilderValues>();
+    const questionType = watch(`questions.${index}.type`);
+    
+    const { fields: optionFields, append: appendOption, remove: removeOption } = useFieldArray({
+        control,
+        name: `questions.${index}.options`
+    });
+
+    return (
+        <Card className="p-4 bg-secondary/50 relative">
+             <div className="absolute top-2 right-2 flex items-center gap-1">
+                <Button type="button" variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => remove(index)}><Trash2 className="h-4 w-4"/></Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={control} name={`questions.${index}.text`} render={({ field }) => (
+                    <FormItem className="md:col-span-2"><FormLabel>Question Text</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={control} name={`questions.${index}.type`} render={({ field }) => (
+                    <FormItem><FormLabel>Question Type</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
+                            <SelectContent>
+                                <SelectItem value="short-text">Short Text</SelectItem>
+                                <SelectItem value="long-text">Long Text (Paragraph)</SelectItem>
+                                <SelectItem value="multiple-choice">Multiple Choice</SelectItem>
+                                <SelectItem value="rating">Rating (1-5)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )}/>
+            </div>
+            {questionType === 'multiple-choice' && (
+                <div className="mt-4 pl-2 space-y-2">
+                    <FormLabel>Options</FormLabel>
+                    <div className="space-y-2">
+                        {optionFields.map((option, optionIndex) => (
+                           <div key={option.id} className="flex items-center gap-2">
+                                <FormField control={control} name={`questions.${index}.options.${optionIndex}.value`} render={({ field }) => (
+                                    <FormItem className="flex-grow"><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeOption(optionIndex)}><Trash2 className="h-4 w-4"/></Button>
+                           </div>
+                        ))}
+                    </div>
+                     <Button type="button" size="sm" variant="outline" onClick={() => appendOption({ id: uuidv4(), value: '' })}>
+                        <PlusCircle className="h-4 w-4 mr-2" /> Add Option
+                    </Button>
+                </div>
+            )}
+        </Card>
+    );
+}
+
+export default function EditFormPage() {
+  const router = useRouter();
+  const params = useParams<{ formId: string }>();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+
+  const form = useForm<FormBuilderValues>({
+    resolver: zodResolver(formBuilderSchema),
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+        setIsFetching(true);
+        try {
+            const [formData, orgs] = await Promise.all([
+                getFormById(params.formId),
+                getAllOrganizations()
+            ]);
+
+            if (!formData) {
+                notFound();
+                return;
+            }
+
+            setOrganizations(orgs);
+            form.reset({
+                ...formData,
+                organizationId: formData.organizationId || 'none',
+            });
+        } catch (error) {
+            console.error(error);
+            toast({ title: "Error", description: "Failed to load form data.", variant: "destructive"});
+        } finally {
+            setIsFetching(false);
+        }
+    }
+    fetchData();
+  }, [params.formId, form, toast]);
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "questions",
+  });
+
+  const addQuestion = (type: FormQuestion['type']) => {
+    append({
+        id: uuidv4(),
+        text: '',
+        type: type,
+        ...(type === 'multiple-choice' && { options: [{id: uuidv4(), value: ''}] }),
+    });
+  }
+
+  const onSubmit = async (values: FormBuilderValues) => {
+    setIsLoading(true);
+    try {
+      const dataToSave = {
+        ...values,
+        organizationId: values.organizationId === 'none' ? undefined : values.organizationId,
+      };
+      await updateForm(params.formId, dataToSave);
+      toast({
+        title: 'Form Updated!',
+        description: `The form "${values.title}" has been saved.`,
+      });
+      router.push('/admin/forms-surveys');
+    } catch (error) {
+      console.error('Failed to update form:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update the form. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <main className="flex-grow container mx-auto px-4 md:px-6 py-12">
+        <div className="max-w-4xl mx-auto">
+          <Link href="/admin/forms-surveys" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Forms & Surveys
+          </Link>
+          {isFetching ? (
+            <div className="flex justify-center items-center h-96"><LoadingAnimation /></div>
+          ) : (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-2xl font-headline flex items-center gap-2"><FilePen /> Edit Form</CardTitle>
+                        <CardDescription>Modify the details of your form.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                         <FormField control={form.control} name="title" render={({ field }) => (
+                            <FormItem><FormLabel>Form Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                         )}/>
+                         <FormField control={form.control} name="description" render={({ field }) => (
+                            <FormItem><FormLabel>Description (Optional)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                         )}/>
+                         <FormField
+                            control={form.control}
+                            name="organizationId"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Target Organization (Optional)</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select an organization..." />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="none">All Users (Public)</SelectItem>
+                                        {organizations.map(org => (
+                                            <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                         />
+                    </CardContent>
+                </Card>
+
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Questions</CardTitle>
+                        <CardDescription>Add and arrange the questions for your form.</CardDescription>
+                    </CardHeader>
+                     <CardContent className="space-y-4">
+                        {fields.map((field, index) => (
+                            <QuestionCard key={field.id} index={index} remove={remove} />
+                        ))}
+
+                        <div className="pt-4 border-t">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline"><PlusCircle className="mr-2 h-4 w-4"/> Add Question</Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuItem onClick={() => addQuestion('short-text')}><Type className="mr-2 h-4 w-4"/>Short Text</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => addQuestion('long-text')}><MessageSquare className="mr-2 h-4 w-4"/>Paragraph</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => addQuestion('multiple-choice')}><List className="mr-2 h-4 w-4"/>Multiple Choice</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => addQuestion('rating')}><Star className="mr-2 h-4 w-4"/>Rating Scale</DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                         {form.formState.errors.questions && (
+                             <p className="text-sm font-medium text-destructive">{form.formState.errors.questions.message}</p>
+                         )}
+                    </CardContent>
+                </Card>
+                
+                <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => router.push('/admin/forms-surveys')}>Cancel</Button>
+                    <Button type="submit" disabled={isLoading}>{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save Changes</Button>
+                </div>
+            </form>
+          </Form>
+          )}
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}
