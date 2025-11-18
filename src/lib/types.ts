@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { z } from 'zod';
@@ -349,14 +350,6 @@ export interface RegisteredUser {
     learningGoals?: Record<string, LearningGoal>;
     achievements?: Record<string, Achievement>;
     photoURL?: string;
-    affiliateId?: string;
-    referredBy?: string; // UID of the affiliate
-    hasMadeFirstPurchase?: boolean;
-    affiliateStats?: {
-        clicks: number;
-        referrals: number;
-        earnings: number;
-    }
 }
 
 export interface PermissionRequest {
@@ -441,44 +434,22 @@ export interface UserActivity {
     userId: string;
     userName: string;
     userAvatar: string;
-    type: 'signup' | 'enrollment' | 'page_visit';
+    type: 'signup' | 'enrollment';
     details: any;
     timestamp: string; // ISO string;
     path: string;
 }
 
-export interface ConversationMessage {
-    senderId: string;
-    text: string;
-    timestamp: string;
+export interface CardPaymentInput {
+    itemId: string;
+    itemName: string;
+    amount: number;
 }
 
-export interface ConversationParticipant {
-    name: string;
-    photoURL: string;
-}
-
-export interface Conversation {
-    id: string;
-    participants: Record<string, ConversationParticipant>;
-    lastMessage: ConversationMessage;
-    updatedAt: string;
-    readBy?: Record<string, boolean>;
-    messages?: Record<string, ConversationMessage>;
-}
-
-export interface BlogPost {
-  id: string;
-  slug: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-  author: string;
-  category: string;
-  content: string;
-  isPublished: boolean;
-  createdAt: string; // ISO String
-  updatedAt: string; // ISO String
+export interface PayPalPaymentInput {
+    itemId: string;
+    itemName: string;
+    amount: number;
 }
 
 export interface Referral {
@@ -489,44 +460,4 @@ export interface Referral {
     purchaseAmount: number;
     commissionAmount: number;
     createdAt: string; // ISO String
-}
-
-export interface TeamMember {
-  id: string;
-  name: string;
-  role: string;
-  avatar: string;
-  description: string;
-}
-
-export interface ContactMessage {
-    id: string;
-    name: string;
-    email: string;
-    message: string;
-    createdAt: string; // ISO String
-    read: boolean;
-}
-
-export interface FormQuestion {
-    id: string;
-    text: string;
-    type: 'short-text' | 'long-text' | 'multiple-choice' | 'rating';
-    options?: string[]; // For multiple-choice
-}
-
-export interface Form {
-    id: string;
-    title: string;
-    description?: string;
-    questions: FormQuestion[];
-    createdAt: string; // ISO String
-}
-
-export interface FormSubmission {
-    id: string;
-    formId: string;
-    userId: string;
-    submittedAt: string; // ISO String
-    answers: Record<string, any>; // questionId: answer
 }

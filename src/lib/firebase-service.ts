@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import { db, storage } from './firebase';
-import { ref, get, set, push, update, remove, query, orderByChild, equalTo, increment, limitToLast, onValue } from 'firebase/database';
+import { ref, get, set, push, update, remove, query, orderByChild, equalTo, increment, limitToLast } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, Conversation, ConversationMessage, BlogPost, Referral, TeamMember, ContactMessage, Form as FormType, FormSubmission } from './types';
+import type { Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, TeamMember, ContactMessage, Form as FormType, FormSubmission, Referral } from './types';
 import { getRemoteConfig, fetchAndActivate, getString } from 'firebase/remote-config';
 import { app } from './firebase';
 import { slugify } from './utils';
@@ -199,33 +200,6 @@ export async function enrollUserInCourse(userId: string, courseId: string, payme
                 courseId: courseId
             }
         });
-
-        // Affiliate logic
-        const user = await getUserById(userId);
-        if (user?.referredBy && !user.hasMadeFirstPurchase && course.price > 0) {
-            await saveUser(userId, { hasMadeFirstPurchase: true });
-            
-            const commissionAmount = course.price * 0.20; // 20% commission
-            
-            // Find the referral record created at signup and update it
-            const referralsRef = query(ref(db, 'referrals'), orderByChild('referredUserId'), equalTo(userId));
-            const snapshot = await get(referralsRef);
-            if (snapshot.exists()) {
-                const referralsData = snapshot.val();
-                const referralId = Object.keys(referralsData)[0];
-                const referralRef = ref(db, `referrals/${referralId}`);
-                await update(referralRef, {
-                    purchaseAmount: course.price,
-                    commissionAmount: commissionAmount,
-                });
-            }
-
-            // Also update the affiliate's stats
-            const affiliateStatsRef = ref(db, `users/${user.referredBy}/affiliateStats`);
-            await update(affiliateStatsRef, {
-                earnings: increment(commissionAmount),
-            });
-        }
     }
 }
 
@@ -1157,73 +1131,6 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
     return [];
 }
 
-// Affiliate Program Functions
-export async function createReferral(referralData: Omit<Referral, 'id'>): Promise<string> {
-    const referralsRef = ref(db, 'referrals');
-    const newRef = push(referralsRef);
-    await set(newRef, referralData);
-    return newRef.key!;
-}
-
-export async function getReferralsByAffiliate(affiliateId: string): Promise<Referral[]> {
-    const referralsRef = query(ref(db, 'referrals'), orderByChild('affiliateId'), equalTo(affiliateId));
-    const snapshot = await get(referralsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    }
-    return [];
-}
-
-// Blog functions
-export async function getBlogPostById(id: string): Promise<BlogPost | null> {
-    const postRef = ref(db, `blog/${id}`);
-    const snapshot = await get(postRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
-}
-export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> {
-    const dbRef = ref(db, 'blog');
-    const postsRef = query(dbRef, orderByChild('slug'), equalTo(slug));
-    const snapshot = await get(postsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        const postId = Object.keys(data)[0];
-        return { id: postId, ...data[postId] };
-    }
-    return null;
-}
-
-
-// ... (keep the rest of the functions like createBlogPost, updateBlogPost, deleteBlogPost, getAllBlogPosts)
-export async function createBlogPost(postData: Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
-  const postsRef = ref(db, 'blog');
-  const newPostRef = push(postsRef);
-  const now = new Date().toISOString();
-  const dataToSave: Omit<BlogPost, 'id'> = {
-    ...postData,
-    createdAt: now,
-    updatedAt: now,
-  };
-  await set(newPostRef, dataToSave);
-  return newPostRef.key!;
-}
-
-export async function updateBlogPost(postId: string, postData: Partial<Omit<BlogPost, 'id' | 'createdAt'>>): Promise<void> {
-  const postRef = ref(db, `blog/${postId}`);
-  await update(postRef, {
-    ...postData,
-    updatedAt: new Date().toISOString(),
-  });
-}
-
-export async function deleteBlogPost(postId: string): Promise<void> {
-  const postRef = ref(db, `blog/${postId}`);
-  await remove(postRef);
-}
-
 export async function getAllBlogPosts(): Promise<BlogPost[]> {
     const dbRef = ref(db, 'blog');
     const snapshot = await get(dbRef);
@@ -1239,7 +1146,7 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
 }
 
 // Activity Logging
-export async function logActivity(userId: string, data: { type: 'signup' | 'enrollment' | 'page_visit'; details: any }): Promise<void> {
+export async function logActivity(userId: string, data: { type: 'signup' | 'enrollment'; details: any }): Promise<void> {
     const user = await getUserById(userId);
     const logRef = ref(db, 'userActivity');
     const newLogRef = push(logRef);
@@ -1247,7 +1154,7 @@ export async function logActivity(userId: string, data: { type: 'signup' | 'enro
         userId,
         userName: user?.displayName || 'Unknown',
         userAvatar: user?.photoURL || '',
-        path: window.location.pathname, // Capture path for page visits
+        path: window.location.pathname,
         ...data,
         timestamp: new Date().toISOString(),
     });
@@ -1265,279 +1172,6 @@ export async function getActivityLogs(limit: number): Promise<UserActivity[]> {
         const data = snapshot.val();
         const logs = Object.keys(data).map(key => ({ id: key, ...data[key] }));
         return logs.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    }
-    return [];
-}
-
-// Conversation/Messaging Functions
-export async function createOrUpdateConversation(payload: { studentId: string; studentName: string; employerName: string, employerPhotoUrl: string, organizationName: string, initialMessage: string, employerDetails: { email: string, phone: string } }): Promise<string> {
-    const { studentId, studentName, employerName, employerPhotoUrl, organizationName, initialMessage, employerDetails } = payload;
-    // For simplicity, we'll use a composite key for now. A real app might use a separate /conversations root.
-    const conversationId = `${studentId}_${slugify(employerName)}`;
-    const conversationRef = ref(db, `conversations/${conversationId}`);
-    
-    const now = new Date().toISOString();
-    
-    const message: ConversationMessage = {
-        senderId: 'employer', // Differentiate from the student
-        text: initialMessage,
-        timestamp: now,
-    };
-    
-    const conversationData = {
-        participants: {
-            [studentId]: {
-                name: studentName,
-                photoURL: (await getUserById(studentId))?.photoURL || ''
-            },
-            'employer': {
-                name: employerName,
-                photoURL: employerPhotoUrl,
-            }
-        },
-        lastMessage: message,
-        updatedAt: now,
-        readBy: { [studentId]: false, 'employer': true },
-        employerDetails: employerDetails,
-        organizationName: organizationName,
-    };
-
-    await update(conversationRef, conversationData);
-    const messagesRef = ref(db, `conversations/${conversationId}/messages`);
-    const newMessageRef = push(messagesRef);
-    await set(newMessageRef, message);
-    
-    await createNotification({
-        userId: studentId,
-        title: `New Message from ${employerName}`,
-        body: initialMessage.substring(0, 100) + '...',
-        link: '/messages'
-    });
-
-    return conversationId;
-}
-
-export async function sendMessage(conversationId: string, message: ConversationMessage): Promise<void> {
-    const messagesRef = ref(db, `conversations/${conversationId}/messages`);
-    const conversationRef = ref(db, `conversations/${conversationId}`);
-    const newMessageRef = push(messagesRef);
-    await set(newMessageRef, message);
-    await update(conversationRef, {
-        lastMessage: message,
-        updatedAt: new Date().toISOString(),
-    });
-}
-
-export function getConversationsForUser(userId: string, callback: (conversations: Conversation[]) => void): () => void {
-    const conversationsRef = query(ref(db, 'conversations'), orderByChild(`participants/${userId}`), equalTo(null)); // This is a trick to query keys
-    return onValue(conversationsRef, (snapshot) => {
-        const convos: Conversation[] = [];
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            Object.keys(data).forEach(key => {
-                if (key.startsWith(userId)) {
-                    convos.push({ id: key, ...data[key] });
-                }
-            });
-        }
-        callback(convos.sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
-    });
-}
-
-export function getMessagesForConversation(conversationId: string, callback: (messages: ConversationMessage[]) => void): () => void {
-    const messagesRef = query(ref(db, `conversations/${conversationId}/messages`), limitToLast(50));
-    return onValue(messagesRef, (snapshot) => {
-        const messages: ConversationMessage[] = [];
-        if(snapshot.exists()) {
-            const data = snapshot.val();
-            Object.keys(data).forEach(key => {
-                messages.push({ ...data[key] });
-            });
-        }
-        callback(messages);
-    });
-}
-
-// Portfolio Project Submission
-export async function createProjectSubmission(submissionData: Omit<ProjectSubmission, 'id'>): Promise<string> {
-    const projectSubmissionsRef = ref(db, 'projectSubmissions');
-    const newSubmissionRef = push(projectSubmissionsRef);
-    await set(newSubmissionRef, submissionData);
-    return newSubmissionRef.key!;
-}
-
-// Advertisement Functions
-export async function createAdvertisement(adData: Omit<Advertisement, 'id'>): Promise<string> {
-    const adsRef = ref(db, 'advertisements');
-    const newAdRef = push(adsRef);
-    await set(newAdRef, adData);
-    return newAdRef.key!;
-}
-
-export async function getAllAdvertisements(): Promise<Advertisement[]> {
-    const adsRef = ref(db, 'advertisements');
-    const snapshot = await get(adsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    }
-    return [];
-}
-
-export async function getActiveAdvertisements(): Promise<Advertisement[]> {
-    const allAds = await getAllAdvertisements();
-    return allAds.filter(ad => ad.isActive);
-}
-
-
-export async function getAdvertisementById(id: string): Promise<Advertisement | null> {
-    const adRef = ref(db, `advertisements/${id}`);
-    const snapshot = await get(adRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
-}
-
-export async function updateAdvertisement(id: string, adData: Partial<Advertisement>): Promise<void> {
-    const adRef = ref(db, `advertisements/${id}`);
-    await update(adRef, adData);
-}
-
-export async function deleteAdvertisement(id: string): Promise<void> {
-    const adRef = ref(db, `advertisements/${id}`);
-    await remove(adRef);
-}
-
-// Team Member Functions
-export async function getTeamMembers(): Promise<TeamMember[]> {
-    const teamRef = ref(db, 'teamMembers');
-    const snapshot = await get(teamRef);
-    if (snapshot.exists()) {
-        return snapshot.val();
-    }
-    return [
-      { id: 'uuid-1', name: 'George Kairu Maina', role: 'Founder & CTO', description: 'The visionary architect behind our platform.', avatar: '/avatars/male-1.png' },
-      { id: 'uuid-2', name: 'Nathan Kabare', role: 'Director of Marketing', description: 'Leads our growth and brand strategy.', avatar: '/avatars/male-2.png' },
-      { id: 'uuid-3', name: 'Joel K', role: 'Operations Director', description: 'Ensures the smooth running of the platform.', avatar: '/avatars/male-3.png' },
-    ];
-}
-
-export async function updateTeamMembers(members: TeamMember[]): Promise<void> {
-    const teamRef = ref(db, 'teamMembers');
-    await set(teamRef, members);
-}
-
-// Contact Message Functions
-export async function createContactMessage(messageData: Omit<ContactMessage, 'id' | 'createdAt' | 'read'>): Promise<string> {
-    const messagesRef = ref(db, 'contactMessages');
-    const newMessageRef = push(messagesRef);
-    await set(newMessageRef, {
-        ...messageData,
-        createdAt: new Date().toISOString(),
-        read: false,
-    });
-    return newMessageRef.key!;
-}
-
-export async function getContactMessages(): Promise<ContactMessage[]> {
-    const messagesRef = ref(db, 'contactMessages');
-    const snapshot = await get(query(messagesRef, orderByChild('createdAt')));
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({ id: key, ...data[key] })).reverse();
-    }
-    return [];
-}
-
-export async function markContactMessageAsRead(messageId: string): Promise<void> {
-    const messageRef = ref(db, `contactMessages/${messageId}`);
-    await update(messageRef, { read: true });
-}
-
-export async function deleteContactMessage(messageId: string): Promise<void> {
-    const messageRef = ref(db, `contactMessages/${messageId}`);
-    await remove(messageRef);
-}
-
-// Form Functions
-export async function createForm(formData: Omit<FormType, 'id' | 'createdAt'>): Promise<string> {
-  const formsRef = ref(db, 'forms');
-  const newFormRef = push(formsRef);
-  const dataToSave = {
-    ...formData,
-    createdAt: new Date().toISOString(),
-  };
-  await set(newFormRef, dataToSave);
-  return newFormRef.key!;
-}
-
-export async function getAllForms(): Promise<FormType[]> {
-    const formsRef = ref(db, 'forms');
-    const snapshot = await get(formsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
-        }));
-    }
-    return [];
-}
-
-export async function deleteForm(formId: string): Promise<void> {
-    const formRef = ref(db, `forms/${formId}`);
-    await remove(formRef);
-    // Optional: Also delete all submissions for this form
-    const submissionsRef = query(ref(db, 'formSubmissions'), orderByChild('formId'), equalTo(formId));
-    const snapshot = await get(submissionsRef);
-    if(snapshot.exists()){
-        const updates: Record<string, null> = {};
-        snapshot.forEach(child => {
-            updates[child.key!] = null;
-        });
-        await update(ref(db, 'formSubmissions'), updates);
-    }
-}
-
-export async function getFormById(formId: string): Promise<FormType | null> {
-    const formRef = ref(db, `forms/${formId}`);
-    const snapshot = await get(formRef);
-    if (snapshot.exists()) {
-        return { id: formId, ...snapshot.val() };
-    }
-    return null;
-}
-
-export async function createFormSubmission(submissionData: Omit<FormSubmission, 'id'>): Promise<string> {
-    const submissionsRef = ref(db, 'formSubmissions');
-    const newSubmissionRef = push(submissionsRef);
-    await set(newSubmissionRef, submissionData);
-    return newSubmissionRef.key!;
-}
-
-export async function getFormSubmissions(formId: string): Promise<FormSubmission[]> {
-    const submissionsRef = query(ref(db, 'formSubmissions'), orderByChild('formId'), equalTo(formId));
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
-        }));
-    }
-    return [];
-}
-
-export async function getFormSubmissionsByUserId(userId: string): Promise<FormSubmission[]> {
-    const submissionsRef = query(ref(db, 'formSubmissions'), orderByChild('userId'), equalTo(userId));
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
-        }));
     }
     return [];
 }

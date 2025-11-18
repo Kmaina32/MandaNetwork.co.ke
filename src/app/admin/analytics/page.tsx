@@ -7,22 +7,26 @@ import Link from 'next/link';
 import { Footer } from "@/components/shared/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Sparkles, Users, BookOpen, UserPlus, LineChart, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Users, BookOpen, UserPlus, LineChart, ExternalLink, DollarSign, Activity } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { runContentStrategy } from '@/app/actions';
-import type { ContentStrategyOutput, Course, RegisteredUser } from '@/lib/types';
+import type { ContentStrategyOutput, Course, RegisteredUser, UserActivity } from '@/lib/types';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { getAllCourses, getAllUsers } from '@/lib/firebase-service';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { getAllCourses, getAllUsers, getActivityLogs } from '@/lib/firebase-service';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ComposedChart, Legend } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LoadingAnimation } from '@/components/LoadingAnimation';
+import { format, subDays, parseISO } from 'date-fns';
 
 type AnalyticsData = {
   totalUsers: number;
   totalCourses: number;
   totalEnrollments: number;
-  userSignups: { date: string, count: number }[];
-  courseEnrollments: { title: string, enrollments: number }[];
+  totalRevenue: number;
+  userSignups: { date: string; count: number }[];
+  courseEnrollments: { title: string; enrollments: number }[];
+  courseRevenue: { title: string; revenue: number }[];
+  recentActivities: UserActivity[];
 };
 
 const chartConfig = {
@@ -30,9 +34,17 @@ const chartConfig = {
     label: "Enrollments",
     color: "hsl(var(--primary))",
   },
+   revenue: {
+    label: "Revenue (Ksh)",
+    color: "hsl(var(--accent))",
+  },
   signups: {
     label: "Sign-ups",
     color: "hsl(var(--accent))",
+  },
+  trend: {
+    label: "Trend",
+    color: "hsl(var(--foreground))",
   }
 };
 
@@ -46,35 +58,57 @@ export default function AdminAnalyticsPage() {
     const fetchAnalytics = async () => {
       setLoadingAnalytics(true);
       try {
-        const [users, courses] = await Promise.all([getAllUsers(), getAllCourses()]);
+        const [users, courses, activityLogs] = await Promise.all([
+            getAllUsers(), 
+            getAllCourses(),
+            getActivityLogs(5) // Fetch last 5 activities
+        ]);
         
         let totalEnrollments = 0;
+        let totalRevenue = 0;
         const courseEnrollmentCounts: { [key: string]: number } = {};
-        courses.forEach(c => courseEnrollmentCounts[c.id] = 0);
+        const courseRevenueCounts: { [key: string]: number } = {};
+        courses.forEach(c => {
+            courseEnrollmentCounts[c.id] = 0;
+            courseRevenueCounts[c.id] = 0;
+        });
 
         const userSignupCounts: { [key: string]: number } = {};
+        const thirtyDaysAgo = subDays(new Date(), 30);
 
         users.forEach(user => {
-          if (user.purchasedCourses) {
-            const userEnrollments = Object.keys(user.purchasedCourses).length;
-            totalEnrollments += userEnrollments;
-            Object.keys(user.purchasedCourses).forEach(courseId => {
-              if (courseEnrollmentCounts[courseId] !== undefined) {
-                 courseEnrollmentCounts[courseId]++;
-              }
-            })
-          }
-           // Use the stored creation date, with a fallback for older users
-          const signupDate = user.createdAt
-            ? new Date(user.createdAt).toISOString().split('T')[0]
-            : new Date().toISOString().split('T')[0];
-          userSignupCounts[signupDate] = (userSignupCounts[signupDate] || 0) + 1;
+            if (user.purchasedCourses) {
+                const userEnrollments = Object.keys(user.purchasedCourses).length;
+                totalEnrollments += userEnrollments;
+                 Object.keys(user.purchasedCourses).forEach(courseId => {
+                    if (courseEnrollmentCounts[courseId] !== undefined) {
+                        courseEnrollmentCounts[courseId]++;
+                    }
+                    const course = courses.find(c => c.id === courseId);
+                    if(course) {
+                        totalRevenue += course.price;
+                        courseRevenueCounts[course.id] = (courseRevenueCounts[course.id] || 0) + course.price;
+                    }
+                });
+            }
+            if (user.createdAt) {
+                const signupDate = parseISO(user.createdAt);
+                if (signupDate > thirtyDaysAgo) {
+                    const dateKey = format(signupDate, 'yyyy-MM-dd');
+                    userSignupCounts[dateKey] = (userSignupCounts[dateKey] || 0) + 1;
+                }
+            }
         });
 
         const courseEnrollments = courses.map(course => ({
           title: course.title,
           enrollments: courseEnrollmentCounts[course.id] || 0
-        })).sort((a,b) => b.enrollments - a.enrollments).slice(0, 10); // top 10
+        })).sort((a,b) => b.enrollments - a.enrollments).slice(0, 10);
+
+        const courseRevenue = courses.map(course => ({
+          title: course.title,
+          revenue: courseRevenueCounts[course.id] || 0
+        })).sort((a,b) => b.revenue - a.revenue).slice(0, 5);
 
         const userSignups = Object.entries(userSignupCounts).map(([date, count]) => ({
           date,
@@ -86,8 +120,11 @@ export default function AdminAnalyticsPage() {
           totalUsers: users.length,
           totalCourses: courses.length,
           totalEnrollments,
+          totalRevenue,
           courseEnrollments,
+          courseRevenue,
           userSignups,
+          recentActivities: activityLogs,
         });
 
       } catch (error) {
@@ -147,7 +184,16 @@ export default function AdminAnalyticsPage() {
                 </div>
               ) : analyticsData ? (
                 <>
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                       <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                       <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">Ksh {analyticsData.totalRevenue.toLocaleString()}</div>
+                    </CardContent>
+                  </Card>
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                        <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -210,6 +256,43 @@ export default function AdminAnalyticsPage() {
                       </ChartContainer>
                     </CardContent>
                   </Card>
+
+                   <div className="grid gap-8 md:grid-cols-2">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>User Signups (Last 30 Days)</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <ChartContainer config={chartConfig} className="h-[250px] w-full">
+                                    <ComposedChart data={analyticsData.userSignups}>
+                                        <CartesianGrid vertical={false} />
+                                        <XAxis dataKey="date" tickFormatter={(value) => format(new Date(value), 'MMM d')} tickLine={false} axisLine={false} />
+                                        <YAxis />
+                                        <Tooltip content={<ChartTooltipContent />} />
+                                        <Legend />
+                                        <Bar dataKey="count" fill="var(--color-signups)" radius={4} name="Signups" />
+                                        <Line type="monotone" dataKey="count" stroke="var(--color-trend)" strokeWidth={2} name="Trend" dot={false} />
+                                    </ComposedChart>
+                                </ChartContainer>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                             <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><Activity /> Recent Activity</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                               <div className="space-y-4">
+                                   {analyticsData.recentActivities.map((activity) => (
+                                       <div key={activity.id} className="flex items-center gap-3">
+                                           <p className="text-sm">
+                                                <span className="font-semibold">{activity.userName}</span> {activity.type === 'enrollment' ? 'enrolled in' : 'visited'} <Link href={activity.path} className="text-primary hover:underline">{activity.type === 'enrollment' ? activity.details.courseTitle : activity.path}</Link>
+                                           </p>
+                                       </div>
+                                   ))}
+                               </div>
+                            </CardContent>
+                        </Card>
+                   </div>
                 </div>
                 </>
               ) : (
