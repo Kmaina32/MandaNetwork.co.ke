@@ -4,7 +4,6 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
 import type { Lesson } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Check, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import rehypeRaw from 'rehype-raw';
 
 const GoogleDriveIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" {...props}>
@@ -72,26 +72,22 @@ export function LessonContent({ lesson, onComplete }: LessonContentProps) {
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeRaw]}
                 components={{
-                    div: ({ node, ...props }) => {
-                        const isCodeBlock = node.children.some(
-                          (child: any) => child.tagName === 'pre'
-                        );
-                        if (isCodeBlock) {
-                          const preNode = node.children.find(
-                            (child: any) => child.tagName === 'pre'
-                          );
-                          const codeNode = preNode?.children[0];
-                          return <CodeBlock node={codeNode} {...(codeNode?.properties || {})} >{codeNode?.children[0]?.value}</CodeBlock>;
+                    pre: ({node, ...props}) => {
+                        const codeChild = node?.children[0];
+                        if (codeChild && 'tagName' in codeChild && codeChild.tagName === 'code') {
+                            const className = codeChild.properties?.className?.[0] || '';
+                            const codeContent = codeChild.children[0] && 'value' in codeChild.children[0] ? codeChild.children[0].value : '';
+                            return <CodeBlock className={className}>{codeContent}</CodeBlock>;
                         }
-                        return <div {...props} />;
+                        return <pre {...props} />;
                     },
-                    code({ node, inline, className, children, ...props }) {
-                        if (inline) {
-                            return <code className="bg-muted px-1.5 py-1 rounded-sm text-sm font-mono" {...props}>{children}</code>
+                    code({node, inline, className, children, ...props}) {
+                         if (inline) {
+                            return <code className="bg-muted px-1.5 py-1 rounded-sm text-sm font-mono" {...props}>{children}</code>;
                         }
-                        // This will be handled by the div renderer above for block code
+                        // Block code is now handled by the `pre` component above.
                         return null;
-                    }
+                    },
                 }}
               >
                   {lesson.content}
