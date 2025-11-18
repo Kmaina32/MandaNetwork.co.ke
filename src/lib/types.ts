@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { z } from 'zod';
@@ -209,6 +207,7 @@ export interface DiscussionThread {
     createdAt: string; // ISO String
     replies?: DiscussionReply[];
 }
+
 
 export interface LiveSession {
     isActive: boolean;
