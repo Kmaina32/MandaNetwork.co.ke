@@ -1,4 +1,5 @@
 
+
 import { z } from 'zod';
 
 export interface YoutubeLink {
@@ -129,7 +130,7 @@ export interface UserCourse {
     enrollmentDate: string; // ISO String
     completedLessons?: string[];
     feedbackSubmitted?: boolean;
-    paymentMethod?: 'mpesa' | 'card' | 'paypal' | 'free';
+    paymentMethod?: 'mpesa' | 'card' | 'paypal' | 'free' | 'crypto';
 }
 
 export type TutorMessage = {
@@ -268,6 +269,7 @@ export interface RegisteredUser {
     email: string | null;
     displayName: string | null;
     createdAt?: string; // ISO String
+    slug?: string;
     cohort?: string;
     purchasedCourses?: Record<string, Omit<UserCourse, 'courseId'>>;
     plan?: 'free' | 'basic' | 'pro';
@@ -352,39 +354,6 @@ export interface UserActivity {
     userAvatar: string;
     type: 'signup' | 'enrollment' | 'page_visit';
     details: any;
-    timestamp: string; // ISO string
-}
-
-export interface ConversationMessage {
-    senderId: string;
-    text: string;
-    timestamp: string;
-}
-
-export interface ConversationParticipant {
-    name: string;
-    photoURL: string;
-}
-
-export interface Conversation {
-    id: string;
-    participants: Record<string, ConversationParticipant>;
-    lastMessage: ConversationMessage;
-    updatedAt: string;
-    readBy?: Record<string, boolean>;
-    messages?: Record<string, ConversationMessage>;
-}
-
-export interface BlogPost {
-  id: string;
-  slug: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-  author: string;
-  category: string;
-  content: string;
-  isPublished: boolean;
-  createdAt: string; // ISO String
-  updatedAt: string; // ISO String
+    timestamp: string; // ISO string;
+    path: string;
 }

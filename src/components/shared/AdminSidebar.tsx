@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -13,12 +14,12 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { GitBranch, Home, LayoutDashboard, ListTodo, Calendar, Users, ImageIcon, CreditCard, Cog, HelpCircle, ExternalLink, Bot, Bell, Clapperboard, Library, Layers, BarChart3, Tag, ShieldCheck, Building, FileText, Rocket, ChevronRight, BookCopy, Contact, Users2, Speaker, LineChart, Book, Trophy, Briefcase, Award, Megaphone, Rss, Code, Handshake } from 'lucide-react';
+import { GitBranch, LayoutDashboard, Calendar, Users2, ImageIcon, CreditCard, HelpCircle, ExternalLink, Bot, Bell, Clapperboard, Library, Layers, BarChart3, Tag, ShieldCheck, Building, FileText, Rocket, BookCopy, Briefcase, Award, Megaphone, Rss, Trophy, Handshake, Users, LineChart, Mail, FilePen } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
-import pkg from '../../../package.json';
+import pkg from '../../package.json';
 import { Icon } from '@iconify/react';
 
 export function AdminSidebar() {
@@ -117,6 +118,11 @@ export function AdminSidebar() {
                         <Link href="/admin/affiliates"><Handshake className="h-4 w-4 mr-2"/>Affiliates</Link>
                     </SidebarMenuButton>
                  </SidebarMenuItem>
+                 <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/messages')} tooltip="Messages">
+                        <Link href="/admin/messages"><Mail className="h-4 w-4 mr-2"/>Messages</Link>
+                    </SidebarMenuButton>
+                 </SidebarMenuItem>
                 {isSuperAdmin && (
                      <SidebarMenuItem>
                         <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/approvals')} tooltip="Approvals">
@@ -129,6 +135,11 @@ export function AdminSidebar() {
                 <SidebarMenuItem>
                      <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/live')} tooltip="Live Classroom">
                         <Link href="/admin/live"><Clapperboard className="h-4 w-4 mr-2"/>Live Classroom</Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/forms-surveys')} tooltip="Forms & Surveys">
+                        <Link href="/admin/forms-surveys"><FilePen className="h-4 w-4 mr-2"/>Forms & Surveys</Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
@@ -187,6 +198,14 @@ export function AdminSidebar() {
                 <SidebarMenuItem>
                      <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/analytics')} tooltip="Platform Analytics">
                         <Link href="/admin/analytics"><BarChart3 className="h-4 w-4 mr-2"/>Platform Analytics</Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild size="sm" tooltip="Vercel Analytics">
+                        <a href="https://vercel.com/dashboard" target="_blank" rel="noopener noreferrer">
+                            <LineChart className="h-4 w-4 mr-2" />
+                            Vercel Analytics
+                        </a>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
                

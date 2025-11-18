@@ -132,18 +132,18 @@ export async function saveUser(uid: string, dataToSave: Partial<Omit<RegisteredU
     const userRef = ref(db, `users/${uid}`);
     await update(userRef, dataToSave);
 
-    // Denormalize data for public profiles
-    if (dataToSave.portfolio) {
-        const publicProfileRef = ref(db, `publicProfiles/${uid}`);
-        if (dataToSave.portfolio.public) {
+    if (dataToSave.portfolio || dataToSave.displayName || dataToSave.photoURL) {
+        const userSnapshot = await get(userRef);
+        const fullUser = userSnapshot.val();
+        
+        if (fullUser.portfolio?.public) {
+            const publicProfileRef = ref(db, `publicProfiles/${uid}`);
             await set(publicProfileRef, {
                 uid: uid,
-                displayName: dataToSave.displayName,
-                photoURL: dataToSave.photoURL,
-                portfolio: dataToSave.portfolio
+                displayName: fullUser.displayName,
+                photoURL: fullUser.photoURL,
+                portfolio: fullUser.portfolio
             });
-        } else {
-            await remove(publicProfileRef);
         }
     }
 }
@@ -1172,6 +1172,224 @@ export async function getActivityLogs(limit: number): Promise<UserActivity[]> {
         const data = snapshot.val();
         const logs = Object.keys(data).map(key => ({ id: key, ...data[key] }));
         return logs.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    }
+    return [];
+}
+
+// Blog
+export async function createBlogPost(postData: Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  const postsRef = ref(db, 'blog');
+  const newPostRef = push(postsRef);
+  const now = new Date().toISOString();
+  const dataToSave = {
+    ...postData,
+    slug: slugify(postData.title),
+    createdAt: now,
+    updatedAt: now,
+  };
+  await set(newPostRef, dataToSave);
+  return newPostRef.key!;
+}
+
+export async function updateBlogPost(postId: string, postData: Partial<Omit<BlogPost, 'id' | 'createdAt'>>): Promise<void> {
+  const postRef = ref(db, `blog/${postId}`);
+  const dataToUpdate = {
+    ...postData,
+    slug: slugify(postData.title!),
+    updatedAt: new Date().toISOString(),
+  };
+  await update(postRef, dataToUpdate);
+}
+
+export async function getBlogPostById(id: string): Promise<BlogPost | null> {
+    const postRef = ref(db, `blog/${id}`);
+    const snapshot = await get(postRef);
+    if (snapshot.exists()) {
+        return { id, ...snapshot.val() };
+    }
+    return null;
+}
+
+export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> {
+    const blogRef = query(ref(db, 'blog'), orderByChild('slug'), equalTo(slug));
+    const snapshot = await get(blogRef);
+    if (snapshot.exists()) {
+        const postsData = snapshot.val();
+        const postId = Object.keys(postsData)[0];
+        return { id: postId, ...postsData[postId] };
+    }
+    return null;
+}
+
+export async function deleteBlogPost(postId: string): Promise<void> {
+    const postRef = ref(db, `blog/${postId}`);
+    await remove(postRef);
+}
+
+
+// Advertisements
+export async function createAdvertisement(adData: Omit<Advertisement, 'id'>): Promise<string> {
+    const adsRef = ref(db, 'advertisements');
+    const newAdRef = push(adsRef);
+    await set(newAdRef, adData);
+    return newAdRef.key!;
+}
+
+export async function getAllAdvertisements(): Promise<Advertisement[]> {
+    const adsRef = ref(db, 'advertisements');
+    const snapshot = await get(adsRef);
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
+    }
+    return [];
+}
+
+export async function getActiveAdvertisements(): Promise<Advertisement[]> {
+    const allAds = await getAllAdvertisements();
+    return allAds.filter(ad => ad.isActive);
+}
+
+
+export async function getAdvertisementById(id: string): Promise<Advertisement | null> {
+    const adRef = ref(db, `advertisements/${id}`);
+    const snapshot = await get(adRef);
+    if (snapshot.exists()) {
+        return { id, ...snapshot.val() };
+    }
+    return null;
+}
+
+export async function updateAdvertisement(id: string, adData: Partial<Advertisement>): Promise<void> {
+    const adRef = ref(db, `advertisements/${id}`);
+    await update(adRef, adData);
+}
+
+export async function deleteAdvertisement(id: string): Promise<void> {
+    const adRef = ref(db, `advertisements/${id}`);
+    await remove(adRef);
+}
+
+
+export async function getTeamMembers(): Promise<TeamMember[]> {
+    const teamRef = ref(db, 'teamMembers');
+    const snapshot = await get(teamRef);
+    if (snapshot.exists()) {
+        return snapshot.val() || [];
+    }
+    return [];
+}
+
+export async function updateTeamMembers(members: TeamMember[]): Promise<void> {
+    const teamRef = ref(db, 'teamMembers');
+    await set(teamRef, members);
+}
+
+// Contact Messages
+export async function createContactMessage(message: Omit<ContactMessage, 'id' | 'createdAt' | 'read'>): Promise<void> {
+    const messagesRef = ref(db, 'contactMessages');
+    const newMessageRef = push(messagesRef);
+    await set(newMessageRef, {
+        ...message,
+        createdAt: new Date().toISOString(),
+        read: false,
+    });
+}
+
+export async function getContactMessages(): Promise<ContactMessage[]> {
+    const messagesRef = query(ref(db, 'contactMessages'), orderByChild('createdAt'));
+    const snapshot = await get(messagesRef);
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        const messages = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+        return messages.reverse();
+    }
+    return [];
+}
+
+export async function markContactMessageAsRead(id: string): Promise<void> {
+    const messageRef = ref(db, `contactMessages/${id}`);
+    await update(messageRef, { read: true });
+}
+
+export async function deleteContactMessage(id: string): Promise<void> {
+    const messageRef = ref(db, `contactMessages/${id}`);
+    await remove(messageRef);
+}
+
+
+// Forms & Surveys
+export async function createForm(formData: Omit<FormType, 'id'>): Promise<string> {
+    const formsRef = ref(db, 'forms');
+    const newFormRef = push(formsRef);
+    await set(newFormRef, formData);
+    return newFormRef.key!;
+}
+
+export async function getAllForms(): Promise<FormType[]> {
+    const formsRef = ref(db, 'forms');
+    const snapshot = await get(formsRef);
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
+    }
+    return [];
+}
+
+export async function getFormById(id: string): Promise<FormType | null> {
+    const formRef = ref(db, `forms/${id}`);
+    const snapshot = await get(formRef);
+    if (snapshot.exists()) {
+        return { id, ...snapshot.val() };
+    }
+    return null;
+}
+
+export async function deleteForm(id: string): Promise<void> {
+    const formRef = ref(db, `forms/${id}`);
+    await remove(formRef);
+}
+
+export async function createFormSubmission(submissionData: Omit<FormSubmission, 'id'>): Promise<string> {
+    const submissionsRef = ref(db, 'formSubmissions');
+    const newSubmissionRef = push(submissionsRef);
+    await set(newSubmissionRef, submissionData);
+    return newSubmissionRef.key!;
+}
+
+export async function getFormSubmissions(formId: string): Promise<FormSubmission[]> {
+    const submissionsRef = query(ref(db, 'formSubmissions'), orderByChild('formId'), equalTo(formId));
+    const snapshot = await get(submissionsRef);
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
+    }
+    return [];
+}
+
+export async function getFormSubmissionsByUserId(userId: string): Promise<FormSubmission[]> {
+    const submissionsRef = query(ref(db, 'formSubmissions'), orderByChild('userId'), equalTo(userId));
+    const snapshot = await get(submissionsRef);
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
+    }
+    return [];
+}
+
+// Affiliate Program
+export async function createReferral(referralData: Omit<Referral, 'id'>): Promise<void> {
+    const referralsRef = ref(db, 'referrals');
+    const newRef = push(referralsRef);
+    await set(newRef, referralData);
+}
+
+export async function getReferralsByAffiliate(affiliateId: string): Promise<Referral[]> {
+    const referralsRef = query(ref(db, 'referrals'), orderByChild('affiliateId'), equalTo(affiliateId));
+    const snapshot = await get(referralsRef);
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
     }
     return [];
 }
