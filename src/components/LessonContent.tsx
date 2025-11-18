@@ -57,45 +57,9 @@ const CodeBlock = ({ node, inline, className, children, ...props }: any) => {
 
 interface LessonContentProps {
   lesson: Lesson | null;
-  onComplete: () => void;
 }
 
-export function LessonContent({ lesson, onComplete }: LessonContentProps) {
-  const [timerProgress, setTimerProgress] = useState(0);
-  
-  useEffect(() => {
-    if (!lesson) return;
-
-    // Reset progress when lesson changes
-    setTimerProgress(0);
-
-    const durationInMinutes = parseInt(lesson.duration.split(' ')[0], 10);
-    if (isNaN(durationInMinutes) || durationInMinutes <= 0) {
-        // If duration is invalid, mark as complete after a short delay
-        setTimeout(onComplete, 2000);
-        return;
-    }
-    
-    const durationInSeconds = durationInMinutes * 60;
-    const interval = 100; // Update every 100ms
-    const totalSteps = durationInSeconds * 1000 / interval;
-    let step = 0;
-
-    const timer = setInterval(() => {
-      step++;
-      const progress = (step / totalSteps) * 100;
-      setTimerProgress(progress);
-
-      if (progress >= 100) {
-        clearInterval(timer);
-        onComplete();
-      }
-    }, interval);
-
-    return () => clearInterval(timer);
-  }, [lesson, onComplete]);
-
-
+export function LessonContent({ lesson }: LessonContentProps) {
   if (!lesson) return null;
 
   return (
@@ -153,15 +117,6 @@ export function LessonContent({ lesson, onComplete }: LessonContentProps) {
           )}
         </div>
       </ScrollArea>
-
-      <div className="pt-6 mt-auto flex-shrink-0">
-         <div className="flex items-center gap-4">
-            <Progress value={timerProgress} className="h-2"/>
-            <span className="text-xs text-muted-foreground w-28 text-right">
-                {timerProgress < 100 ? 'Marking complete...' : 'Completed!'}
-            </span>
-         </div>
-      </div>
     </div>
   );
 }

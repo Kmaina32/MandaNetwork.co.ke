@@ -24,6 +24,7 @@ import { AiTutor } from '@/components/AiTutor';
 import { CoursePlayerTabs } from '@/components/CoursePlayerTabs';
 import { CoursePlayerHeader } from '@/components/CoursePlayerHeader';
 
+
 // Calculate the number of weekdays between two dates
 function getWeekdayCount(startDate: Date, endDate: Date): number {
   let count = 0;
@@ -54,6 +55,8 @@ export default function CoursePlayerPage() {
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const [unlockedLessonsCount, setUnlockedLessonsCount] = useState(0);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [lessonProgress, setLessonProgress] = useState(0);
   
   useEffect(() => {
      if (!authLoading && !user) {
@@ -196,6 +199,35 @@ export default function CoursePlayerPage() {
     }
   };
 
+  useEffect(() => {
+    if (!currentLesson) {
+      setLessonProgress(100);
+      setTimeLeft(0);
+      return;
+    }
+
+    const durationInMinutes = parseInt(currentLesson.duration.split(' ')[0], 10);
+    const durationInSeconds = isNaN(durationInMinutes) ? 300 : durationInMinutes * 60; // Default 5 mins if invalid
+    
+    setTimeLeft(durationInSeconds);
+    setLessonProgress(0);
+
+    const interval = setInterval(() => {
+        setTimeLeft(prev => {
+            if (prev <= 1) {
+                clearInterval(interval);
+                handleCompleteLesson();
+                return 0;
+            }
+            const newTimeLeft = prev - 1;
+            setLessonProgress(100 - (newTimeLeft / durationInSeconds) * 100);
+            return newTimeLeft;
+        });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [currentLesson]);
+
   const progress = allLessons.length > 0 ? (completedLessons.size / allLessons.length) * 100 : 0;
 
   if (loading || authLoading) {
@@ -249,7 +281,7 @@ export default function CoursePlayerPage() {
            </Header>
          ) : <Header />}
         
-        <CoursePlayerHeader progress={progress} />
+        <CoursePlayerHeader progress={lessonProgress} timeLeft={timeLeft} />
 
         <div className="flex flex-grow overflow-hidden">
           <div className="flex-grow flex flex-col md:flex-row overflow-hidden relative">
@@ -267,12 +299,11 @@ export default function CoursePlayerPage() {
               </aside>
             )}
 
-            <main className="flex-grow p-4 overflow-y-auto bg-secondary relative flex flex-col items-center">
+            <main className="flex-grow p-4 md:p-6 lg:p-8 overflow-y-auto bg-secondary relative flex flex-col items-center">
               <div className="w-full max-w-4xl flex-grow flex flex-col">
                 <CoursePlayerTabs
                     course={course}
                     lesson={currentLesson}
-                    onComplete={handleCompleteLesson}
                 />
               </div>
               <AiTutor course={course} lesson={currentLesson} settings={tutorSettings} />

@@ -16,7 +16,6 @@ import { slugify } from '@/lib/utils';
 interface CoursePlayerTabsProps {
     lesson: Lesson | null;
     course: Course;
-    onComplete: () => void;
 }
 
 function getYouTubeEmbedUrl(url: string | undefined): string | null {
@@ -35,13 +34,12 @@ function getYouTubeEmbedUrl(url: string | undefined): string | null {
     }
 }
 
-export function CoursePlayerTabs({ lesson, course, onComplete }: CoursePlayerTabsProps) {
+export function CoursePlayerTabs({ lesson, course }: CoursePlayerTabsProps) {
     const [activeTab, setActiveTab] = useState('lesson');
     const router = useRouter();
 
     const hasVideo = !!lesson?.youtubeLinks?.[0]?.url;
     const videoUrl = getYouTubeEmbedUrl(lesson?.youtubeLinks?.[0]?.url);
-    const progress = lesson ? 100 : 0; // Simplified for this component context
 
     if (!lesson) {
         return (
@@ -73,7 +71,7 @@ export function CoursePlayerTabs({ lesson, course, onComplete }: CoursePlayerTab
                 </TabsTrigger>
             </TabsList>
             <TabsContent value="lesson" className="flex-grow">
-                <LessonContent lesson={lesson} onComplete={onComplete} />
+                <LessonContent lesson={lesson} />
             </TabsContent>
             <TabsContent value="video" className="h-full flex-grow">
                 {videoUrl ? (
