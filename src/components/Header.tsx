@@ -115,7 +115,7 @@ function NotificationsPopover() {
                     combinedNotifications.push({
                         id: 'welcome',
                         icon: PartyPopper,
-                        title: 'Welcome to Manda Network!',
+                        title: 'Welcome to Varban Academy!',
                         description: 'We are glad to have you here. Explore our courses.',
                         href: '/',
                         date: userCreationTime.toISOString()
@@ -384,7 +384,7 @@ export function Header({ children }: { children?: React.ReactNode }) {
              <div className='block md:hidden'>
                  <Link href="/" className="flex items-center gap-2 font-bold text-lg font-headline">
                     <GitBranch className="h-6 w-6 text-primary" />
-                    <span>Manda Network</span>
+                    <span>Varban Academy</span>
                 </Link>
             </div>
         </div>
