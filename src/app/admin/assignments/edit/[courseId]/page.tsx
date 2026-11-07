@@ -95,9 +95,9 @@ export default function EditAssignmentPage() {
   const onSubmit = async (data: z.infer<typeof courseAssignmentSchema>) => {
     setLoading(true);
     try {
-        const dataToSave: Partial<Course> = activeTab === 'exam' 
-            ? { exam: data.exam, project: null } 
-            : { project: data.project, exam: [] };
+        const dataToSave = (activeTab === 'exam'
+            ? { exam: data.exam, project: null }
+            : { project: data.project, exam: [] }) as unknown as Partial<Course>;
 
       await updateCourse(course!.id, dataToSave);
       toast({ title: "Success", description: "Assignment has been updated." });
