@@ -102,6 +102,12 @@ export default function AboutPage() {
                           </Card>
                       </div>
 
+                      <div className="flex justify-center mb-8">
+                          <Button asChild size="lg">
+                              <Link href="/">Explore Our Courses</Link>
+                          </Button>
+                      </div>
+
                       <Card className="text-center">
                           <CardHeader>
                               <CardTitle className="font-headline text-3xl">Meet the Team</CardTitle>
