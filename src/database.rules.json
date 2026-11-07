@@ -313,6 +313,10 @@
         ".read": "auth != null && (auth.uid === $studentId || (root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true))",
         ".write": "auth != null && (auth.uid === $studentId || (root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true))"
       }
+    },
+    "assignments": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
     }
   }
 }
