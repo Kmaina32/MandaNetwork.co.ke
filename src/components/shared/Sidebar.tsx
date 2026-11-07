@@ -14,7 +14,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { Gem, Home, LayoutDashboard, ListTodo, Calendar, User, HelpCircle, Mail, Info, UserPlus, Book, Shield, Notebook as NotebookIcon, Clapperboard, Library, Briefcase, Tag, Building, Users as PortfoliosIcon, Rocket, Trophy, Rss } from 'lucide-react';
+import { Gem, Home, LayoutDashboard, ListTodo, Calendar, User, HelpCircle, Mail, Info, UserPlus, Book, Shield, Notebook as NotebookIcon, Clapperboard, Library, Briefcase, Tag, Building, Users as PortfoliosIcon, Rocket, Trophy, Rss, CreditCard } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Separator } from '../ui/separator';
 import pkg from '../../../package.json';
@@ -212,7 +212,7 @@ export function AppSidebar() {
                 ) : (
                     <>
                          <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive('/')} tooltip="Courses" onClick={onLinkClick}>
+                            <SidebarMenuButton asChild isActive={isActive('/')} tooltip="Courses" onClick={() => onLinkClick()}>
                                 <Link href="/">
                                     <Home />
                                     <span>Courses</span>
@@ -220,7 +220,7 @@ export function AppSidebar() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                          <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive('/programs')} tooltip="Certificate Programs" onClick={onLinkClick}>
+                            <SidebarMenuButton asChild isActive={isActive('/programs')} tooltip="Certificate Programs" onClick={() => onLinkClick()}>
                                 <Link href="/programs">
                                     <Library />
                                     <span>Programs</span>
@@ -228,7 +228,7 @@ export function AppSidebar() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive('/bootcamps')} tooltip="Bootcamps" onClick={onLinkClick}>
+                            <SidebarMenuButton asChild isActive={isActive('/bootcamps')} tooltip="Bootcamps" onClick={() => onLinkClick()}>
                                 <Link href="/bootcamps">
                                     <Rocket />
                                     <span>Bootcamps</span>
