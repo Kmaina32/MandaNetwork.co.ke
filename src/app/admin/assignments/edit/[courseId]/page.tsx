@@ -140,7 +140,7 @@ export default function EditAssignmentPage() {
             courseTitle: course.title,
             courseDescription: course.longDescription,
         });
-        replace(result.exam);
+        replace(result.exam as ExamQuestion[]);
         form.setValue('project', undefined);
         setActiveTab('exam');
         toast({ title: 'Exam Generated!', description: 'Review the new questions below and save.' });
