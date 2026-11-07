@@ -12,11 +12,15 @@ Varban Academy is a Next.js 15 / TypeScript application using Firebase Authentic
 - Privileged server operations must verify Firebase ID tokens and derive the acting UID from the verified token. Never trust a UID, role, price, or payment state supplied only by the browser.
 - Firebase Realtime Database rules are the client-side authorization boundary. Server-side Admin SDK calls bypass those rules and must perform their own authorization checks.
 - Admin and organization roles are privileged data. Client rules protect administrator flags and subscription entitlements from self-service edits.
+- Sensitive server actions such as awarding hackathon points and contacting learners verify the caller's Firebase ID token and required role on the server.
+- Public contact submissions are validated and rate-limited before server-side persistence.
 
 ## 3. Payments and enrollment
 
 - M-Pesa initiation verifies the Firebase ID token, loads the course price from the trusted database, and stores a pending transaction keyed by Safaricom's CheckoutRequestID.
 - An STK push acceptance is not a completed payment. The client waits for the stored transaction to reach the completed state.
+- API keys are stored as SHA-256 hashes, shown only once at creation, and checked with constant-time comparison. Legacy plaintext keys are migrated to hashes on authenticated key-list access or first use.
+- The public courses API enforces a per-user daily request ceiling and records usage through the Admin SDK.
 - The callback is treated as a notification, not proof of payment. The server queries Safaricom directly and compares the amount, phone number, and checkout request against the pending transaction before granting course access.
 - Enrollment and the completed transaction record are written together.
 - Card, PayPal, and crypto checkout remain disabled until real provider settlement verification and server-side enrollment are implemented. Never tell users those methods are available or collect card details until an approved PCI-compliant provider integration exists.
