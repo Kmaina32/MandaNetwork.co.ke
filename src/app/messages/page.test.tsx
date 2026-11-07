@@ -89,7 +89,7 @@ describe('MessagesPage', () => {
     });
 
     const sortButton = screen.getByRole('button', { name: /Sort:/i });
-    fireEvent.pointerDown(sortButton, { button: 0, pointerType: 'mouse' });
+    fireEvent.keyDown(sortButton, { key: 'ArrowDown', code: 'ArrowDown' });
     fireEvent.click(await screen.findByText('Oldest First'));
 
     await waitFor(() => {
