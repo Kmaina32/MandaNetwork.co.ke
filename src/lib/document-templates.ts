@@ -1,6 +1,6 @@
 
 export const PITCH_DECK = `
-# Manda Network - Investor Pitch Deck
+# Varban Academy - Investor Pitch Deck
 
 This document contains the core content and narrative for our investor pitch deck. Each section corresponds to a slide or a key talking point.
 
@@ -9,7 +9,7 @@ This document contains the core content and narrative for our investor pitch dec
 ### **Slide 1: Title Slide**
 
 - **Image:** A powerful, aspirational image of a young Kenyan professional using a computer.
-- **Title:** Manda Network
+- **Title:** Varban Academy
 - **Tagline:** Upskilling Kenya for the A.I. Revolution.
 
 ---
@@ -25,7 +25,7 @@ This document contains the core content and narrative for our investor pitch dec
 
 ### **Slide 3: The Solution**
 
-- **Headline:** Manda Network: Your A.I.-Powered Career Partner.
+- **Headline:** Varban Academy: Your A.I.-Powered Career Partner.
 - **What We Do:** We provide high-quality, affordable, and hyper-relevant online courses in technology, data science, and artificial intelligence.
 - **Our Unique Edge:** We leverage A.I. to bridge the gap between education and employment:
     1.  **A.I. Course Generation:** To create up-to-date, world-class courses in a fraction of the time.
@@ -101,9 +101,9 @@ This document contains the core content and narrative for our investor pitch dec
 `;
 
 export const FRAMEWORK = `
-# Manda Network - Technical Framework
+# Varban Academy - Technical Framework
 
-This document outlines the core technologies and architectural principles that power the Manda Network platform.
+This document outlines the core technologies and architectural principles that power the Varban Academy platform.
 
 ## 1. Core Technologies
 
@@ -148,9 +148,9 @@ The application follows a modern, serverless architecture that is scalable, main
 `;
 
 export const API = `
-# Manda Network - API Documentation
+# Varban Academy - API Documentation
 
-This document outlines the API endpoints for the Manda Network application, detailing their purpose, request/response formats, and required permissions.
+This document outlines the API endpoints for the Varban Academy application, detailing their purpose, request/response formats, and required permissions.
 
 ## 1. Authentication
 
@@ -243,7 +243,7 @@ These endpoints are for authenticated students.
 export const B2B_STRATEGY = `
 # B2B Sales and Partnership Strategy
 
-This document outlines the strategy for Manda Network to engage in Business-to-Business (B2B) sales and form strategic partnerships.
+This document outlines the strategy for Varban Academy to engage in Business-to-Business (B2B) sales and form strategic partnerships.
 
 ## 1. Target B2B Segments
 
@@ -282,7 +282,7 @@ We will offer tailored packages to meet the specific needs of each organization.
 export const SEO_STRATEGY = `
 # SEO and Content Marketing Strategy
 
-This document outlines the Search Engine Optimization (SEO) and content marketing strategy for Manda Network to increase organic traffic, generate leads, and establish brand authority.
+This document outlines the Search Engine Optimization (SEO) and content marketing strategy for Varban Academy to increase organic traffic, generate leads, and establish brand authority.
 
 ## 1. Target Audience and Keywords
 
@@ -300,7 +300,7 @@ Our primary audience consists of individuals in Kenya and East Africa searching 
 - "Affordable Python courses for beginners"
 - "Cybersecurity certification in East Africa"
 - "What is generative AI?"
-- "Manda Network reviews"
+- "Varban Academy reviews"
 
 ## 2. Content Strategy
 
@@ -357,7 +357,7 @@ We will track the following metrics to measure the success of our SEO and conten
 `;
 
 export const VISUAL_FRAMEWORK = `
-# Manda Network - Visual Framework
+# Varban Academy - Visual Framework
 
 This document provides a visual representation of the application's architecture, user flows, and component interactions using Mermaid diagrams.
 
@@ -530,13 +530,13 @@ erDiagram
 `;
 
 export const PORTFOLIO_ROADMAP = `
-# Manda Network - Portfolio Enhancement Roadmap
+# Varban Academy - Portfolio Enhancement Roadmap
 
 This document outlines a strategic roadmap for evolving the Student Portfolio feature from a simple certificate showcase into a comprehensive career-building and job-seeking tool.
 
 ## 1. Vision
 
-To empower Manda Network graduates by providing them with a dynamic, professional, and shareable portfolio that effectively demonstrates their skills, projects, and achievements to potential employers. This turns our platform into a direct bridge between education and employment.
+To empower Varban Academy graduates by providing them with a dynamic, professional, and shareable portfolio that effectively demonstrates their skills, projects, and achievements to potential employers. This turns our platform into a direct bridge between education and employment.
 
 ---
 
@@ -555,7 +555,7 @@ These features focus on allowing students to present a more complete picture of 
 -   **Enhancement:** Skills could be automatically suggested or verified based on the courses they've completed.
 
 **3. Hackathon Achievements:**
--   **Description:** An automated section that displays participation in Manda Network hackathons, including submitted projects and any awards or rankings achieved.
+-   **Description:** An automated section that displays participation in Varban Academy hackathons, including submitted projects and any awards or rankings achieved.
 
 **4. Work & Education History:**
 -   **Description:** Traditional resume sections for students to list their professional work experience and formal education history.
@@ -609,13 +609,13 @@ These features enhance the user experience and provide valuable feedback.
 
 ### Phase 4: Deeper LMS Integration
 
-These features create a more interconnected and gamified experience within the Manda Network ecosystem.
+These features create a more interconnected and gamified experience within the Varban Academy ecosystem.
 
 **16. Leaderboard Rank Display:**
 -   **Description:** Automatically display the student's current rank from the hackathon leaderboard on their portfolio page.
 
 **17. Peer Skill Endorsements:**
--   **Description:** Similar to LinkedIn, allow other Manda Network students to "endorse" the skills listed on a portfolio, adding a layer of community validation.
+-   **Description:** Similar to LinkedIn, allow other Varban Academy students to "endorse" the skills listed on a portfolio, adding a layer of community validation.
 
 **18. Course-Specific Project Galleries:**
 -   **Description:** On each course page, automatically generate a gallery showcasing the public portfolio projects submitted by students who completed that course.
@@ -630,7 +630,7 @@ These features create a more interconnected and gamified experience within the M
 export const TELEGRAM_SETUP = `
 # How to Set Up Your Telegram Bot and Channel
 
-This guide will walk you through the process of creating a Telegram bot, getting your API token, creating a channel, and finding the necessary IDs to integrate with the Manda Network platform.
+This guide will walk you through the process of creating a Telegram bot, getting your API token, creating a channel, and finding the necessary IDs to integrate with the Varban Academy platform.
 
 ## Part 1: Create a Telegram Bot & Get API Token
 
@@ -642,8 +642,8 @@ The primary way to interact with the Telegram API is through a bot. You'll creat
 
 2.  **Create a new bot:**
     *   Send the command \`/newbot\` to BotFather.
-    *   It will ask you for a **name** for your bot. This is a friendly name that will be displayed in chats (e.g., \`Manda Network Bot\`).
-    *   Next, it will ask for a **username**. This must be unique and end in \`bot\` (e.g., \`MandaNetworkBot\` or \`manda_network_bot\`).
+    *   It will ask you for a **name** for your bot. This is a friendly name that will be displayed in chats (e.g., \`Varban Academy Bot\`).
+    *   Next, it will ask for a **username**. This must be unique and end in \`bot\` (e.g., \`VarbanAcademyBot\` or \`manda_network_bot\`).
 
 3.  **Copy your API Token:**
     *   Once you've chosen a unique username, BotFather will congratulate you and provide you with an **API token**.
@@ -663,14 +663,14 @@ This channel is where your bot will post notifications for your users.
 
 1.  **Create a New Channel:**
     *   In Telegram, go to "New Message" and select "New Channel".
-    *   Give your channel a name (e.g., "Manda Network Announcements") and an optional description.
+    *   Give your channel a name (e.g., "Varban Academy Announcements") and an optional description.
     *   **Crucially, set the channel type to "Public"**. This makes it easy to get the channel ID.
     *   Create a simple, memorable public link (e.g., \`t.me/MandaAnnouncements\`). The part after \`t.me/\` is your channel's username.
 
 2.  **Add Your Bot as an Administrator:**
     *   Open your newly created channel's info page.
     *   Go to "Administrators" > "Add Admin".
-    *   Search for your bot's username (e.g., \`MandaNetworkBot\`).
+    *   Search for your bot's username (e.g., \`VarbanAcademyBot\`).
     *   Select your bot and grant it permissions. At a minimum, it needs the "Post Messages" permission.
 
 3.  **Get the Channel ID:**
@@ -716,7 +716,7 @@ Before you can create an app, you need access to the X Developer Platform.
     *   You will be asked to apply for a developer account. This process involves describing your intended use case.
 
 3.  **Describe Your Use Case:**
-    *   Be clear and concise. Explain that you intend to use the API for your application, **Manda Network**, to do things like:
+    *   Be clear and concise. Explain that you intend to use the API for your application, **Varban Academy**, to do things like:
         *   Automatically post announcements about new courses.
         *   Share updates about community events like hackathons.
         *   Engage with your user community.
@@ -727,7 +727,7 @@ Before you can create an app, you need access to the X Developer Platform.
 Once your developer account is approved, you can create a Project and an App to get your API keys.
 
 1.  **Create a New Project:**
-    *   From your developer dashboard, create a new Project. Give it a name related to your application, like "Manda Network".
+    *   From your developer dashboard, create a new Project. Give it a name related to your application, like "Varban Academy".
     *   Select your use case (e.g., "Building tools for Twitter users").
 
 2.  **Create a New App:**
@@ -783,9 +783,9 @@ With these variables set, your application and any connected automation tools (l
 `;
 
 export const BLOCKCHAIN_INTEGRATION = `
-# Manda Network - Blockchain Integration Conceptual Framework
+# Varban Academy - Blockchain Integration Conceptual Framework
 
-This document provides a high-level architectural overview for integrating a token-based economy and smart contract automation into the Manda Network platform. This is a conceptual guide and not a technical implementation specification.
+This document provides a high-level architectural overview for integrating a token-based economy and smart contract automation into the Varban Academy platform. This is a conceptual guide and not a technical implementation specification.
 
 ## 1. Vision
 
