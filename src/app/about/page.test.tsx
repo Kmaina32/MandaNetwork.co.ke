@@ -23,10 +23,10 @@ describe('AboutPage', () => {
     expect(await screen.findByText('About Varban Academy', { exact: true })).toBeInTheDocument();
   });
 
-  it('renders the mission and courses sections', async () => {
+  it('renders the mission and vision sections', async () => {
     render(<AboutPage />);
     expect(await screen.findByText('Our Mission')).toBeInTheDocument();
-    expect(await screen.findByText('Our Courses')).toBeInTheDocument();
+    expect(await screen.findByText('Our Vision')).toBeInTheDocument();
   });
 
   it('renders the Explore Our Courses link', async () => {
