@@ -73,11 +73,13 @@ export default function PortfolioPage() {
             try {
                 const userData = await getUserById(params.userId as string);
                 
-                if (!userData || !userData.portfolio?.public) {
-                    if (!authUser || (!isEmployer && authUser.uid !== userData?.uid)) {
-                       notFound();
-                       return;
-                    }
+                if (!userData) {
+                    notFound();
+                    return;
+                }
+                if (!userData.portfolio?.public && (!authUser || (!isEmployer && authUser.uid !== userData.uid))) {
+                    notFound();
+                    return;
                 }
                 
                 setUser(userData);
