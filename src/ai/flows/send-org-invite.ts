@@ -10,7 +10,7 @@ import { ai } from '@/ai/genkit-instance';
 const CreateOrgInviteInputSchema = z.object({
   idToken: z.string().min(20),
   email: z.string().email().max(254).transform(value => value.trim().toLowerCase()),
-  organizationId: z.string().min(1).max(128),
+  organizationId: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/),
 });
 export type CreateOrgInviteInput = z.infer<typeof CreateOrgInviteInputSchema>;
 
