@@ -1,4 +1,3 @@
-
 {
   "name": "nextn",
   "version": "1.0.1",
@@ -14,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "test": "jest --watch",
     "deploy": "firebase deploy",
-    "blockchain:compile": "cd blockchain && npx hardhat compile"
+    "blockchain:compile": "cd blockchain && npx hardhat compile",
+    "test:ci": "jest --runInBand --passWithNoTests"
   },
   "dependencies": {
     "@genkit-ai/firebase": "1.18.0",
