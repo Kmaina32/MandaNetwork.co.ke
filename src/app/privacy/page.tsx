@@ -26,7 +26,7 @@ export default function PrivacyPage() {
                   </CardHeader>
                   <CardContent className='space-y-6'>
                     <div className="space-y-4 prose prose-sm sm:prose-base max-w-none dark:prose-invert prose-headings:font-headline">
-                      <p>Your privacy is important to us. It is Manda Network's policy to respect your privacy regarding any information we may collect from you across our website, and other sites we own and operate.</p>
+                      <p>Your privacy is important to us. It is Varban Academy's policy to respect your privacy regarding any information we may collect from you across our website, and other sites we own and operate.</p>
                       
                       <h2 className="font-semibold text-xl">1. Information We Collect</h2>
                       <p><strong>Log data:</strong> When you visit our website, our servers may automatically log the standard data provided by your web browser. It may include your computer’s Internet Protocol (IP) address, your browser type and version, the pages you visit, the time and date of your visit, the time spent on each page, and other details.</p>
@@ -45,7 +45,7 @@ export default function PrivacyPage() {
                       </ul>
 
                       <h2 className="font-semibold text-xl">3. Cookies and Web Beacons</h2>
-                      <p>Like any other website, Manda Network uses 'cookies'. These cookies are used to store information including visitors' preferences, and the pages on the website that the visitor accessed or visited. The information is used to optimize the users' experience by customizing our web page content based on visitors' browser type and/or other information.</p>
+                      <p>Like any other website, Varban Academy uses 'cookies'. These cookies are used to store information including visitors' preferences, and the pages on the website that the visitor accessed or visited. The information is used to optimize the users' experience by customizing our web page content based on visitors' browser type and/or other information.</p>
 
                       <h2 className="font-semibold text-xl">4. Security of Your Personal Information</h2>
                       <p>We use commercially acceptable means to protect your personal information from loss and theft, as well as unauthorized access, disclosure, copying, use or modification. We implement a variety of security measures including SSL encryption to maintain the safety of your personal information. That said, we advise that no method of electronic transmission or storage is 100% secure and cannot guarantee absolute data security.</p>
