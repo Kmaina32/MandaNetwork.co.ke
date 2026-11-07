@@ -1,22 +1,16 @@
-
 'use server';
 
 /**
- * @fileOverview A flow for creating organization invitation links.
- *
- * - createOrganizationInvite - A function that creates an invitation record.
- * - CreateOrgInviteInput - The input type for the function.
- * - CreateOrgInviteOutput - The return type for the function.
+ * Creates a verified invitation for a member of an organization.
  */
-
-import { createInvitation } from '@/lib/firebase-service';
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import { ai } from '@/ai/genkit-instance';
 
 export const CreateOrgInviteInputSchema = z.object({
-  email: z.string().email().describe('The email address of the person to invite.'),
-  organizationId: z.string().describe('The ID of the organization they are being invited to.'),
-  organizationName: z.string().describe('The name of the organization.'),
+  idToken: z.string().min(20),
+  email: z.string().email().max(254).transform(value => value.trim().toLowerCase()),
+  organizationId: z.string().min(1).max(128),
 });
 export type CreateOrgInviteInput = z.infer<typeof CreateOrgInviteInputSchema>;
 
@@ -27,9 +21,7 @@ export const CreateOrgInviteOutputSchema = z.object({
 });
 export type CreateOrgInviteOutput = z.infer<typeof CreateOrgInviteOutputSchema>;
 
-export async function createOrganizationInvite(
-  input: CreateOrgInviteInput
-): Promise<CreateOrgInviteOutput> {
+export async function createOrganizationInvite(input: CreateOrgInviteInput): Promise<CreateOrgInviteOutput> {
   return createOrganizationInviteFlow(input);
 }
 
@@ -39,27 +31,48 @@ const createOrganizationInviteFlow = ai.defineFlow(
     inputSchema: CreateOrgInviteInputSchema,
     outputSchema: CreateOrgInviteOutputSchema,
   },
-  async ({ email, organizationId, organizationName }) => {
+  async ({ idToken, email, organizationId }) => {
     try {
-      // Create an invitation document in the database
-      const inviteId = await createInvitation({
+      const decoded = await adminAuth.verifyIdToken(idToken, true);
+      const userSnapshot = await adminDb.ref(`users/${decoded.uid}`).get();
+      const user = userSnapshot.val();
+      if (!user?.isOrganizationAdmin || user.organizationId !== organizationId) {
+        throw new Error('You are not authorized to invite members to this organization.');
+      }
+
+      const organizationSnapshot = await adminDb.ref(`organizations/${organizationId}`).get();
+      if (!organizationSnapshot.exists()) throw new Error('Organization not found.');
+      const organization = organizationSnapshot.val();
+      if (organization.ownerId !== decoded.uid && user.isOrganizationAdmin !== true) {
+        throw new Error('Organization administrator permission is required.');
+      }
+
+      const existingInvites = await adminDb.ref('invitations').orderByChild('email').equalTo(email).get();
+      if (existingInvites.exists()) {
+        const existing = existingInvites.val() as Record<string, any>;
+        const duplicate = Object.entries(existing).find(([, invite]) =>
+          invite.organizationId === organizationId && invite.status === 'pending'
+        );
+        if (duplicate) {
+          return { success: true, inviteId: duplicate[0], message: 'A pending invitation already exists for this email.' };
+        }
+      }
+
+      const inviteRef = adminDb.ref('invitations').push();
+      if (!inviteRef.key) throw new Error('Could not allocate an invitation.');
+      await inviteRef.set({
         email,
         organizationId,
-        organizationName,
+        organizationName: organization.name,
+        createdBy: decoded.uid,
         createdAt: new Date().toISOString(),
+        expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+        status: 'pending',
       });
-
-      return {
-        success: true,
-        inviteId: inviteId,
-        message: 'Invitation created successfully. Share the link with the user.',
-      };
-    } catch (error: any) {
-      console.error("Failed to create invitation:", error);
-      return {
-        success: false,
-        message: 'An internal error occurred while creating the invitation.',
-      };
+      return { success: true, inviteId: inviteRef.key, message: 'Invitation created successfully.' };
+    } catch (error) {
+      console.error('Failed to create organization invitation:', error instanceof Error ? error.message : 'Unknown error');
+      return { success: false, message: error instanceof Error ? error.message : 'An internal error occurred.' };
     }
   }
 );
