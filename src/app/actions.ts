@@ -74,28 +74,20 @@ export async function processMpesaPayment(input: MpesaPaymentInput): Promise<Mpe
   return processMpesaPayment(input);
 }
 
-// Placeholder for card payment processing
-export async function processCardPayment(input: CardPaymentInput): Promise<{ success: boolean; message: string }> {
-    console.log('Simulating card payment for:', input);
-    // In a real app, you would integrate with Stripe here using the secret key.
-    // This is a placeholder that simulates a successful payment.
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
+// Card checkout is intentionally fail-closed until a verified payment provider is configured.
+export async function processCardPayment(_input: CardPaymentInput): Promise<{ success: boolean; message: string }> {
     return {
-        success: true,
-        message: 'Card payment processed successfully.',
+        success: false,
+        message: 'Card payments are not available yet. Please use M-Pesa while card checkout is being configured.',
     };
 }
 
-// Placeholder for PayPal payment processing
-export async function processPayPalPayment(input: PayPalPaymentInput): Promise<{ success: boolean; message: string; approvalUrl?: string }> {
-    console.log('Simulating PayPal payment for:', input);
-    // In a real app, you would make an API call to PayPal to create a payment order.
-    // This would return an approval URL to redirect the user to.
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+// PayPal checkout is intentionally fail-closed until provider order creation and webhook verification are implemented.
+
+export async function processPayPalPayment(_input: PayPalPaymentInput): Promise<{ success: boolean; message: string; approvalUrl?: string }> {
     return {
-        success: true,
-        message: 'PayPal order created. Redirecting for approval...',
-        approvalUrl: `/payment-success?item=${input.itemName}`, // Simulate a redirect URL
+        success: false,
+        message: 'PayPal payments are not available yet. Please use M-Pesa while PayPal checkout is being configured.',
     };
 }
 
