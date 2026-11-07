@@ -7,7 +7,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { getCourseById, updateCourse } from '@/lib/firebase-service';
-import type { Course, ExamQuestion, Project } from '@/lib/types';
+import type { Course, ExamQuestion, PortfolioProject as Project } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/shared/Footer';
 import { Button } from '@/components/ui/button';
@@ -96,7 +96,7 @@ export default function EditAssignmentPage() {
     setLoading(true);
     try {
         const dataToSave: Partial<Course> = activeTab === 'exam' 
-            ? { exam: data.exam, project: undefined } 
+            ? { exam: data.exam, project: null } 
             : { project: data.project, exam: [] };
 
       await updateCourse(course!.id, dataToSave);
