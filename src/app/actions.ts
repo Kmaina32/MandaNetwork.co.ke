@@ -4,7 +4,7 @@
 // between server and client code. All functions exported from a 'use server' file must be async.
 
 import type { LearningPathInput, LearningPathOutput } from '@/ai/flows/career-coach';
-import type { ContentStrategyOutput, CardPaymentInput, PayPalPaymentInput, ApiKey, ProjectSubmission, Conversation } from '@/lib/types';
+import type { ContentStrategyOutput, CardPaymentInput, PayPalPaymentInput, ApiKey } from '@/lib/types';
 import type { CourseTutorInput, CourseTutorOutput } from '@/ai/flows/course-tutor';
 import type { GenerateApiKeyInput } from '@/ai/flows/generate-api-key';
 import type { GenerateCourseContentInput, GenerateCourseContentOutput } from '@/ai/flows/generate-course-content';
@@ -19,7 +19,7 @@ import type { GenerateHackathonIdeasInput, GenerateHackathonIdeasOutput } from '
 import type { StudentHelpInput, StudentHelpOutput } from '@/ai/flows/student-help';
 import type { SpeechToTextInput, SpeechToTextOutput, TextToSpeechInput, TextToSpeechOutput } from '@/ai/flows/text-to-speech';
 import type { GetPortfolioFeedbackInput, GetPortfolioFeedbackOutput } from '@/ai/flows/portfolio-advisor';
-import { createNotification, createProjectSubmission as saveProjectSubmission, createOrUpdateConversation, saveMessage, awardLeaderboardPoints, createContactMessage } from '@/lib/firebase-service';
+import { createNotification, createOrUpdateConversation, saveMessage, awardLeaderboardPoints, createContactMessage } from '@/lib/firebase-service';
 import { checkHackathonParticipantAchievement } from '@/lib/achievements';
 
 // Each function dynamically imports its corresponding flow, ensuring that the AI logic
@@ -58,10 +58,6 @@ export async function generateExam(input: GenerateExamInput): Promise<GenerateEx
 export async function generateProject(input: GenerateProjectInput): Promise<GenerateProjectOutput> {
     const { generateProject } = await import('@/ai/flows/generate-project');
     return generateProject(input);
-}
-
-export async function createProjectSubmission(submissionData: Omit<ProjectSubmission, 'id'>): Promise<string> {
-    return saveProjectSubmission(submissionData);
 }
 
 export async function gradeShortAnswerExam(input: GradeShortAnswerExamInput): Promise<GradeShortAnswerExamOutput> {
