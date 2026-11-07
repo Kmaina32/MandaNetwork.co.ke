@@ -175,7 +175,7 @@
       ".write": false,
       ".indexOn": "createdAt",
       "$messageId": {
-        ".write": "auth != null && !data.exists() && newData.hasChildren(['name', 'email', 'message', 'createdAt', 'read']) && newData.child('read').val() === false"
+        ".write": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || (!data.exists() && newData.hasChildren(['name', 'email', 'message', 'createdAt', 'read']) && newData.child('read').val() === false))"
       }
     },
     "forms": {
@@ -201,7 +201,7 @@
       }
     },
     "referrals": {
-      ".read": "auth != null",
+      ".read": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || (query.orderByChild === 'affiliateId' && query.equalTo === root.child('users').child(auth.uid).child('affiliateId').val()) || (query.orderByChild === 'referredUserId' && query.equalTo === auth.uid))",
       ".indexOn": "affiliateId",
       "$referralId": {
         ".write": "auth != null && !data.exists() && newData.child('referredUserId').val() === auth.uid"
@@ -213,20 +213,38 @@
     },
     "webrtc-answers": {
       "$sessionId": {
+        ".read": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true)",
         "$userId": {
-          ".read": "auth != null",
+          ".read": "auth != null && (auth.uid === $userId || (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true)",
           ".write": "auth != null && auth.uid === $userId"
         }
       }
     },
     "webrtc-candidates": {
       ".read": "auth != null",
-      ".write": "auth != null"
+      "$sessionId": {
+        "admin": {
+          "$userId": {
+            "$candidateId": {
+              ".write": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true) && !data.exists()"
+            }
+          }
+        },
+        "student": {
+          "$userId": {
+            "$candidateId": {
+              ".write": "auth != null && auth.uid === $userId && !data.exists()"
+            }
+          }
+        }
+      }
     },
     "liveChat": {
       "$sessionId": {
         ".read": "auth != null",
-        ".write": "auth != null"
+        "$messageId": {
+          ".write": "auth != null && !data.exists() && newData.child('authorId').val() === auth.uid"
+        }
       }
     },
     "liveReactions": {
