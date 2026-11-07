@@ -20,7 +20,7 @@ import { Skeleton } from './ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Separator } from './ui/separator';
 import { useEffect, useState, useMemo } from 'react';
-import type { Course, CalendarEvent, Notification as DbNotification } from '@/lib/mock-data';
+import type { Course, CalendarEvent, Notification as DbNotification } from '@/lib/types';
 import { getAllCourses, getAllCalendarEvents, getAllNotifications, getUserById, getLiveSession, saveUser, updateInvitationStatus } from '@/lib/firebase-service';
 import { differenceInDays, isToday, parseISO, formatDistanceToNow } from 'date-fns';
 import { usePathname, useRouter } from 'next/navigation';
