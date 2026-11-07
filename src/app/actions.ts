@@ -142,6 +142,7 @@ export async function generateHackathonIdeas(input: GenerateHackathonIdeasInput)
 }
 
 export async function awardPoints(idToken: string, targetUserId: string, points: number): Promise<void> {
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(targetUserId)) throw new Error('Invalid learner identifier.');
     if (!Number.isInteger(points) || points < 1 || points > 1000) {
         throw new Error('Points must be an integer between 1 and 1,000.');
     }
@@ -186,6 +187,8 @@ export async function sendContactMessage(payload: {
   phone: string;
   message: string;
 }) {
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(payload.studentId)) throw new Error('Invalid learner identifier.');
+  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(payload.email) || payload.phone.trim().length < 10 || payload.phone.length > 30) throw new Error('Please provide valid contact details.');
   const decoded = await adminAuth.verifyIdToken(payload.idToken, true);
   const employerSnapshot = await adminDb.ref(`users/${decoded.uid}`).get();
   const employer = employerSnapshot.val();
