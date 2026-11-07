@@ -18,20 +18,20 @@ jest.mock('@/lib/firebase-service', () => ({
 }));
 
 describe('AboutPage', () => {
-  it('renders the Varban Academy heading', () => {
+  it('renders the Varban Academy heading', async () => {
     render(<AboutPage />);
-    expect(screen.getByText('About Varban Academy', { exact: true })).toBeInTheDocument();
+    expect(await screen.findByText('About Varban Academy', { exact: true })).toBeInTheDocument();
   });
 
-  it('renders the mission and courses sections', () => {
+  it('renders the mission and courses sections', async () => {
     render(<AboutPage />);
-    expect(screen.getByText('Our Mission')).toBeInTheDocument();
-    expect(screen.getByText('Our Courses')).toBeInTheDocument();
+    expect(await screen.findByText('Our Mission')).toBeInTheDocument();
+    expect(await screen.findByText('Our Courses')).toBeInTheDocument();
   });
 
-  it('renders the Explore Our Courses link', () => {
+  it('renders the Explore Our Courses link', async () => {
     render(<AboutPage />);
-    const button = screen.getByRole('link', { name: /Explore Our Courses/i });
+    const button = await screen.findByRole('link', { name: /Explore Our Courses/i });
     expect(button).toBeInTheDocument();
     expect(button).toHaveAttribute('href', '/');
   });
