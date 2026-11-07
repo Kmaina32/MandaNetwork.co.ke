@@ -6,4 +6,4 @@
 
 import { genkit } from 'genkit';
 
-export type AI = ReturnType<typeof genkit<any>>;
+export type AI = ReturnType<typeof genkit>;
