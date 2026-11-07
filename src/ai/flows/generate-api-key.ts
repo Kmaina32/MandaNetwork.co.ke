@@ -38,3 +38,32 @@ export async function generateApiKey(input: GenerateApiKeyInput): Promise<ApiKey
   });
   return { ...newKeyData, key, id: keyRef.key };
 }
+
+export async function listUserApiKeys(idToken: string): Promise<Array<Omit<ApiKey, 'key'> & { keyPreview: string }>> {
+  const decoded = await adminAuth.verifyIdToken(idToken, true);
+  const snapshot = await adminDb.ref(`apiKeys/${decoded.uid}`).get();
+  if (!snapshot.exists()) return [];
+
+  const records = snapshot.val() as Record<string, any>;
+  const results: Array<Omit<ApiKey, 'key'> & { keyPreview: string }> = [];
+  for (const [id, record] of Object.entries(records)) {
+    let keyPreview = typeof record.keyPreview === 'string' ? record.keyPreview : '••••';
+    if (typeof record.key === 'string') {
+      const keyHash = createHash('sha256').update(record.key).digest('hex');
+      keyPreview = record.key.slice(-4);
+      await adminDb.ref(`apiKeys/${decoded.uid}/${id}`).update({
+        keyHash,
+        keyPreview,
+        key: null,
+      });
+    }
+    results.push({
+      id,
+      name: String(record.name || 'API key'),
+      keyPreview,
+      createdAt: String(record.createdAt || new Date().toISOString()),
+      userId: decoded.uid,
+    });
+  }
+  return results;
+}
