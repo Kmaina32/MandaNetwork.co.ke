@@ -35,3 +35,7 @@ src/.env.example
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Generated deployment/workspace snapshots; application source lives in src/.
+/vercel/
+/workspace/
