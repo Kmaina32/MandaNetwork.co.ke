@@ -10,7 +10,7 @@ import { Footer } from '@/components/Footer';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/Sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Award, Github, Linkedin, Loader2, Twitter, ExternalLink, ArrowLeft, Mail, Briefcase, GraduationCap, Phone, MapPin, Trophy } from 'lucide-react';
