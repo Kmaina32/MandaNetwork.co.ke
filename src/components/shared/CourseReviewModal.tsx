@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -73,13 +73,49 @@ export function CourseReviewModal({ isOpen, onClose, courseContent, onSave, isSa
   
   const form = useForm<z.infer<typeof courseContentSchema>>({
     resolver: zodResolver(courseContentSchema),
-    defaultValues: courseContent || {
+    defaultValues: (courseContent ? {
+      longDescription: courseContent.longDescription,
+      duration: courseContent.duration,
+      modules: courseContent.modules.map(module => ({
+        id: module.id,
+        title: module.title,
+        lessons: module.lessons.map(lesson => ({
+          id: lesson.id,
+          title: lesson.title,
+          duration: lesson.duration,
+          content: lesson.content,
+          youtubeLinks: lesson.youtubeLinks || [],
+        })),
+      })),
+      exam: courseContent.exam || [],
+    } : {
       longDescription: '',
       duration: '',
       modules: [],
       exam: [],
-    },
+    }) as z.infer<typeof courseContentSchema>,
   });
+
+  useEffect(() => {
+    if (isOpen && courseContent) {
+      form.reset({
+        longDescription: courseContent.longDescription,
+        duration: courseContent.duration,
+        modules: courseContent.modules.map(module => ({
+          id: module.id,
+          title: module.title,
+          lessons: module.lessons.map(lesson => ({
+            id: lesson.id,
+            title: lesson.title,
+            duration: lesson.duration,
+            content: lesson.content,
+            youtubeLinks: lesson.youtubeLinks || [],
+          })),
+        })),
+        exam: courseContent.exam || [],
+      } as z.infer<typeof courseContentSchema>);
+    }
+  }, [isOpen, courseContent, form]);
 
   const { fields: moduleFields, append: appendModule, remove: removeModule } = useFieldArray({
       control: form.control,
@@ -87,7 +123,19 @@ export function CourseReviewModal({ isOpen, onClose, courseContent, onSave, isSa
   });
 
   const onSubmit = (values: z.infer<typeof courseContentSchema>) => {
-    onSave(values as GenerateCourseContentOutput);
+    const mergedModules = values.modules.map((module, moduleIndex) => ({
+      ...courseContent?.modules[moduleIndex],
+      ...module,
+      lessons: module.lessons.map((lesson, lessonIndex) => ({
+        ...courseContent?.modules[moduleIndex]?.lessons[lessonIndex],
+        ...lesson,
+      })),
+    }));
+    onSave({
+      ...(courseContent || {}),
+      ...values,
+      modules: mergedModules,
+    } as GenerateCourseContentOutput);
   };
 
   return (
