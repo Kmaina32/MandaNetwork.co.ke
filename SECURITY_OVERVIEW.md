@@ -1,51 +1,61 @@
-![Manda Network](/public/logo.png)
-# Manda Network
+![Varban Academy](/public/logo.png)
+# Varban Academy — Security Overview
 
-# Security Overview for the AI-Powered Education Platform
+## 1. Platform architecture
 
-## 1. Introduction
+Varban Academy is a Next.js 15 / TypeScript application using Firebase Authentication, Firebase Realtime Database, Firebase Storage, Firebase Admin SDK, and Genkit with Google Gemini. It provides student, organization, and administrator experiences.
 
-This document provides a security overview of the AI-powered education platform for a cyber security analyst. It outlines the system architecture, data security measures, user roles and permissions, and potential threat mitigations.
+## 2. Identity and authorization
 
-## 2. System Architecture
+- Firebase Authentication is the source of user identity.
+- Production builds must never enable the local development authentication bypass. The client bypass is now restricted to non-production builds.
+- Privileged server operations must verify Firebase ID tokens and derive the acting UID from the verified token. Never trust a UID, role, price, or payment state supplied only by the browser.
+- Firebase Realtime Database rules are the client-side authorization boundary. Server-side Admin SDK calls bypass those rules and must perform their own authorization checks.
+- Admin and organization roles are privileged data. Client rules protect administrator flags and subscription entitlements from self-service edits.
 
-The platform is an AI-powered education system with the following components:
+## 3. Payments and enrollment
 
-*   **Database:** Stores course and user data in Firebase Realtime Database.
-*   **Server:** Communicates with a large language model and executes the core logic of the application.
-*   **User Interface:** Allows students to access courses and interact with the platform.
-*   **Administrator Interface:** Provides tools for managing content and users.
+- M-Pesa initiation verifies the Firebase ID token, loads the course price from the trusted database, and stores a pending transaction keyed by Safaricom's CheckoutRequestID.
+- An STK push acceptance is not a completed payment. The client waits for the stored transaction to reach the completed state.
+- The callback is treated as a notification, not proof of payment. The server queries Safaricom directly and compares the amount, phone number, and checkout request against the pending transaction before granting course access.
+- Enrollment and the completed transaction record are written together.
+- Card, PayPal, and crypto checkout remain disabled until real provider settlement verification and server-side enrollment are implemented. Never tell users those methods are available or collect card details until an approved PCI-compliant provider integration exists.
 
-## 3. User Roles and Permissions
+## 4. Server credentials and configuration
 
-The platform has two main user roles:
+The Firebase Admin SDK uses server-only environment variables:
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_CLIENT_EMAIL`
+- `FIREBASE_PRIVATE_KEY`
 
-*   **Standard User (Student):** Authenticated users who can access courses, submit their work, and participate in discussions. They can only read and write to their own data.
-*   **Administrator:** A privileged user who can manage all aspects of the platform, including courses, users, and system settings.
+M-Pesa credentials are server-only:
+- `MPESA_ENVIRONMENT`
+- `MPESA_CONSUMER_KEY`
+- `MPESA_CONSUMER_SECRET`
+- `MPESA_PASSKEY`
+- `MPESA_TILL_NUMBER`
+- `MPESA_CALLBACK_URL`
 
-These roles are enforced through Firebase Realtime Database security rules. The rules use `auth.uid` to ensure that users can only access their own data, and the `isAdmin` flag to grant administrators full access.
+Do not commit service-account JSON, private keys, payment credentials, or provider secrets. Public Firebase web configuration values are not service-account secrets; database authorization must be enforced by Firebase rules.
 
-## 4. Data Security
+Firebase Admin initialization is lazy so a Next.js build can evaluate route modules without server credentials. Any runtime route that uses the Admin SDK still requires the server environment variables to be configured.
 
-Data security is a top priority for the platform. Here are the key measures in place:
+## 5. CI and workflow security
 
-*   **Data at Rest:** All data is stored in Firebase Realtime Database, which automatically encrypts data at rest.
-*   **Data in Transit:** All data is transmitted over a secure HTTPS connection.
-*   **Access Control:** Access to data is strictly controlled by Firebase security rules. These rules ensure that users can only access the data they are authorized to see.
+- GitHub Actions must pass model output through environment variables and quote shell arguments. Do not interpolate untrusted model output directly into shell commands.
+- AI summaries are untrusted text and must never be executed as commands.
+- Dependency and build checks should run on pull requests before merge.
 
-## 5. Authentication
+## 6. Remaining audit work and deployment requirements
 
-The platform uses Firebase Authentication to manage user identities. This provides a secure and reliable way to authenticate users and protect their accounts.
+This is an evolving security record, not a certification or guarantee of security. The following require continued verification before production payment traffic:
+- Review every exported server action and Genkit flow for caller authentication, role authorization, input validation, and abuse/rate limits.
+- Review organization-scoped access for conversations, invitations, live sessions, and media signaling.
+- Run Firebase Emulator tests against the deployed Realtime Database rules, including role escalation, cross-user reads/writes, and payment/enrollment cases.
+- Confirm the Firebase Admin and M-Pesa environment variables are configured in every Vercel environment that needs them.
+- Verify Safaricom production credentials, callback URL registration, till/paybill transaction type, and settlement-query behavior before switching `MPESA_ENVIRONMENT=production`.
+- Run dependency scanning, TypeScript checks, unit tests, and a production build before merging.
 
-## 6. Potential Threats and Mitigations
+## 7. Incident response
 
-| Threat | Mitigation |
-| :--- | :--- |
-| **Unauthorized Data Access** | Firebase security rules prevent unauthorized access to data by enforcing strict access control based on user roles and permissions. |
-| **Insecure Direct Object References (IDOR)** | The security rules use `auth.uid` to ensure that users can only access their own data, preventing them from accessing the data of other users. |
-| **Cross-Site Scripting (XSS)** | All user-generated content should be properly sanitized before being displayed to prevent XSS attacks. |
-| **Denial of Service (DoS)** | Firebase has built-in DoS protection. Additionally, rate limiting can be implemented on the server to prevent abuse. |
-
-## 7. Conclusion
-
-The AI-powered education platform has a robust security posture, with multiple layers of protection to safeguard user data and ensure the integrity of the system. The use of Firebase for the database and authentication provides a secure foundation, and the security rules are designed to prevent common web application vulnerabilities.
+If a service-account private key or payment credential is exposed, revoke and rotate it in the provider console, replace the corresponding Vercel environment variable in all affected environments, and redeploy. Review Firebase Authentication, database, and payment logs for unauthorized activity.
