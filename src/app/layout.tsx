@@ -14,7 +14,7 @@ const BASE_URL = 'https://www.mandanetwork.co.ke';
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: {
-    default: 'Manda Network | Empowering Digital Africa',
+    default: 'Varban Academy | Empowering Digital Africa',
     template: `%s | Manda Network`,
   },
   description: 'Manda Network is Africa’s leading digital learning and innovation platform—building the next generation of tech talent across Kenya, East Africa, and the continent.',
@@ -106,7 +106,7 @@ export default async function RootLayout({
   const isAiConfigured = !!process.env.GEMINI_API_KEY || !!process.env.OPENAI_API_KEY;
 
   return (
-    <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
+    <html lang="en" style={{ colorScheme: 'light' }}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
