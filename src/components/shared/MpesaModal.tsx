@@ -65,7 +65,7 @@ export function MpesaModal({
       const result = await processMpesaPayment({ idToken, phoneNumber, courseId });
 
       if (result.success) {
-        // You could poll a callback or just assume success for demo
+        // Wait for the authenticated status action to observe verified provider settlement
         if (result.checkoutRequestId) {
           for (let attempt = 0; attempt < 20; attempt++) {
             await new Promise(resolve => setTimeout(resolve, 3000));
@@ -94,12 +94,10 @@ export function MpesaModal({
   };
   
   const handleClose = () => {
-    // Reset the form when closing; a submitted STK request remains pending on the server.
-    if(paymentStep !== 'submitted' && paymentStep !== 'success') {
-      setPhoneNumber('');
-      setPaymentStep('form');
-      setIsLoading(false);
-    }
+    // The server retains the transaction status; reset this local form for the next purchase.
+    setPhoneNumber('');
+    setPaymentStep('form');
+    setIsLoading(false);
     onClose();
   }
 
