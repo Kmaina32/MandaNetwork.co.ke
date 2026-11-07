@@ -237,7 +237,7 @@ function AiTutor({ course, lesson, settings }: { course: Course, lesson: Lesson 
                 action,
                 courseTitle: course.title,
                 courseContext: lesson.content,
-                history: messages.map(({ audioUrl, suggestions, ...rest }) => rest), // pass clean history
+                history: messages.map(({ audioUrl, suggestions, ...rest }) => ({ ...rest, role: rest.role === 'assistant' ? 'model' as const : 'user' as const })), // pass clean history
                 voice: settings?.voice,
                 speed: settings?.speed
             });
@@ -362,7 +362,7 @@ function AiTutor({ course, lesson, settings }: { course: Course, lesson: Lesson 
                     </ScrollArea>
                     <div className="border-t p-6 bg-background">
                         <form onSubmit={handleTutorSubmit} className="flex items-start gap-2">
-                             <Button type="button" size="icon" variant={isRecording ? 'destructive' : 'outline'} onClick={isRecording ? stopRecording : startRecording} disabled={isLoading}>
+                             <Button type="button" size="icon" variant={isRecording ? 'destructive' : 'outline'} onClick={() => isRecording ? stopRecording() : startRecording()} disabled={isLoading}>
                                 {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                             </Button>
                             <Textarea 
