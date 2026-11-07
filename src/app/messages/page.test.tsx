@@ -90,8 +90,7 @@ describe('MessagesPage', () => {
 
     const sortButton = screen.getByRole('button', { name: /Sort:/i });
     fireEvent.pointerDown(sortButton, { button: 0, pointerType: 'mouse' });
-    fireEvent.click(sortButton);
-    fireEvent.click(screen.getByText('Oldest First'));
+    fireEvent.click(await screen.findByText('Oldest First'));
 
     await waitFor(() => {
       expect(screen.getAllByText(/Employer [12]/)[0]).toHaveTextContent('Employer 2');
