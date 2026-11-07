@@ -10,7 +10,7 @@ import { ArrowLeft, Loader2, Building, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { getAllOrganizations, deleteOrganization } from '@/lib/firebase-service';
-import type { Organization } from '@/lib/mock-data';
+import type { Organization } from '@/lib/types';
 import { format } from 'date-fns';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
