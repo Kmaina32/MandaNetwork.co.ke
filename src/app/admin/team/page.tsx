@@ -126,7 +126,7 @@ export default function AdminTeamPage() {
                                 </Avatar>
                                 <input
                                     type="file"
-                                    ref={el => fileInputRefs.current[index] = el}
+                                    ref={el => { fileInputRefs.current[index] = el; }}
                                     onChange={(e) => e.target.files && handleImageUpload(e.target.files[0], index)}
                                     className="hidden"
                                     accept="image/*"
