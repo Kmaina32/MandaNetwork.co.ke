@@ -157,24 +157,6 @@ export function PaymentModal({
     });
   };
 
-  const handleCardPay = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!user) return;
-      setIsLoading(true);
-      try {
-          const result = await processCardPayment({ itemId, itemName, amount: price });
-          if (result.success) {
-              toast({ title: 'Card checkout unavailable', description: result.message, variant: 'destructive' });
-          } else {
-              throw new Error(result.message);
-          }
-      } catch (error: any) {
-          toast({ title: 'Card Payment Failed', description: error.message, variant: 'destructive'});
-      } finally {
-          setIsLoading(false);
-      }
-  }
-
   const handlePayPalPay = async () => {
        if (!user) return;
       setIsLoading(true);
