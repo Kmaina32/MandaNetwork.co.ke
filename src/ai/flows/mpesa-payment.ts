@@ -7,7 +7,7 @@ import { adminAuth, adminDb } from '@/lib/firebase-admin';
 const MpesaPaymentInputSchema = z.object({
   idToken: z.string().min(20),
   phoneNumber: z.string().regex(/^(?:0|254)\d{9,11}$/),
-  courseId: z.string().min(1).max(128),
+  courseId: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/),
 });
 export type MpesaPaymentInput = z.infer<typeof MpesaPaymentInputSchema>;
 
@@ -131,7 +131,7 @@ export async function processMpesaPayment(input: MpesaPaymentInput): Promise<Mpe
 
 export async function getMpesaPaymentStatus(idToken: string, checkoutRequestId: string): Promise<'pending' | 'processing' | 'completed' | 'failed' | 'unknown'> {
   const decoded = await adminAuth.verifyIdToken(idToken, true);
-  if (!checkoutRequestId || checkoutRequestId.length > 160) throw new Error('Invalid checkout request.');
+  if (!/^[A-Za-z0-9_-]{8,160}$/.test(checkoutRequestId)) throw new Error('Invalid checkout request.');
   const snapshot = await adminDb.ref(`mpesaTransactions/${checkoutRequestId}`).get();
   if (!snapshot.exists()) return 'unknown';
   const transaction = snapshot.val();
