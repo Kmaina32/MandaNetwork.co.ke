@@ -207,7 +207,8 @@ export type ContentStrategyOutput = z.infer<typeof ContentStrategyOutputSchema>;
 export interface ApiKey {
     id: string;
     name: string;
-    key: string;
+    key?: string; // Returned only once at creation; never persisted in plaintext.
+    keyPreview?: string;
     createdAt: string; // ISO String
     userId: string;
 }
