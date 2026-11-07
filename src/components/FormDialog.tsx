@@ -53,7 +53,7 @@ export function FormDialog({ formId, isOpen, onClose }: FormDialogProps) {
   const [submissionComplete, setSubmissionComplete] = useState(false);
 
   const formSchema = buildSchema(formDef);
-  type FormValues = z.infer<typeof formSchema>;
+  type FormValues = Record<string, any>;
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -117,7 +117,7 @@ export function FormDialog({ formId, isOpen, onClose }: FormDialogProps) {
                 <FormField
                   key={q.id}
                   control={form.control}
-                  name={q.id}
+                  name={q.id as any}
                   render={({ field }) => (
                     <FormItem className="p-4 border rounded-md">
                       <FormLabel className="font-semibold">{index + 1}. {q.text}</FormLabel>
