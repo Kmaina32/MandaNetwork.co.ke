@@ -37,14 +37,7 @@ type Notification = {
     href?: string;
     date: string;
     isLive?: boolean;
-    actions?: Array<{
-        title: string;
-        action: 'accept_org_invite';
-        payload: {
-            inviteId: string;
-            organizationId: string;
-        };
-    }>
+    actions?: DbNotification['actions']
 };
 
 function NotificationsPopover() {
