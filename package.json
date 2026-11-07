@@ -14,7 +14,7 @@
     "test": "jest --watch",
     "deploy": "firebase deploy",
     "blockchain:compile": "cd blockchain && npx hardhat compile",
-    "test:ci": "jest --runInBand --passWithNoTests"
+    "test:ci": "node scripts/run-jest-ci.cjs"
   },
   "dependencies": {
     "@genkit-ai/firebase": "1.18.0",
