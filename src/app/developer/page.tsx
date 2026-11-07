@@ -16,8 +16,8 @@ import { Header } from '@/components/Header';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useAuth } from '@/hooks/use-auth';
 import type { ApiKey } from '@/lib/types';
-import { getUserApiKeys, deleteApiKey } from '@/lib/firebase-service';
-import { generateApiKey } from '@/app/actions';
+import { deleteApiKey } from '@/lib/firebase-service';
+import { generateApiKey, getUserApiKeys } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import {
@@ -218,7 +218,7 @@ export default function DeveloperPage() {
   const fetchKeys = async () => {
     if (!user) return;
     setLoadingKeys(true);
-    const keys = await getUserApiKeys(user.uid);
+    const keys = await getUserApiKeys(await user.getIdToken());
     setApiKeys(keys.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     setLoadingKeys(false);
   };
