@@ -24,7 +24,7 @@ import { getAllCalendarEvents } from '@/lib/firebase-service';
 import Image from 'next/image';
 
 export function AppSidebar() {
-    const pathname = usePathname();
+    const pathname = usePathname() || '/';
     const { user, isAdmin, isOrganizationAdmin, organization } = useAuth();
     const { setOpenMobile } = useSidebar();
     const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
@@ -80,7 +80,7 @@ export function AppSidebar() {
         <SidebarHeader className="mb-4">
              <Link href="/" className="flex items-center gap-2">
                 <GitBranch className="h-6 w-6 text-yellow-500" />
-                <span className="font-bold text-lg font-headline group-data-[collapsible=icon]:hidden">Manda Network</span>
+                <span className="font-bold text-lg font-headline group-data-[collapsible=icon]:hidden">Varban Academy</span>
             </Link>
         </SidebarHeader>
         <SidebarContent>
