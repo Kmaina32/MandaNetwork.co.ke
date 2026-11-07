@@ -17,7 +17,7 @@ import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { processMpesaPayment } from '@/app/actions';
+import { processMpesaPayment, getMpesaPaymentStatus } from '@/app/actions';
 
 
 interface MpesaModalProps {
@@ -42,7 +42,7 @@ export function MpesaModal({
   const { toast } = useToast();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [paymentStep, setPaymentStep] = useState<'form' | 'processing' | 'submitted'>('form');
+  const [paymentStep, setPaymentStep] = useState<'form' | 'processing' | 'submitted' | 'success'>('form');
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,14 +61,24 @@ export function MpesaModal({
     setPaymentStep('processing');
 
     try {
-      const result = await processMpesaPayment({
-        idToken: await user.getIdToken(),
-        phoneNumber,
-        courseId,
-      });
+      const idToken = await user.getIdToken();
+      const result = await processMpesaPayment({ idToken, phoneNumber, courseId });
 
       if (result.success) {
         // You could poll a callback or just assume success for demo
+        if (result.checkoutRequestId) {
+          for (let attempt = 0; attempt < 20; attempt++) {
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            const status = await getMpesaPaymentStatus(idToken, result.checkoutRequestId);
+            if (status === 'completed') {
+              setPaymentStep('success');
+              setIsLoading(false);
+              onPaymentSuccess();
+              return;
+            }
+            if (status === 'failed') throw new Error('M-Pesa reports that this payment was not completed.');
+          }
+        }
         setIsLoading(false);
         setPaymentStep('submitted');
       } else {
@@ -85,7 +95,7 @@ export function MpesaModal({
   
   const handleClose = () => {
     // Reset the form when closing; a submitted STK request remains pending on the server.
-    if(paymentStep !== 'submitted') {
+    if(paymentStep !== 'submitted' && paymentStep !== 'success') {
       setPhoneNumber('');
       setPaymentStep('form');
       setIsLoading(false);
@@ -140,7 +150,14 @@ export function MpesaModal({
             </div>
         )}
 
-         {paymentStep === 'submitted' && (
+         {paymentStep === 'success' && (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <p className="font-semibold">Payment confirmed</p>
+              <p className="text-sm text-muted-foreground">Your course access has been activated.</p>
+            </div>
+        )}
+
+        {paymentStep === 'submitted' && (
             <div className="flex flex-col items-center justify-center py-10 text-center">
                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-green-500 mb-4" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
