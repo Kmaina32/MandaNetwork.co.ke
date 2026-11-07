@@ -379,7 +379,7 @@ export default function ProfilePage() {
 
         await saveUser(user.uid, {
             displayName: newDisplayName,
-            photoURL: user.photoURL,
+            photoURL: user.photoURL || undefined,
             portfolio: {
                 ...dbUser?.portfolio,
                 aboutMe: values.aboutMe,
