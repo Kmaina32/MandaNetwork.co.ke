@@ -20,6 +20,7 @@ import { Loader2, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { RegisteredUser } from '@/lib/types';
 import { sendContactMessage } from '@/app/actions';
+import { useAuth } from '@/hooks/use-auth';
 import { Input } from './ui/input';
 
 const contactFormSchema = z.object({
@@ -40,6 +41,7 @@ interface ContactStudentDialogProps {
 
 export function ContactStudentDialog({ student, isOpen, onClose }: ContactStudentDialogProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<ContactFormValues>({
@@ -56,7 +58,9 @@ export function ContactStudentDialog({ student, isOpen, onClose }: ContactStuden
   const onSubmit = async (values: ContactFormValues) => {
     setIsLoading(true);
     try {
+      if (!user) throw new Error('Please sign in again.');
       await sendContactMessage({
+        idToken: await user.getIdToken(),
         studentId: student.uid,
         employerName: values.employerName,
         organizationName: values.organizationName,
