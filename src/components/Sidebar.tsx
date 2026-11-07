@@ -37,7 +37,7 @@ export function AppSidebar() {
                 try {
                     setLoadingEvents(true);
                     const events = await getAllCalendarEvents();
-                    setCalendarEvents(events);
+                    setCalendarEvents(Array.isArray(events) ? events : []);
                 } catch (error) {
                     console.error("Failed to fetch calendar events for sidebar", error);
                 } finally {
