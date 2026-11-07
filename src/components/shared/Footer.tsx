@@ -13,7 +13,7 @@ export function Footer() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <GitBranch className="h-6 w-6 text-yellow-500" />
-            <span className="font-bold font-headline">Manda Network</span>
+            <span className="font-bold font-headline">Varban Academy</span>
           </div>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
              <Link href="/terms" className="text-sm hover:text-primary">Terms of Service</Link>
@@ -42,7 +42,7 @@ export function Footer() {
           </div>
         </div>
          <p className="text-center text-xs text-muted-foreground mt-4">
-            © {new Date().getFullYear()} Manda Network. All rights reserved. | ISO 9001 Certified
+            © {new Date().getFullYear()} Varban Academy. All rights reserved. | ISO 9001 Certified
           </p>
       </div>
     </footer>
