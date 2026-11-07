@@ -19,7 +19,8 @@ import type { GenerateHackathonIdeasInput, GenerateHackathonIdeasOutput } from '
 import type { StudentHelpInput, StudentHelpOutput } from '@/ai/flows/student-help';
 import type { SpeechToTextInput, SpeechToTextOutput, TextToSpeechInput, TextToSpeechOutput } from '@/ai/flows/text-to-speech';
 import type { GetPortfolioFeedbackInput, GetPortfolioFeedbackOutput } from '@/ai/flows/portfolio-advisor';
-import { createNotification, createOrUpdateConversation, saveMessage, awardLeaderboardPoints, createContactMessage } from '@/lib/firebase-service';
+import { createNotification, createOrUpdateConversation, saveMessage, createContactMessage } from '@/lib/firebase-service';
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { checkHackathonParticipantAchievement } from '@/lib/achievements';
 
 // Each function dynamically imports its corresponding flow, ensuring that the AI logic
@@ -134,8 +135,36 @@ export async function generateHackathonIdeas(input: GenerateHackathonIdeasInput)
     return result;
 }
 
-export async function awardPoints(userId: string, points: number): Promise<void> {
-    await awardLeaderboardPoints(userId, points);
+export async function awardPoints(idToken: string, targetUserId: string, points: number): Promise<void> {
+    if (!Number.isInteger(points) || points < 1 || points > 1000) {
+        throw new Error('Points must be an integer between 1 and 1,000.');
+    }
+    const decoded = await adminAuth.verifyIdToken(idToken, true);
+    const adminSnapshot = await adminDb.ref(`users/${decoded.uid}`).get();
+    const adminProfile = adminSnapshot.val();
+    if (!adminProfile?.isAdmin) throw new Error('Administrator access is required.');
+    if (adminProfile.adminExpiresAt != null) {
+        const expiresAt = typeof adminProfile.adminExpiresAt === 'number'
+            ? adminProfile.adminExpiresAt
+            : Date.parse(adminProfile.adminExpiresAt);
+        if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+            throw new Error('Administrator access has expired.');
+        }
+    }
+
+    const targetSnapshot = await adminDb.ref(`users/${targetUserId}`).get();
+    if (!targetSnapshot.exists()) throw new Error('The selected learner no longer exists.');
+    const target = targetSnapshot.val();
+    const leaderboardRef = adminDb.ref(`leaderboard/${targetUserId}`);
+    const result = await leaderboardRef.transaction((current) => ({
+        ...(current || {}),
+        userId: targetUserId,
+        userName: target.displayName || 'Learner',
+        userAvatar: target.photoURL || '',
+        score: (Number(current?.score) || 0) + points,
+        hackathonCount: Number(current?.hackathonCount) || 0,
+    }));
+    if (!result.committed) throw new Error('Points could not be saved. Please retry.');
 }
 
 export async function getPortfolioFeedback(input: GetPortfolioFeedbackInput): Promise<GetPortfolioFeedbackOutput> {
