@@ -74,6 +74,11 @@ export async function processMpesaPayment(input: MpesaPaymentInput): Promise<Mpe
   return processMpesaPayment(input);
 }
 
+export async function getMpesaPaymentStatus(idToken: string, checkoutRequestId: string) {
+  const { getMpesaPaymentStatus } = await import('@/ai/flows/mpesa-payment');
+  return getMpesaPaymentStatus(idToken, checkoutRequestId);
+}
+
 // Card checkout is intentionally fail-closed until a verified payment provider is configured.
 export async function processCardPayment(_input: CardPaymentInput): Promise<{ success: boolean; message: string }> {
     return {
