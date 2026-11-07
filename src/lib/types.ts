@@ -333,6 +333,34 @@ export interface Organization {
 }
 
 
+export interface HeroData {
+    title: string;
+    subtitle: string;
+    imageUrl: string;
+    loginImageUrl: string;
+    signupImageUrl: string;
+    slideshowSpeed: number;
+    imageBrightness: number;
+    recaptchaEnabled: boolean;
+    onboardingEnabled: boolean;
+    theme?: string;
+    animationsEnabled?: boolean;
+    orgHeroTitle?: string;
+    orgHeroSubtitle?: string;
+    orgHeroImageUrl?: string;
+    orgLoginImageUrl?: string;
+    orgSignupImageUrl?: string;
+    programsImageUrl?: string;
+    bootcampsImageUrl?: string;
+    hackathonsImageUrl?: string;
+    portfoliosImageUrl?: string;
+    adsEnabled?: boolean;
+    adInterval?: number;
+    activityTrackingEnabled?: boolean;
+    aiProvider?: 'gemini' | 'openai' | 'anthropic';
+    customModelId?: string;
+}
+
 export interface RegisteredUser {
     uid: string;
     email: string | null;
@@ -354,6 +382,7 @@ export interface RegisteredUser {
     achievements?: Record<string, Achievement>;
     photoURL?: string;
     affiliateId?: string;
+    referredBy?: string;
     affiliateStats?: {
         clicks: number;
         referrals: number;
