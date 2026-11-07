@@ -6,7 +6,7 @@
  */
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import type { ApiKey } from '@/lib/types';
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { z } from 'zod';
 
 const GenerateApiKeyInputSchema = z.object({
@@ -25,10 +25,16 @@ export async function generateApiKey(input: GenerateApiKeyInput): Promise<ApiKey
 
   const newKeyData: Omit<ApiKey, 'id'> = {
     name: parsed.keyName,
-    key,
+    keyPreview: key.slice(-4),
     createdAt: new Date().toISOString(),
     userId,
   };
-  await keyRef.set(newKeyData);
-  return { ...newKeyData, id: keyRef.key };
+  await keyRef.set({
+    name: newKeyData.name,
+    keyHash: createHash('sha256').update(key).digest('hex'),
+    keyPreview: newKeyData.keyPreview,
+    createdAt: newKeyData.createdAt,
+    userId,
+  });
+  return { ...newKeyData, key, id: keyRef.key };
 }
