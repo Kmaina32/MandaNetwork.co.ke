@@ -21,6 +21,7 @@ import type { SpeechToTextInput, SpeechToTextOutput, TextToSpeechInput, TextToSp
 import type { GetPortfolioFeedbackInput, GetPortfolioFeedbackOutput } from '@/ai/flows/portfolio-advisor';
 
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { headers } from 'next/headers';
 import { checkHackathonParticipantAchievement } from '@/lib/achievements';
 
 // Each function dynamically imports its corresponding flow, ensuring that the AI logic
@@ -227,8 +228,10 @@ export async function sendGeneralContactMessage(payload: { name: string; email: 
         throw new Error('Please provide a valid name, email address, and message.');
     }
 
+    const requestHeaders = await headers();
+    const clientIp = requestHeaders.get('x-forwarded-for')?.split(',')[0]?.trim() || requestHeaders.get('x-real-ip') || email;
     const bucket = Math.floor(Date.now() / 600000);
-    const rateKey = Buffer.from(email).toString('base64url');
+    const rateKey = Buffer.from(clientIp).toString('base64url');
     const rateRef = adminDb.ref(`contactRateLimits/${rateKey}/${bucket}`);
     const rate = await rateRef.transaction((current) => {
         const count = Number(current?.count) || 0;
