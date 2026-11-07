@@ -26,7 +26,7 @@ export const getHeroData = cache(
       onboardingEnabled: true,
       theme: 'default',
       animationsEnabled: true,
-      orgHeroTitle: 'Manda Network for Business',
+      orgHeroTitle: 'Varban Academy for Business',
       orgHeroSubtitle: 'Empower your workforce with the skills they need to succeed.',
       orgHeroImageUrl: 'https://picsum.photos/1200/800',
       orgLoginImageUrl: 'https://picsum.photos/1200/900',
