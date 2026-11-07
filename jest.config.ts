@@ -1,42 +1,20 @@
-import type { Config } from 'jest'
-import nextJest from 'next/jest.js'
- 
+import type { Config } from 'jest';
+import nextJest from 'next/jest.js';
+
 const createJestConfig = nextJest({
-  // Provide the path to your Next.js app to load next.config.js and .env files in your test environment
   dir: './',
-})
- 
-// Add any custom config to be passed to Jest
+});
+
 const config: Config = {
   coverageProvider: 'v8',
   testEnvironment: 'jsdom',
   roots: ['<rootDir>/src'],
-  // Add more setup options before each test is run
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleNameMapper: {
-    '^@/(.*)
-  transformIgnorePatterns: [
-    '/node_modules/(?!lucide-react)/',
-  ],
-}
- 
-// createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
-export default createJestConfig(config)
-: '<rootDir>/src/$1',
-    '^lucide-react
-  transformIgnorePatterns: [
-    '/node_modules/(?!lucide-react)/',
-  ],
-}
- 
-// createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
-export default createJestConfig(config)
-: '<rootDir>/node_modules/lucide-react/dist/cjs/lucide-react.js',
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^lucide-react$': '<rootDir>/node_modules/lucide-react/dist/cjs/lucide-react.js',
   },
-  transformIgnorePatterns: [
-    '/node_modules/(?!lucide-react)/',
-  ],
-}
- 
-// createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
-export default createJestConfig(config)
+  transformIgnorePatterns: ['/node_modules/(?!lucide-react)/'],
+};
+
+export default createJestConfig(config);
