@@ -140,7 +140,16 @@ export default function EditAssignmentPage() {
             courseTitle: course.title,
             courseDescription: course.longDescription,
         });
-        replace(result.exam as ExamQuestion[]);
+        const normalizedExam: ExamQuestion[] = result.exam.map((question, index) => {
+          const maxPoints = Math.max(1, Number(question.maxPoints) || 1);
+          if (question.type === 'short-answer') {
+            return { id: question.id || ('exam-' + (index + 1)), type: 'short-answer', question: question.question, referenceAnswer: question.referenceAnswer || question.question, maxPoints };
+          }
+          const options = [...(question.options || [])].slice(0, 4);
+          while (options.length < 4) options.push('Option ' + (options.length + 1));
+          return { id: question.id || ('exam-' + (index + 1)), type: 'multiple-choice', question: question.question, options, correctAnswer: Math.min(3, Math.max(0, Number(question.correctAnswer) || 0)), maxPoints };
+        });
+        replace(normalizedExam);
         form.setValue('project', undefined);
         setActiveTab('exam');
         toast({ title: 'Exam Generated!', description: 'Review the new questions below and save.' });
