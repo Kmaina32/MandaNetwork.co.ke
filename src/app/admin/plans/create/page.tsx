@@ -23,7 +23,7 @@ const planFormSchema = z.object({
   name: z.string().min(3, 'Plan name must be at least 3 characters'),
   price: z.coerce.number().min(0, 'Price must be a non-negative number.'),
   priceDetail: z.string().min(3, 'Price detail is required (e.g., per user/month)'),
-  features: z.array(z.string().min(1, 'Feature cannot be empty.')).min(1, 'At least one feature is required.'),
+  features: z.array(z.object({ value: z.string().min(1, 'Feature cannot be empty.') })).min(1, 'At least one feature is required.'),
   isPrimary: z.boolean().default(false),
 });
 
@@ -38,7 +38,7 @@ export default function CreatePlanPage() {
       name: '',
       price: 0,
       priceDetail: 'per user / month',
-      features: ['Up to 5 users'],
+      features: [{ value: 'Up to 5 users' }],
       isPrimary: false,
     },
   });
@@ -51,7 +51,7 @@ export default function CreatePlanPage() {
   const onSubmit = async (values: z.infer<typeof planFormSchema>) => {
     setIsLoading(true);
     try {
-      await createPlan(values);
+      await createPlan({ ...values, features: values.features.map(feature => feature.value) });
       toast({
         title: 'Plan Created!',
         description: `The plan "${values.name}" has been successfully created.`,
@@ -139,7 +139,7 @@ export default function CreatePlanPage() {
                             <div key={field.id} className="flex items-center gap-2">
                                  <FormField
                                     control={form.control}
-                                    name={`features.${index}`}
+                                    name={`features.${index}.value`}
                                     render={({ field }) => (
                                         <FormItem className="flex-grow">
                                             <FormControl>
@@ -155,7 +155,7 @@ export default function CreatePlanPage() {
                             </div>
                          ))}
                       </div>
-                      <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append('')}>
+                      <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append({ value: '' })}>
                          <PlusCircle className="mr-2 h-4 w-4"/>
                          Add Feature
                       </Button>
