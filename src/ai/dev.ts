@@ -28,5 +28,5 @@ import './flows/text-to-speech';
 import './tools/course-catalog';
 
 export default {
-  plugins: [nextPlugin()],
+  plugins: [nextPlugin({})],
 };
