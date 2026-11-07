@@ -100,22 +100,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ResultCode: 0, ResultDesc: latest?.status === 'completed' ? 'Already processed' : 'Already processing' });
     }
 
-    const enrollmentRef = adminDb.ref(`users/${transaction.uid}/purchasedCourses/${transaction.courseId}`);
-    await enrollmentRef.set({
-      progress: 0,
-      completed: false,
-      certificateAvailable: false,
-      completedLessons: [],
-      enrollmentDate: new Date().toISOString(),
-      paymentMethod: 'mpesa',
-      paymentReceipt: receipt,
-    });
-    await transactionRef.update({
-      status: 'completed',
-      receipt,
-      confirmedAmount: amount,
-      confirmedPhone: phone,
-      completedAt: Date.now(),
+    const completedAt = Date.now();
+    // Commit enrollment and transaction completion together so a retry cannot leave
+    // a paid user unenrolled or a failed database write marked as settled.
+    await adminDb.ref().update({
+      [`users/${transaction.uid}/purchasedCourses/${transaction.courseId}`]: {
+        progress: 0,
+        completed: false,
+        certificateAvailable: false,
+        completedLessons: [],
+        enrollmentDate: new Date().toISOString(),
+        paymentMethod: 'mpesa',
+        paymentReceipt: receipt,
+      },
+      [`mpesaTransactions/${checkoutRequestId}`]: {
+        ...transaction,
+        status: 'completed',
+        receipt,
+        confirmedAmount: amount,
+        confirmedPhone: phone,
+        completedAt,
+      },
     });
 
     return NextResponse.json({ ResultCode: 0, ResultDesc: 'Payment confirmed and enrollment completed' });
