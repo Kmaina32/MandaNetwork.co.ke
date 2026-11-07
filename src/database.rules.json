@@ -22,7 +22,7 @@
         "lastSeen": {
           ".write": "auth != null && auth.uid === $userId"
         },
-        ".validate": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now) || (newData.child('isAdmin').val() === data.child('isAdmin').val() && newData.child('isSuperAdmin').val() === data.child('isSuperAdmin').val() && newData.child('adminExpiresAt').val() === data.child('adminExpiresAt').val() && newData.child('affiliateStats').val() === data.child('affiliateStats').val() && newData.child('plan').val() === data.child('plan').val() && newData.child('apiCallCount').val() === data.child('apiCallCount').val() && (newData.child('organizationId').val() === data.child('organizationId').val() || root.child('organizations').child(newData.child('organizationId').val()).child('ownerId').val() === auth.uid)))"
+        ".validate": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now) || (newData.child('isAdmin').val() === data.child('isAdmin').val() && newData.child('isSuperAdmin').val() === data.child('isSuperAdmin').val() && newData.child('adminExpiresAt').val() === data.child('adminExpiresAt').val() && newData.child('affiliateStats').val() === data.child('affiliateStats').val() && newData.child('plan').val() === data.child('plan').val() && newData.child('apiCallCount').val() === data.child('apiCallCount').val() && (newData.child('organizationId').val() === data.child('organizationId').val() || root.child('organizations').child(newData.child('organizationId').val()).child('ownerId').val() === auth.uid) && (newData.child('isOrganizationAdmin').val() === data.child('isOrganizationAdmin').val() || (newData.child('isOrganizationAdmin').val() === true && root.child('organizations').child(newData.child('organizationId').val()).child('ownerId').val() === auth.uid))))"
       }
     },
     "courses": {
@@ -85,7 +85,7 @@
       ".indexOn": "ownerId",
       "$orgId": {
         ".write": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || (data.exists() && data.child('ownerId').val() === auth.uid) || (!data.exists() && newData.child('ownerId').val() === auth.uid))",
-        ".validate": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || (newData.child('ownerId').val() === data.child('ownerId').val() && newData.child('subscriptionTier').val() === data.child('subscriptionTier').val() && newData.child('subscriptionExpiresAt').val() === data.child('subscriptionExpiresAt').val() && newData.child('memberLimit').val() === data.child('memberLimit').val()))"
+        ".validate": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now) || (!data.exists() && newData.child('ownerId').val() === auth.uid && newData.child('subscriptionTier').val() === 'trial' && newData.child('memberLimit').val() <= 5) || (newData.child('ownerId').val() === data.child('ownerId').val() && newData.child('subscriptionTier').val() === data.child('subscriptionTier').val() && newData.child('subscriptionExpiresAt').val() === data.child('subscriptionExpiresAt').val() && newData.child('memberLimit').val() === data.child('memberLimit').val()))"
       }
     },
     "invitations": {
@@ -111,7 +111,7 @@
       ".indexOn": "userId",
       "$submissionId": {
         ".read": "auth != null && (data.child('userId').val() === auth.uid || (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)))",
-        ".write": "auth != null && ((newData.child('userId').val() === auth.uid) || (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)))"
+        ".write": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || (!data.exists() && newData.child('userId').val() === auth.uid) || (data.child('userId').val() === auth.uid && newData.child('userId').val() === auth.uid))"
       }
     },
     "hackathonSubmissions": {
@@ -121,13 +121,13 @@
       ],
       "$submissionId": {
         ".read": "auth != null && (data.child('userId').val() === auth.uid || (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)))",
-        ".write": "auth != null && (newData.child('userId').val() === auth.uid || (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)))"
+        ".write": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || (!data.exists() && newData.child('userId').val() === auth.uid) || (data.child('userId').val() === auth.uid && newData.child('userId').val() === auth.uid))"
       }
     },
     "projectSubmissions": {
       "$submissionId": {
         ".read": "auth != null && (data.child('userId').val() === auth.uid || (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)))",
-        ".write": "auth != null && (newData.child('userId').val() === auth.uid || (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)))"
+        ".write": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || (!data.exists() && newData.child('userId').val() === auth.uid) || (data.child('userId').val() === auth.uid && newData.child('userId').val() === auth.uid))"
       }
     },
     "courseFeedback": {
@@ -196,7 +196,7 @@
     "userActivity": {
       ".read": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now))",
       "$logId": {
-        ".write": "auth != null && newData.child('userId').val() === auth.uid",
+        ".write": "auth != null && !data.exists() && newData.child('userId').val() === auth.uid",
         ".validate": "newData.hasChildren(['userId', 'userName', 'userAvatar', 'type', 'details', 'timestamp'])"
       }
     },
@@ -241,7 +241,7 @@
       ".read": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now))",
       "$userId": {
         ".read": "auth != null && auth.uid === $userId",
-        ".write": "auth != null && auth.uid === $userId"
+        ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)"
       }
     },
     "apiKeys": {
@@ -279,7 +279,8 @@
       "$userId": {
         ".read": true,
         ".write": "auth != null && auth.uid === $userId"
-      }
+      },
+      ".read": true
     },
     "documents": {
       ".read": true,
