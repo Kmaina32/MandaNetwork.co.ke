@@ -124,10 +124,6 @@ export function PaymentModal({
         const result = await processMpesaPayment({ idToken, phoneNumber, courseId: itemId });
 
         if (result.success) {
-            toast({
-                title: "Processing Payment...",
-                description: "Please check your phone to complete the M-Pesa transaction."
-            });
             toast({ title: 'M-Pesa request sent', description: 'Complete the prompt on your phone. We are waiting for Safaricom to confirm payment.' });
             if (result.checkoutRequestId) {
                 for (let attempt = 0; attempt < 20; attempt++) {
