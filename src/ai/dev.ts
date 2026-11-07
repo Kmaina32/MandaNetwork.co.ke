@@ -2,8 +2,6 @@
 // This file is used to run the Genkit development server.
 // It imports the necessary plugins and flows to be inspected.
 
-import nextPlugin from '@genkit-ai/next';
-
 // You can selectively import flows here if you only want to work on a subset.
 // For a production-like dev environment, importing all is fine.
 import './flows/career-coach';
@@ -28,5 +26,5 @@ import './flows/text-to-speech';
 import './tools/course-catalog';
 
 export default {
-  plugins: [nextPlugin({})],
+  plugins: [],
 };
