@@ -128,3 +128,13 @@ export async function processMpesaPayment(input: MpesaPaymentInput): Promise<Mpe
     };
   }
 }
+
+export async function getMpesaPaymentStatus(idToken: string, checkoutRequestId: string): Promise<'pending' | 'processing' | 'completed' | 'failed' | 'unknown'> {
+  const decoded = await adminAuth.verifyIdToken(idToken, true);
+  if (!checkoutRequestId || checkoutRequestId.length > 160) throw new Error('Invalid checkout request.');
+  const snapshot = await adminDb.ref(`mpesaTransactions/${checkoutRequestId}`).get();
+  if (!snapshot.exists()) return 'unknown';
+  const transaction = snapshot.val();
+  if (transaction.uid !== decoded.uid) throw new Error('Not authorized to view this payment.');
+  return transaction.status;
+}
