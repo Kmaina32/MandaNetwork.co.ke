@@ -9,6 +9,8 @@ import { useRouter } from 'next/navigation';
 jest.mock('@/hooks/use-auth');
 jest.mock('@/lib/firebase-service');
 jest.mock('next/navigation');
+jest.mock('@/components/Header', () => ({ Header: () => <header /> }));
+jest.mock('@/components/Sidebar', () => ({ AppSidebar: () => null }));
 
 const mockUseAuth = useAuth as jest.Mock;
 const mockGetAllNotifications = getAllNotifications as jest.Mock;
