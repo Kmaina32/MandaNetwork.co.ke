@@ -162,6 +162,13 @@ export const user = {
     ]
 }
 
+export interface TutorSettings {
+    voice: string;
+    speed: number;
+    prompts?: string;
+    avatarUrl?: string;
+}
+
 export interface UserCourse {
     courseId: string;
     progress: number;
