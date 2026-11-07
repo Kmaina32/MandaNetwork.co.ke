@@ -8,7 +8,7 @@ import { getRemoteConfig, fetchAndActivate, getString } from 'firebase/remote-co
 import { app } from './firebase';
 import { slugify } from './utils';
 
-export type { RegisteredUser, HeroData, PermissionRequest, UserCourse, Program, Hackathon, TutorSettings } from './types';
+export type { RegisteredUser, HeroData, PermissionRequest, UserCourse, Program, Hackathon, TutorSettings, Course, Bootcamp, BlogPost } from './types';
 
 
 
