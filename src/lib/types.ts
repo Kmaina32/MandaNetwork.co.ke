@@ -343,7 +343,7 @@ export interface Organization {
     name: string;
     ownerId: string;
     createdAt: string; // ISO String
-    subscriptionTier: 'trial' | 'basic' | 'pro';
+    subscriptionTier: 'trial' | 'free' | 'basic' | 'pro';
     subscriptionExpiresAt: string | null;
     memberLimit: number;
     logoUrl?: string;
@@ -412,7 +412,7 @@ export interface PermissionRequest {
     id: string;
     requesterId: string;
     requesterName: string;
-    action: 'delete_course' | 'delete_program' | 'delete_bundle' | 'create_bootcamp';
+    action: 'delete_course' | 'delete_program' | 'delete_bundle' | 'create_bootcamp' | 'delete_bootcamp';
     itemId: string;
     itemName: string;
     itemData?: any;
@@ -540,6 +540,7 @@ export interface Form {
   title: string;
   description?: string;
   organizationId?: string; // If it's for a specific org
+  slug?: string;
   questions: FormQuestion[];
 }
 
@@ -547,7 +548,7 @@ export interface FormQuestion {
   id: string;
   text: string;
   type: 'short-text' | 'long-text' | 'multiple-choice' | 'rating';
-  options?: string[]; // For multiple-choice
+  options?: { id: string; value: string }[]; // For multiple-choice
 }
 
 export interface FormSubmission {
