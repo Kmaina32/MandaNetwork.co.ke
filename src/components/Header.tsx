@@ -223,22 +223,39 @@ function NotificationsPopover() {
                     <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(new Date(notification.date), { addSuffix: true })}</p>
                     {hasAction && (
                         <div className="flex gap-2 mt-2">
-                            {notification.actions?.map((action, index) => (
-                                <Button 
-                                    key={index} 
-                                    size="sm" 
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        if (action.action === 'accept_org_invite') {
-                                            handleAcceptInvitation(action.payload);
-                                        }
-                                    }}
-                                    disabled={isAccepting === action.payload.inviteId}
-                                >
-                                    {isAccepting === action.payload.inviteId ? <Loader2 className="h-4 w-4 animate-spin"/> : action.title}
-                                </Button>
-                            ))}
+                            {notification.actions?.map((action, index) => {
+                                if (action.action === 'accept_org_invite') {
+                                    const inviteId = action.payload.inviteId;
+                                    const organizationId = action.payload.organizationId;
+                                    if (!inviteId || !organizationId) return null;
+                                    return (
+                                        <Button
+                                            key={index}
+                                            size="sm"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                handleAcceptInvitation({ inviteId, organizationId });
+                                            }}
+                                            disabled={isAccepting === inviteId}
+                                        >
+                                            {isAccepting === inviteId ? <Loader2 className="h-4 w-4 animate-spin"/> : action.title}
+                                        </Button>
+                                    );
+                                }
+                                if (action.action === 'open_form_dialog' && action.payload.formId) {
+                                    return (
+                                        <Button key={index} size="sm" onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            router.push(`/forms/${action.payload.formId}`);
+                                        }}>
+                                            {action.title}
+                                        </Button>
+                                    );
+                                }
+                                return null;
+                            })}
                         </div>
                     )}
                 </div>
