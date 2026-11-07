@@ -83,7 +83,7 @@ function NotificationsPopover() {
             // 1. Fetch DB notifications
             try {
                 const dbNotifications = await getAllNotifications();
-                const formattedDbNotifications = dbNotifications
+                const formattedDbNotifications = (Array.isArray(dbNotifications) ? dbNotifications : [])
                     .filter(n => new Date(n.createdAt) > userCreationTime)
                      // Filter based on cohort or if it's a targeted notification for the user
                     .filter(n => !n.cohort || n.cohort === userCohort || n.userId === user.uid)
@@ -121,7 +121,7 @@ function NotificationsPopover() {
             // 3. New Course Alerts
             try {
                 const courses = await getAllCourses();
-                const recentCourses = courses.filter(course =>
+                const recentCourses = (Array.isArray(courses) ? courses : []).filter(course =>
                     course.createdAt && new Date(course.createdAt) > userCreationTime
                 );
                 recentCourses.forEach(course => {
@@ -141,7 +141,7 @@ function NotificationsPopover() {
             // 4. Upcoming Events
             try {
                 const events = await getAllCalendarEvents();
-                const upcomingEvents = events.filter(event => new Date(event.date) > userCreationTime);
+                const upcomingEvents = (Array.isArray(events) ? events : []).filter(event => new Date(event.date) > userCreationTime);
                 upcomingEvents.forEach(event => {
                      combinedNotifications.push({
                         id: `event-${event.id}`,
