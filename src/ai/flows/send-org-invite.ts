@@ -7,14 +7,14 @@ import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import { ai } from '@/ai/genkit-instance';
 
-export const CreateOrgInviteInputSchema = z.object({
+const CreateOrgInviteInputSchema = z.object({
   idToken: z.string().min(20),
   email: z.string().email().max(254).transform(value => value.trim().toLowerCase()),
   organizationId: z.string().min(1).max(128),
 });
 export type CreateOrgInviteInput = z.infer<typeof CreateOrgInviteInputSchema>;
 
-export const CreateOrgInviteOutputSchema = z.object({
+const CreateOrgInviteOutputSchema = z.object({
   success: z.boolean(),
   inviteId: z.string().optional(),
   message: z.string(),
