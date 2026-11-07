@@ -42,7 +42,7 @@ export function MpesaModal({
   const { toast } = useToast();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [paymentStep, setPaymentStep] = useState<'form' | 'processing' | 'success'>('form');
+  const [paymentStep, setPaymentStep] = useState<'form' | 'processing' | 'submitted'>('form');
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,18 +62,15 @@ export function MpesaModal({
 
     try {
       const result = await processMpesaPayment({
-        userId: user.uid,
+        idToken: await user.getIdToken(),
         phoneNumber,
-        amount: 1, // Using 1 for sandbox environment
         courseId,
       });
 
       if (result.success) {
         // You could poll a callback or just assume success for demo
         setIsLoading(false);
-        setPaymentStep('success');
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        onPaymentSuccess();
+        setPaymentStep('submitted');
       } else {
         throw new Error(result.message);
       }
@@ -87,8 +84,8 @@ export function MpesaModal({
   };
   
   const handleClose = () => {
-    // only reset if not in success state, otherwise it clears too fast
-    if(paymentStep !== 'success') {
+    // Reset the form when closing; a submitted STK request remains pending on the server.
+    if(paymentStep !== 'submitted') {
       setPhoneNumber('');
       setPaymentStep('form');
       setIsLoading(false);
@@ -143,13 +140,13 @@ export function MpesaModal({
             </div>
         )}
 
-         {paymentStep === 'success' && (
+         {paymentStep === 'submitted' && (
             <div className="flex flex-col items-center justify-center py-10 text-center">
                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-green-500 mb-4" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                <p className="font-semibold">Payment Successful!</p>
-                <p className="text-sm text-muted-foreground">You now have access to the course.</p>
+                <p className="font-semibold">Payment request sent</p>
+                <p className="text-sm text-muted-foreground">Complete the M-Pesa prompt. Course access will be enabled only after Safaricom confirms the payment.</p>
             </div>
         )}
       </DialogContent>
