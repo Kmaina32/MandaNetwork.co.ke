@@ -43,9 +43,7 @@ import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 const generateKeySchema = z.object({
     keyName: z.string().min(3, { message: "Key name must be at least 3 characters."}),
-    terms: z.literal(true, {
-        errorMap: () => ({ message: "You must accept the terms and conditions."}),
-    }),
+    terms: z.boolean().refine(value => value === true, { message: "You must accept the terms and conditions." }),
 });
 
 function ApiKeyRow({ apiKey, onRevoke }: { apiKey: ApiKey; onRevoke: (keyId: string) => void; }) {
