@@ -28,15 +28,15 @@ describe('MessagesPage', () => {
     jest.clearAllMocks();
   });
 
-  it('renders without crashing', () => {
+  it('renders without crashing', async () => {
     render(<MessagesPage />);
-    expect(screen.getByText('Message Center')).toBeInTheDocument();
+    expect(await screen.findByText('Message Center')).toBeInTheDocument();
   });
 
   it('displays loading animation when auth is loading', () => {
     mockUseAuth.mockReturnValue({ user: null, loading: true });
     render(<MessagesPage />);
-    expect(screen.getByTestId('loading-animation')).toBeInTheDocument();
+    expect(screen.getByText(/Loading your experience/i)).toBeInTheDocument();
   });
 
   it('redirects to login if user is not authenticated', () => {
@@ -83,14 +83,14 @@ describe('MessagesPage', () => {
     mockGetAllNotifications.mockResolvedValue(mockMessages);
     render(<MessagesPage />);
     await waitFor(() => {
-        expect(screen.getAllByRole('listitem')[0]).toHaveTextContent('Employer 1');
+        expect(screen.getAllByText(/Employer [12]/)[0]).toHaveTextContent('Employer 1');
     });
 
     fireEvent.click(screen.getByText(/Sort/));
     fireEvent.click(screen.getByText('Oldest First'));
 
     await waitFor(() => {
-      expect(screen.getAllByRole('listitem')[0]).toHaveTextContent('Employer 2');
+      expect(screen.getAllByText(/Employer [12]/)[0]).toHaveTextContent('Employer 2');
     });
   });
 
