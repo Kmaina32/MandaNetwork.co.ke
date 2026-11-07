@@ -66,6 +66,11 @@ export async function gradeShortAnswerExam(input: GradeShortAnswerExamInput): Pr
   return gradeShortAnswerExam(input);
 }
 
+export async function getUserApiKeys(idToken: string) {
+  const { listUserApiKeys } = await import('@/ai/flows/generate-api-key');
+  return listUserApiKeys(idToken);
+}
+
 export async function processMpesaPayment(input: MpesaPaymentInput): Promise<MpesaPaymentOutput> {
   const { processMpesaPayment } = await import('@/ai/flows/mpesa-payment');
   return processMpesaPayment(input);
