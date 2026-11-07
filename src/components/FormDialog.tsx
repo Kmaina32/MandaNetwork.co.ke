@@ -129,8 +129,8 @@ export function FormDialog({ formId, isOpen, onClose }: FormDialogProps) {
                             <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="space-y-1">
                               {q.options?.map((option, i) => (
                                 <FormItem key={i} className="flex items-center space-x-3 space-y-0">
-                                  <FormControl><RadioGroupItem value={option} /></FormControl>
-                                  <FormLabel className="font-normal">{option}</FormLabel>
+                                  <FormControl><RadioGroupItem value={option.value} /></FormControl>
+                                  <FormLabel className="font-normal">{option.value}</FormLabel>
                                 </FormItem>
                               ))}
                             </RadioGroup>
