@@ -17,7 +17,7 @@ import { Loader2, CreditCard, MoveRight, AlertCircle, Coins } from 'lucide-react
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { processMpesaPayment } from '@/app/actions';
+import { processMpesaPayment, getMpesaPaymentStatus, processPayPalPayment } from '@/app/actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Icon } from '@iconify/react';
 import type { UserCourse } from '@/lib/types';
@@ -120,18 +120,24 @@ export function PaymentModal({
     }
     setIsLoading(true);
     try {
-        const result = await processMpesaPayment({
-            idToken: await user.getIdToken(),
-            phoneNumber,
-            courseId: itemId,
-        });
+        const idToken = await user.getIdToken();
+        const result = await processMpesaPayment({ idToken, phoneNumber, courseId: itemId });
 
         if (result.success) {
             toast({
                 title: "Processing Payment...",
                 description: "Please check your phone to complete the M-Pesa transaction."
             });
-            // Enrollment is completed only by the verified server callback after provider settlement.
+            toast({ title: 'M-Pesa request sent', description: 'Complete the prompt on your phone. We are waiting for Safaricom to confirm payment.' });
+            if (result.checkoutRequestId) {
+                for (let attempt = 0; attempt < 20; attempt++) {
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    const status = await getMpesaPaymentStatus(idToken, result.checkoutRequestId);
+                    if (status === 'completed') { onPaymentSuccess('mpesa'); return; }
+                    if (status === 'failed') throw new Error('M-Pesa reports that this payment was not completed.');
+                }
+                toast({ title: 'Payment still processing', description: 'Your request is pending. Course access will appear after confirmation; refresh your courses shortly.' });
+            }
         } else {
             throw new Error(result.message);
         }
