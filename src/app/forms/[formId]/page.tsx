@@ -58,7 +58,7 @@ export default function FillFormPage() {
     const [submissionComplete, setSubmissionComplete] = useState(false);
 
     const formSchema = formDef ? buildSchema(formDef) : z.object({});
-    type FormValues = z.infer<typeof formSchema>;
+    type FormValues = Record<string, any>;
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
@@ -172,7 +172,7 @@ export default function FillFormPage() {
                                             <div className="mt-4">
                                             <FormField
                                                     control={form.control}
-                                                    name={q.id}
+                                                    name={q.id as any}
                                                     render={({ field }) => (
                                                         <FormItem>
                                                             <FormControl>
