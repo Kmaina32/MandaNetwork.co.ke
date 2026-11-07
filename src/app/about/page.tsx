@@ -31,8 +31,8 @@ export default function AboutPage() {
     fetchTeam();
   }, []);
 
-  const pageTitle = "About Manda Network | Empowering Digital Africa";
-  const pageDescription = "Learn about Manda Network's mission to bridge the digital skills gap in Kenya and East Africa through high-quality, accessible online education in AI, technology, and business.";
+  const pageTitle = "About Varban Academy | Empowering Digital Africa";
+  const pageDescription = "Learn about Varban Academy's mission to bridge the digital skills gap in Kenya and East Africa through high-quality, accessible online education in AI, technology, and business.";
 
   return (
     <>
@@ -56,12 +56,12 @@ export default function AboutPage() {
                           <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit mb-4">
                               <Users className="h-10 w-10 text-primary" />
                           </div>
-                          <CardTitle className="text-3xl md:text-4xl font-headline">About Manda Network</CardTitle>
+                          <CardTitle className="text-3xl md:text-4xl font-headline">About Varban Academy</CardTitle>
                           <CardDescription className="text-lg text-muted-foreground">Empowering Kenya's Future with Practical, Modern Skills.</CardDescription>
                       </CardHeader>
                       <CardContent className='flex flex-col items-center gap-6 text-left'>
                           <p className="text-foreground max-w-3xl mx-auto text-center">
-                          Manda Network is a pan-African platform that powers digital education, startups, and innovation hubs across Africa. We bridge the talent gap through AI, technology, and entrepreneurship. Our mission is to equip individuals with the practical skills needed to thrive in today's dynamic job market.
+                          Varban Academy is a pan-African platform that powers digital education, startups, and innovation hubs across Africa. We bridge the talent gap through AI, technology, and entrepreneurship. Our mission is to equip individuals with the practical skills needed to thrive in today's dynamic job market.
                           </p>
                       </CardContent>
                       </Card>
