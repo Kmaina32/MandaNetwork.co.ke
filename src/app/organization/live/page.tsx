@@ -7,7 +7,7 @@ import { LiveChat } from '@/components/LiveChat';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { createNotification, getUserById } from '@/lib/firebase-service';
-import { Hand, Loader2, PhoneOff, Users, Maximize, VideoOff } from 'lucide-react';
+import { Hand, Loader2, PhoneOff, Users, Maximize, VideoOff, Mic, MicOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { onValue, ref, onChildAdded, set, remove, query } from 'firebase/database';
 import { NotebookSheet } from '@/components/NotebookSheet';
