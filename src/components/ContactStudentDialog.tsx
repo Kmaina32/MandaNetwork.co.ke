@@ -63,7 +63,6 @@ export function ContactStudentDialog({ student, isOpen, onClose }: ContactStuden
         idToken: await user.getIdToken(),
         studentId: student.uid,
         employerName: values.employerName,
-        organizationName: values.organizationName,
         email: values.email,
         phone: values.phone,
         message: values.message,
