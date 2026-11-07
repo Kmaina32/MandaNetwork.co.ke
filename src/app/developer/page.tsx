@@ -282,7 +282,7 @@ export default function DeveloperPage() {
                                     <Key className="h-6 w-6"/>
                                     API Keys
                                 </CardTitle>
-                                <CardDescription>Manage your secret keys for accessing the Manda Network API.</CardDescription>
+                                <CardDescription>Manage your secret keys for accessing the Varban Academy API.</CardDescription>
                              </div>
                              <GenerateKeyDialog onGenerate={handleGenerateKey} />
                         </div>
@@ -330,7 +330,7 @@ export default function DeveloperPage() {
                              <div className="space-y-2">
                                 <h4 className="font-medium flex items-center gap-2"><Badge>GET</Badge> /api/courses</h4>
                                 <p className="text-sm text-muted-foreground">
-                                    Retrieves a list of all public courses available on the Manda Network platform.
+                                    Retrieves a list of all public courses available on the Varban Academy platform.
                                 </p>
 
                                 <h5 className="font-semibold text-sm pt-2">Example Request:</h5>
