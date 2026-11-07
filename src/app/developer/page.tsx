@@ -231,7 +231,7 @@ export default function DeveloperPage() {
     if (!user) return;
     setNewlyGeneratedKey(null);
     try {
-        const result = await generateApiKey({ userId: user.uid, keyName });
+        const result = await generateApiKey({ idToken: await user.getIdToken(), keyName });
         setNewlyGeneratedKey(result);
         toast({ title: 'Success!', description: `API key "${result.name}" has been generated.` });
         await fetchKeys(); // Refresh the list
