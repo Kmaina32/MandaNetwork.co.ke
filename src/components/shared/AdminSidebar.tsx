@@ -37,7 +37,7 @@ export function AdminSidebar() {
         <SidebarHeader className="mb-4">
             <div className="flex items-center gap-2">
                 <GitBranch className="h-6 w-6 text-yellow-500" />
-                <span className="font-bold text-lg font-headline group-data-[collapsible=icon]:hidden">Manda Network</span>
+                <span className="font-bold text-lg font-headline group-data-[collapsible=icon]:hidden">Varban Academy</span>
             </div>
         </SidebarHeader>
         <SidebarContent>
