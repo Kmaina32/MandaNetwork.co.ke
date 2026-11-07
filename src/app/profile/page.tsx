@@ -383,7 +383,7 @@ export default function ProfilePage() {
             portfolio: {
                 ...dbUser?.portfolio,
                 aboutMe: values.aboutMe,
-                phone: values.phone,
+                phone: values.phone ?? undefined,
                 address: {
                     poBox: values.poBox,
                     country: values.country,
