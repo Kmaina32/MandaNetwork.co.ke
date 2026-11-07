@@ -113,7 +113,7 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
 
 
   useEffect(() => {
-    if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true') {
+    if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true' && process.env.NODE_ENV !== 'production') {
         console.warn('%cAUTH BYPASS ACTIVE', 'color: red; font-weight: bold; font-size: 14px;');
         const { user, dbUser, organization } = createBypassUser();
         setUser(user);
@@ -177,7 +177,7 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
   }, []);
 
   useEffect(() => {
-    if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true') return;
+    if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true' && process.env.NODE_ENV !== 'production') return;
 
     if (user) {
       fetchUserData(user);
@@ -325,7 +325,7 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
             lastSeen: serverTimestamp(),
         });
     }
-    if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true') {
+    if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true' && process.env.NODE_ENV !== 'production') {
         console.warn('Cannot log out when auth bypass is active.');
         return Promise.resolve();
     }
