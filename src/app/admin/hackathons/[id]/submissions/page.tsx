@@ -32,6 +32,7 @@ const pointAwardSchema = z.object({
 });
 
 function SubmissionCard({ sub }: { sub: HackathonSubmission }) {
+    const { user } = useAuth();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     
@@ -43,7 +44,8 @@ function SubmissionCard({ sub }: { sub: HackathonSubmission }) {
     const onAwardPoints = async (values: z.infer<typeof pointAwardSchema>) => {
         setIsSubmitting(true);
         try {
-            await awardPoints(sub.userId, values.points);
+            if (!user) throw new Error('Please sign in again.');
+            await awardPoints(await user.getIdToken(), sub.userId, values.points);
             toast({
                 title: 'Points Awarded!',
                 description: `${values.points} points have been awarded to ${sub.userName}.`
