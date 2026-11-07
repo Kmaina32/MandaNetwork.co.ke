@@ -44,7 +44,7 @@ const CertificateSeal = ({ className, color = '#002147' }: { className?: string,
     
     <text>
       <textPath href="#circlePath" fill={color} style={{ fontSize: '16px', letterSpacing: '2px', textTransform: 'uppercase' }}>
-        Manda Network • Certified Professional •
+        Varban Academy • Certified Professional •
       </textPath>
     </text>
     
@@ -135,10 +135,10 @@ export function Certificate({ course, userName }: CertificateProps) {
           
           <div className="flex justify-between items-center mb-4">
             <div className="text-left">
-                <h1 className="font-bold text-2xl text-[#002147] font-headline">Manda Network</h1>
+                <h1 className="font-bold text-2xl text-[#002147] font-headline">Varban Academy</h1>
                 <p className="text-sm text-gray-600">Online Professional Development</p>
             </div>
-             <img src="/logo.png" alt="Manda Network Logo" className="h-16" />
+             <img src="/logo.png" alt="Varban Academy Logo" className="h-16" />
           </div>
 
           <div className="flex-grow flex flex-col justify-center items-center">
