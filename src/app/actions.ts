@@ -215,17 +215,38 @@ export async function sendContactMessage(payload: {
   });
 }
 
-export async function sendGeneralContactMessage(payload: { name: string, email: string, message: string }) {
-    await createContactMessage(payload);
-    const ADMIN_UID = 'YlyqSWedlPfEqI9LlGzjN7zlRtC2'; // Your admin UID
-    await createNotification({
-        userId: ADMIN_UID,
-        title: `New Message from ${payload.name}`,
-        body: {
-            fromName: payload.name,
-            fromEmail: payload.email,
-            message: payload.message,
+export async function sendGeneralContactMessage(payload: { name: string; email: string; message: string }) {
+    const name = typeof payload?.name === 'string' ? payload.name.trim() : '';
+    const email = typeof payload?.email === 'string' ? payload.email.trim().toLowerCase() : '';
+    const message = typeof payload?.message === 'string' ? payload.message.trim() : '';
+    if (name.length < 2 || name.length > 80 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || message.length < 10 || message.length > 3000) {
+        throw new Error('Please provide a valid name, email address, and message.');
+    }
+
+    const bucket = Math.floor(Date.now() / 600000);
+    const rateKey = Buffer.from(email).toString('base64url');
+    const rateRef = adminDb.ref(`contactRateLimits/${rateKey}/${bucket}`);
+    const rate = await rateRef.transaction((current) => {
+        const count = Number(current?.count) || 0;
+        if (count >= 5) return;
+        return { count: count + 1, updatedAt: Date.now() };
+    });
+    if (!rate.committed) throw new Error('Too many messages have been sent. Please wait a few minutes and try again.');
+
+    const contactRef = adminDb.ref('contactMessages').push();
+    const notificationRef = adminDb.ref('notifications').push();
+    if (!contactRef.key || !notificationRef.key) throw new Error('Could not save your message.');
+    const now = new Date().toISOString();
+    const adminUid = 'YlyqSWedlPfEqI9LlGzjN7zlRtC2';
+    await adminDb.ref().update({
+        [`contactMessages/${contactRef.key}`]: { name, email, message, createdAt: now, read: false },
+        [`notifications/${notificationRef.key}`]: {
+            userId: adminUid,
+            title: `New Message from ${name}`,
+            body: { fromName: name, fromEmail: email, message },
+            link: '/admin/messages',
+            createdAt: now,
+            read: false,
         },
-        link: `/admin/messages`,
     });
 }
