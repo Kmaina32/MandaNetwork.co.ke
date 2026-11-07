@@ -7,7 +7,7 @@ describe('Footer', () => {
     render(<Footer />)
 
     // Check for the company name
-    const companyName = screen.getByText(/Varban Academy/i)
+    const companyName = screen.getByText('Varban Academy', { exact: true })
     expect(companyName).toBeInTheDocument()
 
     // Check for the copyright notice
