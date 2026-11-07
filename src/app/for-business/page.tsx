@@ -11,6 +11,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { ForBusinessRedirect } from '@/components/ForBusinessRedirect';
 
+// This page reads organization-specific Firebase Admin data at request time.
+export const dynamic = 'force-dynamic';
+
 const features = [
     {
         icon: <Users className="h-8 w-8 text-primary" />,
