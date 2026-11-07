@@ -87,7 +87,7 @@ export function NotebookSheet({ courseId, courseTitle }: NotesSheetProps) {
         const y = (pdfHeight - finalHeight) / 2;
         
         pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
-        pdf.save(`MandaNetwork_Notes_${courseTitle.replace(/\s+/g, '_')}.pdf`);
+        pdf.save(`VarbanAcademy_Notes_${courseTitle.replace(/\s+/g, '_')}.pdf`);
         setIsDownloading(false);
     };
 
@@ -200,7 +200,7 @@ export function NotebookSheet({ courseId, courseTitle }: NotesSheetProps) {
                     <div className="border-b-2 border-black pb-4 mb-4 flex justify-between items-center">
                         <div className="flex items-center gap-2">
                             <GitBranch className="h-8 w-8 text-primary" />
-                            <span className="font-bold text-xl font-headline">Manda Network</span>
+                            <span className="font-bold text-xl font-headline">Varban Academy</span>
                         </div>
                         <div className="text-right text-xs">
                             <p className="font-semibold">{user?.displayName}</p>
@@ -213,7 +213,7 @@ export function NotebookSheet({ courseId, courseTitle }: NotesSheetProps) {
                         <pre className="whitespace-pre-wrap font-body text-sm">{notes || 'No notes taken for this session.'}</pre>
                     </div>
                         <p className="text-center text-xs text-gray-400 mt-6">
-                        &copy; {new Date().getFullYear()} Manda Network. All rights reserved.
+                        &copy; {new Date().getFullYear()} Varban Academy. All rights reserved.
                     </p>
                 </div>
             </div>
