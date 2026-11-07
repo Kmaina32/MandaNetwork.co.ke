@@ -55,7 +55,7 @@ export function AppSidebar() {
 
     const unreadCalendarEvents = useMemo(() => {
         if (loadingEvents || !user) return [];
-        const userCreationTime = new Date(user.metadata.creationTime || 0);
+        const userCreationTime = new Date(user.metadata?.creationTime || 0);
         return calendarEvents.filter(event => 
             !readEventIds.has(event.id) && new Date(event.date) > userCreationTime
         );
