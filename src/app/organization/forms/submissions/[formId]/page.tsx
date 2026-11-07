@@ -52,7 +52,7 @@ export default function OrgFormSubmissionsPage() {
                 const submissionsWithUsers = await Promise.all(
                     submissionsData.map(async (sub) => {
                         const user = await getUserById(sub.userId);
-                        return { ...sub, user };
+                        return { ...sub, user: user || undefined };
                     })
                 );
 
