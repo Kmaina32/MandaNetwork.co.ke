@@ -76,7 +76,7 @@ function NotificationsPopover() {
         const generateNotifications = async () => {
             setLoading(true);
             let combinedNotifications: Notification[] = [];
-            const userCreationTime = user.metadata.creationTime ? new Date(user.metadata.creationTime) : new Date(0);
+            const userCreationTime = user.metadata?.creationTime ? new Date(user.metadata.creationTime) : new Date(0);
             const userProfile = await getUserById(user.uid);
             const userCohort = userProfile?.cohort;
 
