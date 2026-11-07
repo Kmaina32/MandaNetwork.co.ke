@@ -19,7 +19,7 @@ import type { GenerateHackathonIdeasInput, GenerateHackathonIdeasOutput } from '
 import type { StudentHelpInput, StudentHelpOutput } from '@/ai/flows/student-help';
 import type { SpeechToTextInput, SpeechToTextOutput, TextToSpeechInput, TextToSpeechOutput } from '@/ai/flows/text-to-speech';
 import type { GetPortfolioFeedbackInput, GetPortfolioFeedbackOutput } from '@/ai/flows/portfolio-advisor';
-import { createNotification, createOrUpdateConversation, saveMessage, createContactMessage } from '@/lib/firebase-service';
+
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { checkHackathonParticipantAchievement } from '@/lib/achievements';
 
@@ -196,14 +196,6 @@ export async function sendContactMessage(payload: {
       phone,
     }
   });
-}
-
-export async function sendChatMessage(conversationId: string, senderId: string, text: string) {
-    await saveMessage(conversationId, {
-        senderId,
-        text,
-        timestamp: new Date().toISOString(),
-    });
 }
 
 export async function sendGeneralContactMessage(payload: { name: string, email: string, message: string }) {
