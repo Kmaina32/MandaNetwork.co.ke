@@ -8,7 +8,7 @@ import { getRemoteConfig, fetchAndActivate, getString } from 'firebase/remote-co
 import { app } from './firebase';
 import { slugify } from './utils';
 
-export type { RegisteredUser, HeroData, PermissionRequest, UserCourse, Program, Hackathon, TutorSettings, Course, Bootcamp, BlogPost } from './types';
+export type { Assignment, Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, TeamMember, ContactMessage, Form, FormSubmission, Referral, Bootcamp, BlogPost, HeroData, TutorSettings } from './types';
 
 
 
