@@ -14,7 +14,24 @@ const config: Config = {
   // Add more setup options before each test is run
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@/(.*)
+  transformIgnorePatterns: [
+    '/node_modules/(?!lucide-react)/',
+  ],
+}
+ 
+// createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
+export default createJestConfig(config)
+: '<rootDir>/src/$1',
+    '^lucide-react
+  transformIgnorePatterns: [
+    '/node_modules/(?!lucide-react)/',
+  ],
+}
+ 
+// createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
+export default createJestConfig(config)
+: '<rootDir>/node_modules/lucide-react/dist/cjs/lucide-react.js',
   },
   transformIgnorePatterns: [
     '/node_modules/(?!lucide-react)/',
