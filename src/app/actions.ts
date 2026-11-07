@@ -193,26 +193,25 @@ export async function sendContactMessage(payload: {
   const message = payload.message.trim();
   if (message.length < 20 || message.length > 3000) throw new Error('Message must be between 20 and 3,000 characters.');
   const existingRef = adminDb.ref(`conversations/${payload.studentId}`);
-  const existingSnapshot = await existingRef.get();
-  const existing = existingSnapshot.val();
-  if (existing?.organizationId && existing.organizationId !== employer.organizationId) {
-    throw new Error('This learner already has a conversation with another organization.');
-  }
-  const messages = Array.isArray(existing?.messages) ? existing.messages : Object.values(existing?.messages || {});
-  messages.push({ senderId: 'employer', authorUid: decoded.uid, text: message, timestamp: new Date().toISOString() });
-  await existingRef.set({
-    ...(existing || {}),
-    studentId: payload.studentId,
-    studentName: studentSnapshot.val().displayName || 'Learner',
-    employerId: decoded.uid,
-    employerName: employer.displayName || payload.employerName.trim(),
-    employerPhotoUrl: employer.photoURL || '',
-    organizationId: employer.organizationId,
-    organizationName: organizationSnapshot.val().name,
-    employerDetails: { email: payload.email.trim(), phone: payload.phone.trim() },
-    messages,
-    lastMessageAt: new Date().toISOString(),
+  const committed = await existingRef.transaction((existing) => {
+    if (existing?.organizationId && existing.organizationId !== employer.organizationId) return;
+    const messages = Array.isArray(existing?.messages) ? [...existing.messages] : Object.values(existing?.messages || {});
+    messages.push({ senderId: 'employer', authorUid: decoded.uid, text: message, timestamp: new Date().toISOString() });
+    return {
+      ...(existing || {}),
+      studentId: payload.studentId,
+      studentName: studentSnapshot.val().displayName || 'Learner',
+      employerId: decoded.uid,
+      employerName: employer.displayName || payload.employerName.trim(),
+      employerPhotoUrl: employer.photoURL || '',
+      organizationId: employer.organizationId,
+      organizationName: organizationSnapshot.val().name,
+      employerDetails: { email: payload.email.trim(), phone: payload.phone.trim() },
+      messages,
+      lastMessageAt: new Date().toISOString(),
+    };
   });
+  if (!committed.committed) throw new Error('This learner already has a conversation with another organization.');
 }
 
 export async function sendGeneralContactMessage(payload: { name: string; email: string; message: string }) {
