@@ -1,7 +1,7 @@
 
 
 import { z } from 'zod';
-import type { PortfolioProject as Project } from './types';
+import type { PortfolioProject as Project, Portfolio } from './types';
 
 export interface YoutubeLink {
   title: string;
