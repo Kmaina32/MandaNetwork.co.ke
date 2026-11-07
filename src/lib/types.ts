@@ -80,6 +80,17 @@ export interface PortfolioProject {
     technologies: string[];
 }
 
+export interface Assignment {
+    id: string;
+    courseId: string;
+    courseTitle: string;
+    title: string;
+    description: string;
+    dueDate: string;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
 export interface Course {
   id: string;
   title: string;
