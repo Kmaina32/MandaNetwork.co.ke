@@ -1,6 +1,7 @@
 
 
 import { z } from 'zod';
+import type { PortfolioProject as Project } from './types';
 
 export interface YoutubeLink {
   title: string;
@@ -213,15 +214,7 @@ export interface ApiKey {
     userId: string;
 }
 
-export interface PortfolioProject as Project {
-    id: string;
-    title: string;
-    description: string;
-    imageUrl: string;
-    liveUrl?: string;
-    sourceUrl?: string;
-    technologies: string[];
-}
+export type PortfolioProject = Project;
 
 export interface LearningGoal {
     id: string;
