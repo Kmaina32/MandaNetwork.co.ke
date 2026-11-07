@@ -20,7 +20,7 @@ import { Skeleton } from './ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Separator } from './ui/separator';
 import { useEffect, useState, useMemo } from 'react';
-import type { Course, CalendarEvent, Notification as DbNotification } from '@/lib/mock-data';
+import type { Course, CalendarEvent, Notification as DbNotification } from '@/lib/types';
 import { getAllCourses, getAllCalendarEvents, getAllNotifications, getUserById, getLiveSession, saveUser, updateInvitationStatus } from '@/lib/firebase-service';
 import { differenceInDays, isToday, parseISO, formatDistanceToNow } from 'date-fns';
 import { usePathname, useRouter } from 'next/navigation';
@@ -37,14 +37,7 @@ type Notification = {
     href?: string;
     date: string;
     isLive?: boolean;
-    actions?: Array<{
-        title: string;
-        action: 'accept_org_invite';
-        payload: {
-            inviteId: string;
-            organizationId: string;
-        };
-    }>
+    actions?: DbNotification['actions']
 };
 
 function NotificationsPopover() {
@@ -83,14 +76,14 @@ function NotificationsPopover() {
         const generateNotifications = async () => {
             setLoading(true);
             let combinedNotifications: Notification[] = [];
-            const userCreationTime = user.metadata.creationTime ? new Date(user.metadata.creationTime) : new Date(0);
+            const userCreationTime = user.metadata?.creationTime ? new Date(user.metadata.creationTime) : new Date(0);
             const userProfile = await getUserById(user.uid);
             const userCohort = userProfile?.cohort;
 
             // 1. Fetch DB notifications
             try {
                 const dbNotifications = await getAllNotifications();
-                const formattedDbNotifications = dbNotifications
+                const formattedDbNotifications = (Array.isArray(dbNotifications) ? dbNotifications : [])
                     .filter(n => new Date(n.createdAt) > userCreationTime)
                      // Filter based on cohort or if it's a targeted notification for the user
                     .filter(n => !n.cohort || n.cohort === userCohort || n.userId === user.uid)
@@ -115,7 +108,7 @@ function NotificationsPopover() {
                     combinedNotifications.push({
                         id: 'welcome',
                         icon: PartyPopper,
-                        title: 'Welcome to Manda Network!',
+                        title: 'Welcome to Varban Academy!',
                         description: 'We are glad to have you here. Explore our courses.',
                         href: '/',
                         date: userCreationTime.toISOString()
@@ -128,7 +121,7 @@ function NotificationsPopover() {
             // 3. New Course Alerts
             try {
                 const courses = await getAllCourses();
-                const recentCourses = courses.filter(course =>
+                const recentCourses = (Array.isArray(courses) ? courses : []).filter(course =>
                     course.createdAt && new Date(course.createdAt) > userCreationTime
                 );
                 recentCourses.forEach(course => {
@@ -148,7 +141,7 @@ function NotificationsPopover() {
             // 4. Upcoming Events
             try {
                 const events = await getAllCalendarEvents();
-                const upcomingEvents = events.filter(event => new Date(event.date) > userCreationTime);
+                const upcomingEvents = (Array.isArray(events) ? events : []).filter(event => new Date(event.date) > userCreationTime);
                 upcomingEvents.forEach(event => {
                      combinedNotifications.push({
                         id: `event-${event.id}`,
@@ -230,22 +223,39 @@ function NotificationsPopover() {
                     <p className="text-xs text-muted-foreground/80 mt-1">{formatDistanceToNow(new Date(notification.date), { addSuffix: true })}</p>
                     {hasAction && (
                         <div className="flex gap-2 mt-2">
-                            {notification.actions?.map((action, index) => (
-                                <Button 
-                                    key={index} 
-                                    size="sm" 
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        if (action.action === 'accept_org_invite') {
-                                            handleAcceptInvitation(action.payload);
-                                        }
-                                    }}
-                                    disabled={isAccepting === action.payload.inviteId}
-                                >
-                                    {isAccepting === action.payload.inviteId ? <Loader2 className="h-4 w-4 animate-spin"/> : action.title}
-                                </Button>
-                            ))}
+                            {notification.actions?.map((action, index) => {
+                                if (action.action === 'accept_org_invite') {
+                                    const inviteId = action.payload.inviteId;
+                                    const organizationId = action.payload.organizationId;
+                                    if (!inviteId || !organizationId) return null;
+                                    return (
+                                        <Button
+                                            key={index}
+                                            size="sm"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                handleAcceptInvitation({ inviteId, organizationId });
+                                            }}
+                                            disabled={isAccepting === inviteId}
+                                        >
+                                            {isAccepting === inviteId ? <Loader2 className="h-4 w-4 animate-spin"/> : action.title}
+                                        </Button>
+                                    );
+                                }
+                                if (action.action === 'open_form_dialog' && action.payload.formId) {
+                                    return (
+                                        <Button key={index} size="sm" onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            router.push(`/forms/${action.payload.formId}`);
+                                        }}>
+                                            {action.title}
+                                        </Button>
+                                    );
+                                }
+                                return null;
+                            })}
                         </div>
                     )}
                 </div>
@@ -384,7 +394,7 @@ export function Header({ children }: { children?: React.ReactNode }) {
              <div className='block md:hidden'>
                  <Link href="/" className="flex items-center gap-2 font-bold text-lg font-headline">
                     <GitBranch className="h-6 w-6 text-primary" />
-                    <span>Manda Network</span>
+                    <span>Varban Academy</span>
                 </Link>
             </div>
         </div>

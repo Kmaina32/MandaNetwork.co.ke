@@ -1,33 +1,38 @@
+import { render, screen } from '@testing-library/react';
+import AboutPage from './page';
 
-import { render, screen } from '@testing-library/react'
-import AboutPage from './page'
-
-// Mock the Header and Footer components to isolate the page content for testing
-jest.mock('@/components/shared/Header', () => ({
+jest.mock('@/components/Header', () => ({
   Header: () => <header>Mocked Header</header>,
-}))
+}));
 
-jest.mock('@/components/shared/Footer', () => ({
+jest.mock('@/components/Sidebar', () => ({
+  AppSidebar: () => null,
+}));
+
+jest.mock('@/components/Footer', () => ({
   Footer: () => <footer>Mocked Footer</footer>,
-}))
+}));
+
+jest.mock('@/lib/firebase-service', () => ({
+  getTeamMembers: jest.fn().mockResolvedValue([]),
+}));
 
 describe('AboutPage', () => {
-  it('renders the main heading', () => {
-    render(<AboutPage />)
-    const heading = screen.getByRole('heading', { name: /About Manda Network/i })
-    expect(heading).toBeInTheDocument()
-  })
+  it('renders the Varban Academy heading', async () => {
+    render(<AboutPage />);
+    expect(await screen.findByText('About Varban Academy', { exact: true })).toBeInTheDocument();
+  });
 
-  it('renders the mission and courses sections', () => {
-    render(<AboutPage />)
-    expect(screen.getByText('Our Mission')).toBeInTheDocument()
-    expect(screen.getByText('Our Courses')).toBeInTheDocument()
-  })
+  it('renders the mission and vision sections', async () => {
+    render(<AboutPage />);
+    expect(await screen.findByText('Our Mission')).toBeInTheDocument();
+    expect(await screen.findByText('Our Vision')).toBeInTheDocument();
+  });
 
-  it('renders the "Explore Our Courses" button', () => {
-    render(<AboutPage />)
-    const button = screen.getByRole('link', { name: /Explore Our Courses/i })
-    expect(button).toBeInTheDocument()
-    expect(button).toHaveAttribute('href', '/')
-  })
-})
+  it('renders the Explore Our Courses link', async () => {
+    render(<AboutPage />);
+    const button = await screen.findByRole('link', { name: /Explore Our Courses/i });
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveAttribute('href', '/');
+  });
+});

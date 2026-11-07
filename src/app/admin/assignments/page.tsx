@@ -33,7 +33,7 @@ function SubmissionsList() {
         const submissionsWithCourses = await Promise.all(
           fetchedSubmissions.map(async (sub) => {
             const course = await getCourseById(sub.courseId);
-            return { ...sub, course };
+            return { ...sub, course: course || undefined };
           })
         );
         

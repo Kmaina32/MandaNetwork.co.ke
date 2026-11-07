@@ -7,7 +7,8 @@ import { Footer } from "@/components/shared/Footer";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getPermissionRequests, updatePermissionRequestStatus, deleteCourse, deleteProgram, deleteBundle, PermissionRequest, createBootcamp } from '@/lib/firebase-service';
+import { getPermissionRequests, updatePermissionRequestStatus, deleteCourse, deleteProgram, deleteBundle, deleteBootcamp, createBootcamp } from '@/lib/firebase-service';
+import type { PermissionRequest } from '@/lib/types';
 import { ArrowLeft, Loader2, CheckCircle, XCircle, ShieldCheck, Clock, Check, Ban } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -61,6 +62,8 @@ export default function AdminApprovalsPage() {
         } else if (request.action === 'delete_bundle') {
             await deleteBundle(request.itemId);
             actionCompleted = true;
+        } else if (request.action === 'delete_bootcamp') {
+            await deleteBootcamp(request.itemId);
         } else if (request.action === 'create_bootcamp') {
             await createBootcamp(request.itemData);
             actionCompleted = true;

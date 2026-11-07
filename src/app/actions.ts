@@ -4,7 +4,7 @@
 // between server and client code. All functions exported from a 'use server' file must be async.
 
 import type { LearningPathInput, LearningPathOutput } from '@/ai/flows/career-coach';
-import type { ContentStrategyOutput, CardPaymentInput, PayPalPaymentInput, ApiKey, ProjectSubmission, Conversation } from '@/lib/types';
+import type { ContentStrategyOutput, CardPaymentInput, PayPalPaymentInput, ApiKey } from '@/lib/types';
 import type { CourseTutorInput, CourseTutorOutput } from '@/ai/flows/course-tutor';
 import type { GenerateApiKeyInput } from '@/ai/flows/generate-api-key';
 import type { GenerateCourseContentInput, GenerateCourseContentOutput } from '@/ai/flows/generate-course-content';
@@ -19,7 +19,9 @@ import type { GenerateHackathonIdeasInput, GenerateHackathonIdeasOutput } from '
 import type { StudentHelpInput, StudentHelpOutput } from '@/ai/flows/student-help';
 import type { SpeechToTextInput, SpeechToTextOutput, TextToSpeechInput, TextToSpeechOutput } from '@/ai/flows/text-to-speech';
 import type { GetPortfolioFeedbackInput, GetPortfolioFeedbackOutput } from '@/ai/flows/portfolio-advisor';
-import { createNotification, createProjectSubmission as saveProjectSubmission, createOrUpdateConversation, saveMessage, awardLeaderboardPoints, createContactMessage } from '@/lib/firebase-service';
+
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { headers } from 'next/headers';
 import { checkHackathonParticipantAchievement } from '@/lib/achievements';
 
 // Each function dynamically imports its corresponding flow, ensuring that the AI logic
@@ -60,13 +62,14 @@ export async function generateProject(input: GenerateProjectInput): Promise<Gene
     return generateProject(input);
 }
 
-export async function createProjectSubmission(submissionData: Omit<ProjectSubmission, 'id'>): Promise<string> {
-    return saveProjectSubmission(submissionData);
-}
-
 export async function gradeShortAnswerExam(input: GradeShortAnswerExamInput): Promise<GradeShortAnswerExamOutput> {
   const { gradeShortAnswerExam } = await import('@/ai/flows/grade-short-answer-exam');
   return gradeShortAnswerExam(input);
+}
+
+export async function getUserApiKeys(idToken: string) {
+  const { listUserApiKeys } = await import('@/ai/flows/generate-api-key');
+  return listUserApiKeys(idToken);
 }
 
 export async function processMpesaPayment(input: MpesaPaymentInput): Promise<MpesaPaymentOutput> {
@@ -74,28 +77,25 @@ export async function processMpesaPayment(input: MpesaPaymentInput): Promise<Mpe
   return processMpesaPayment(input);
 }
 
-// Placeholder for card payment processing
-export async function processCardPayment(input: CardPaymentInput): Promise<{ success: boolean; message: string }> {
-    console.log('Simulating card payment for:', input);
-    // In a real app, you would integrate with Stripe here using the secret key.
-    // This is a placeholder that simulates a successful payment.
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
+export async function getMpesaPaymentStatus(idToken: string, checkoutRequestId: string) {
+  const { getMpesaPaymentStatus } = await import('@/ai/flows/mpesa-payment');
+  return getMpesaPaymentStatus(idToken, checkoutRequestId);
+}
+
+// Card checkout is intentionally fail-closed until a verified payment provider is configured.
+export async function processCardPayment(_input: CardPaymentInput): Promise<{ success: boolean; message: string }> {
     return {
-        success: true,
-        message: 'Card payment processed successfully.',
+        success: false,
+        message: 'Card payments are not available yet. Please use M-Pesa while card checkout is being configured.',
     };
 }
 
-// Placeholder for PayPal payment processing
-export async function processPayPalPayment(input: PayPalPaymentInput): Promise<{ success: boolean; message: string; approvalUrl?: string }> {
-    console.log('Simulating PayPal payment for:', input);
-    // In a real app, you would make an API call to PayPal to create a payment order.
-    // This would return an approval URL to redirect the user to.
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+// PayPal checkout is intentionally fail-closed until provider order creation and webhook verification are implemented.
+
+export async function processPayPalPayment(_input: PayPalPaymentInput): Promise<{ success: boolean; message: string; approvalUrl?: string }> {
     return {
-        success: true,
-        message: 'PayPal order created. Redirecting for approval...',
-        approvalUrl: `/payment-success?item=${input.itemName}`, // Simulate a redirect URL
+        success: false,
+        message: 'PayPal payments are not available yet. Please use M-Pesa while PayPal checkout is being configured.',
     };
 }
 
@@ -141,8 +141,37 @@ export async function generateHackathonIdeas(input: GenerateHackathonIdeasInput)
     return result;
 }
 
-export async function awardPoints(userId: string, points: number): Promise<void> {
-    await awardLeaderboardPoints(userId, points);
+export async function awardPoints(idToken: string, targetUserId: string, points: number): Promise<void> {
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(targetUserId)) throw new Error('Invalid learner identifier.');
+    if (!Number.isInteger(points) || points < 1 || points > 1000) {
+        throw new Error('Points must be an integer between 1 and 1,000.');
+    }
+    const decoded = await adminAuth.verifyIdToken(idToken, true);
+    const adminSnapshot = await adminDb.ref(`users/${decoded.uid}`).get();
+    const adminProfile = adminSnapshot.val();
+    if (!adminProfile?.isAdmin) throw new Error('Administrator access is required.');
+    if (adminProfile.adminExpiresAt != null) {
+        const expiresAt = typeof adminProfile.adminExpiresAt === 'number'
+            ? adminProfile.adminExpiresAt
+            : Date.parse(adminProfile.adminExpiresAt);
+        if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+            throw new Error('Administrator access has expired.');
+        }
+    }
+
+    const targetSnapshot = await adminDb.ref(`users/${targetUserId}`).get();
+    if (!targetSnapshot.exists()) throw new Error('The selected learner no longer exists.');
+    const target = targetSnapshot.val();
+    const leaderboardRef = adminDb.ref(`leaderboard/${targetUserId}`);
+    const result = await leaderboardRef.transaction((current) => ({
+        ...(current || {}),
+        userId: targetUserId,
+        userName: target.displayName || 'Learner',
+        userAvatar: target.photoURL || '',
+        score: (Number(current?.score) || 0) + points,
+        hackathonCount: Number(current?.hackathonCount) || 0,
+    }));
+    if (!result.committed) throw new Error('Points could not be saved. Please retry.');
 }
 
 export async function getPortfolioFeedback(input: GetPortfolioFeedbackInput): Promise<GetPortfolioFeedbackOutput> {
@@ -151,50 +180,83 @@ export async function getPortfolioFeedback(input: GetPortfolioFeedbackInput): Pr
 }
 
 export async function sendContactMessage(payload: {
+  idToken: string;
   studentId: string;
-  studentName: string;
-  employerPhotoUrl?: string;
   employerName: string;
-  organizationName: string;
   email: string;
   phone: string;
   message: string;
 }) {
-  const { studentId, studentName, employerPhotoUrl, organizationName, email, phone, message } = payload;
-    
-  await createOrUpdateConversation({
-    studentId,
-    studentName,
-    employerName: payload.employerName,
-    employerPhotoUrl: employerPhotoUrl || '',
-    organizationName,
-    initialMessage: message,
-    employerDetails: {
-      email,
-      phone,
-    }
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(payload.studentId)) throw new Error('Invalid learner identifier.');
+  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(payload.email) || payload.phone.trim().length < 10 || payload.phone.length > 30) throw new Error('Please provide valid contact details.');
+  const decoded = await adminAuth.verifyIdToken(payload.idToken, true);
+  const employerSnapshot = await adminDb.ref(`users/${decoded.uid}`).get();
+  const employer = employerSnapshot.val();
+  if (!employer?.isOrganizationAdmin || !employer.organizationId) {
+    throw new Error('An active organization account is required to contact learners.');
+  }
+  const organizationSnapshot = await adminDb.ref(`organizations/${employer.organizationId}`).get();
+  if (!organizationSnapshot.exists()) throw new Error('Your organization could not be verified.');
+  const studentSnapshot = await adminDb.ref(`users/${payload.studentId}`).get();
+  if (!studentSnapshot.exists()) throw new Error('The selected learner could not be found.');
+  const message = payload.message.trim();
+  if (message.length < 20 || message.length > 3000) throw new Error('Message must be between 20 and 3,000 characters.');
+  const existingRef = adminDb.ref(`conversations/${payload.studentId}`);
+  const committed = await existingRef.transaction((existing) => {
+    if (existing?.organizationId && existing.organizationId !== employer.organizationId) return;
+    const messages = Array.isArray(existing?.messages) ? [...existing.messages] : Object.values(existing?.messages || {});
+    messages.push({ senderId: 'employer', authorUid: decoded.uid, text: message, timestamp: new Date().toISOString() });
+    return {
+      ...(existing || {}),
+      studentId: payload.studentId,
+      studentName: studentSnapshot.val().displayName || 'Learner',
+      employerId: decoded.uid,
+      employerName: employer.displayName || payload.employerName.trim(),
+      employerPhotoUrl: employer.photoURL || '',
+      organizationId: employer.organizationId,
+      organizationName: organizationSnapshot.val().name,
+      employerDetails: { email: payload.email.trim(), phone: payload.phone.trim() },
+      messages,
+      lastMessageAt: new Date().toISOString(),
+    };
   });
+  if (!committed.committed) throw new Error('This learner already has a conversation with another organization.');
 }
 
-export async function sendChatMessage(conversationId: string, senderId: string, text: string) {
-    await saveMessage(conversationId, {
-        senderId,
-        text,
-        timestamp: new Date().toISOString(),
+export async function sendGeneralContactMessage(payload: { name: string; email: string; message: string }) {
+    const name = typeof payload?.name === 'string' ? payload.name.trim() : '';
+    const email = typeof payload?.email === 'string' ? payload.email.trim().toLowerCase() : '';
+    const message = typeof payload?.message === 'string' ? payload.message.trim() : '';
+    if (name.length < 2 || name.length > 80 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || message.length < 10 || message.length > 3000) {
+        throw new Error('Please provide a valid name, email address, and message.');
+    }
+
+    const requestHeaders = await headers();
+    const clientIp = requestHeaders.get('x-forwarded-for')?.split(',')[0]?.trim() || requestHeaders.get('x-real-ip') || email;
+    const bucket = Math.floor(Date.now() / 600000);
+    const rateKey = Buffer.from(clientIp).toString('base64url');
+    const rateRef = adminDb.ref(`contactRateLimits/${rateKey}/${bucket}`);
+    const rate = await rateRef.transaction((current) => {
+        const count = Number(current?.count) || 0;
+        if (count >= 5) return;
+        return { count: count + 1, updatedAt: Date.now() };
     });
-}
+    if (!rate.committed) throw new Error('Too many messages have been sent. Please wait a few minutes and try again.');
 
-export async function sendGeneralContactMessage(payload: { name: string, email: string, message: string }) {
-    await createContactMessage(payload);
-    const ADMIN_UID = 'YlyqSWedlPfEqI9LlGzjN7zlRtC2'; // Your admin UID
-    await createNotification({
-        userId: ADMIN_UID,
-        title: `New Message from ${payload.name}`,
-        body: {
-            fromName: payload.name,
-            fromEmail: payload.email,
-            message: payload.message,
+    const contactRef = adminDb.ref('contactMessages').push();
+    const notificationRef = adminDb.ref('notifications').push();
+    if (!contactRef.key || !notificationRef.key) throw new Error('Could not save your message.');
+    const now = new Date().toISOString();
+    const adminUid = 'YlyqSWedlPfEqI9LlGzjN7zlRtC2';
+    await adminDb.ref().update({
+        [`contactMessages/${contactRef.key}`]: { name, email, message, createdAt: now, read: false },
+        [`notifications/${notificationRef.key}`]: {
+            userId: adminUid,
+            title: `New Message from ${name}`,
+            body: { fromName: name, fromEmail: email, message },
+            link: '/admin/messages',
+            createdAt: now,
+            read: false,
         },
-        link: `/admin/messages`,
     });
 }

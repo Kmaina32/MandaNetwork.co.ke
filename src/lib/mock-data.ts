@@ -1,6 +1,7 @@
 
 
 import { z } from 'zod';
+import type { PortfolioProject as Project, Portfolio } from './types';
 
 export interface YoutubeLink {
   title: string;
@@ -207,20 +208,13 @@ export type ContentStrategyOutput = z.infer<typeof ContentStrategyOutputSchema>;
 export interface ApiKey {
     id: string;
     name: string;
-    key: string;
+    key?: string; // Returned only once at creation; never persisted in plaintext.
+    keyPreview?: string;
     createdAt: string; // ISO String
     userId: string;
 }
 
-export interface PortfolioProject as Project {
-    id: string;
-    title: string;
-    description: string;
-    imageUrl: string;
-    liveUrl?: string;
-    sourceUrl?: string;
-    technologies: string[];
-}
+export type PortfolioProject = Project;
 
 export interface LearningGoal {
     id: string;

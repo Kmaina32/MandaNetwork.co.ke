@@ -24,7 +24,7 @@ import { getAllCalendarEvents } from '@/lib/firebase-service';
 import Image from 'next/image';
 
 export function AppSidebar() {
-    const pathname = usePathname();
+    const pathname = usePathname() || '/';
     const { user, isAdmin, isOrganizationAdmin, organization } = useAuth();
     const { setOpenMobile } = useSidebar();
     const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
@@ -37,7 +37,7 @@ export function AppSidebar() {
                 try {
                     setLoadingEvents(true);
                     const events = await getAllCalendarEvents();
-                    setCalendarEvents(events);
+                    setCalendarEvents(Array.isArray(events) ? events : []);
                 } catch (error) {
                     console.error("Failed to fetch calendar events for sidebar", error);
                 } finally {
@@ -55,7 +55,7 @@ export function AppSidebar() {
 
     const unreadCalendarEvents = useMemo(() => {
         if (loadingEvents || !user) return [];
-        const userCreationTime = new Date(user.metadata.creationTime || 0);
+        const userCreationTime = new Date(user.metadata?.creationTime || 0);
         return calendarEvents.filter(event => 
             !readEventIds.has(event.id) && new Date(event.date) > userCreationTime
         );
@@ -80,7 +80,7 @@ export function AppSidebar() {
         <SidebarHeader className="mb-4">
              <Link href="/" className="flex items-center gap-2">
                 <GitBranch className="h-6 w-6 text-yellow-500" />
-                <span className="font-bold text-lg font-headline group-data-[collapsible=icon]:hidden">Manda Network</span>
+                <span className="font-bold text-lg font-headline group-data-[collapsible=icon]:hidden">Varban Academy</span>
             </Link>
         </SidebarHeader>
         <SidebarContent>
@@ -217,7 +217,7 @@ export function AppSidebar() {
                 ) : (
                     <>
                          <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive('/')} tooltip="Courses" onClick={onLinkClick}>
+                            <SidebarMenuButton asChild isActive={isActive('/')} tooltip="Courses" onClick={() => onLinkClick()}>
                                 <Link href="/">
                                     <Home />
                                     <span>Courses</span>
@@ -225,7 +225,7 @@ export function AppSidebar() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                          <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive('/programs')} tooltip="Certificate Programs" onClick={onLinkClick}>
+                            <SidebarMenuButton asChild isActive={isActive('/programs')} tooltip="Certificate Programs" onClick={() => onLinkClick()}>
                                 <Link href="/programs">
                                     <Library />
                                     <span>Programs</span>
@@ -233,7 +233,7 @@ export function AppSidebar() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive('/bootcamps')} tooltip="Bootcamps" onClick={onLinkClick}>
+                            <SidebarMenuButton asChild isActive={isActive('/bootcamps')} tooltip="Bootcamps" onClick={() => onLinkClick()}>
                                 <Link href="/bootcamps">
                                     <Rocket />
                                     <span>Bootcamps</span>
@@ -249,7 +249,7 @@ export function AppSidebar() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive('/portfolios')} tooltip="Student Portfolios" onClick={onLinkClick}>
+                            <SidebarMenuButton asChild isActive={isActive('/portfolios')} tooltip="Student Portfolios" onClick={() => onLinkClick()}>
                                 <Link href="/portfolios">
                                     <PortfoliosIcon />
                                     <span>Student Portfolios</span>

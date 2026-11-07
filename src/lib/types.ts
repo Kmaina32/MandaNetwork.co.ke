@@ -80,6 +80,17 @@ export interface PortfolioProject {
     technologies: string[];
 }
 
+export interface Assignment {
+    id: string;
+    courseId: string;
+    courseTitle: string;
+    title: string;
+    description: string;
+    dueDate: string;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
 export interface Course {
   id: string;
   title: string;
@@ -149,6 +160,13 @@ export const user = {
         { courseId: 'digital-marketing-101', progress: 50, completed: false, certificateAvailable: false, completedLessons: [], enrollmentDate: '2024-01-01T12:00:00.000Z' },
         { courseId: 'graphic-design-canva', progress: 100, completed: true, certificateAvailable: true, completedLessons: [], enrollmentDate: '2024-0-01T12:00:00.000Z' }
     ]
+}
+
+export interface TutorSettings {
+    voice: string;
+    speed: number;
+    prompts?: string;
+    avatarUrl?: string;
 }
 
 export interface UserCourse {
@@ -241,7 +259,8 @@ export type ContentStrategyOutput = z.infer<typeof ContentStrategyOutputSchema>;
 export interface ApiKey {
     id: string;
     name: string;
-    key: string;
+    key?: string; // Returned only once at creation; never persisted in plaintext.
+    keyPreview?: string;
     createdAt: string; // ISO String
     userId: string;
 }
@@ -324,13 +343,41 @@ export interface Organization {
     name: string;
     ownerId: string;
     createdAt: string; // ISO String
-    subscriptionTier: 'trial' | 'basic' | 'pro';
+    subscriptionTier: 'trial' | 'free' | 'basic' | 'pro';
     subscriptionExpiresAt: string | null;
     memberLimit: number;
     logoUrl?: string;
     welcomeMessage?: string;
 }
 
+
+export interface HeroData {
+    title: string;
+    subtitle: string;
+    imageUrl: string;
+    loginImageUrl: string;
+    signupImageUrl: string;
+    slideshowSpeed: number;
+    imageBrightness: number;
+    recaptchaEnabled: boolean;
+    onboardingEnabled: boolean;
+    theme?: string;
+    animationsEnabled?: boolean;
+    orgHeroTitle?: string;
+    orgHeroSubtitle?: string;
+    orgHeroImageUrl?: string;
+    orgLoginImageUrl?: string;
+    orgSignupImageUrl?: string;
+    programsImageUrl?: string;
+    bootcampsImageUrl?: string;
+    hackathonsImageUrl?: string;
+    portfoliosImageUrl?: string;
+    adsEnabled?: boolean;
+    adInterval?: number;
+    activityTrackingEnabled?: boolean;
+    aiProvider?: 'gemini' | 'openai' | 'anthropic';
+    customModelId?: string;
+}
 
 export interface RegisteredUser {
     uid: string;
@@ -353,6 +400,7 @@ export interface RegisteredUser {
     achievements?: Record<string, Achievement>;
     photoURL?: string;
     affiliateId?: string;
+    referredBy?: string;
     affiliateStats?: {
         clicks: number;
         referrals: number;
@@ -364,7 +412,7 @@ export interface PermissionRequest {
     id: string;
     requesterId: string;
     requesterName: string;
-    action: 'delete_course' | 'delete_program' | 'delete_bundle' | 'create_bootcamp';
+    action: 'delete_course' | 'delete_program' | 'delete_bundle' | 'create_bootcamp' | 'delete_bootcamp';
     itemId: string;
     itemName: string;
     itemData?: any;
@@ -492,6 +540,7 @@ export interface Form {
   title: string;
   description?: string;
   organizationId?: string; // If it's for a specific org
+  slug?: string;
   questions: FormQuestion[];
 }
 
@@ -499,7 +548,7 @@ export interface FormQuestion {
   id: string;
   text: string;
   type: 'short-text' | 'long-text' | 'multiple-choice' | 'rating';
-  options?: string[]; // For multiple-choice
+  options?: { id: string; value: string }[]; // For multiple-choice
 }
 
 export interface FormSubmission {

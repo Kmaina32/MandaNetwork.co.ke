@@ -53,7 +53,7 @@ export function FormDialog({ formId, isOpen, onClose }: FormDialogProps) {
   const [submissionComplete, setSubmissionComplete] = useState(false);
 
   const formSchema = buildSchema(formDef);
-  type FormValues = z.infer<typeof formSchema>;
+  type FormValues = Record<string, any>;
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -117,7 +117,7 @@ export function FormDialog({ formId, isOpen, onClose }: FormDialogProps) {
                 <FormField
                   key={q.id}
                   control={form.control}
-                  name={q.id}
+                  name={q.id as any}
                   render={({ field }) => (
                     <FormItem className="p-4 border rounded-md">
                       <FormLabel className="font-semibold">{index + 1}. {q.text}</FormLabel>
@@ -129,8 +129,8 @@ export function FormDialog({ formId, isOpen, onClose }: FormDialogProps) {
                             <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="space-y-1">
                               {q.options?.map((option, i) => (
                                 <FormItem key={i} className="flex items-center space-x-3 space-y-0">
-                                  <FormControl><RadioGroupItem value={option} /></FormControl>
-                                  <FormLabel className="font-normal">{option}</FormLabel>
+                                  <FormControl><RadioGroupItem value={option.value} /></FormControl>
+                                  <FormLabel className="font-normal">{option.value}</FormLabel>
                                 </FormItem>
                               ))}
                             </RadioGroup>

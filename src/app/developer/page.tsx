@@ -16,8 +16,8 @@ import { Header } from '@/components/Header';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useAuth } from '@/hooks/use-auth';
 import type { ApiKey } from '@/lib/types';
-import { getUserApiKeys, deleteApiKey } from '@/lib/firebase-service';
-import { generateApiKey } from '@/app/actions';
+import { deleteApiKey } from '@/lib/firebase-service';
+import { generateApiKey, getUserApiKeys } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import {
@@ -43,16 +43,19 @@ import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 const generateKeySchema = z.object({
     keyName: z.string().min(3, { message: "Key name must be at least 3 characters."}),
-    terms: z.literal(true, {
-        errorMap: () => ({ message: "You must accept the terms and conditions."}),
-    }),
+    terms: z.boolean().refine(value => value === true, { message: "You must accept the terms and conditions." }),
 });
 
 function ApiKeyRow({ apiKey, onRevoke }: { apiKey: ApiKey; onRevoke: (keyId: string) => void; }) {
   const [isVisible, setIsVisible] = useState(false);
   const { toast } = useToast();
+  const hasOneTimeKey = Boolean(apiKey.key);
 
   const copyToClipboard = () => {
+    if (!apiKey.key) {
+      toast({ title: 'Key is not stored', description: 'For security, keys are only shown once when created. Revoke this key and generate a replacement if you lost it.', variant: 'destructive' });
+      return;
+    }
     navigator.clipboard.writeText(apiKey.key);
     toast({ title: 'Copied!', description: 'API key copied to clipboard.' });
   };
@@ -64,20 +67,21 @@ function ApiKeyRow({ apiKey, onRevoke }: { apiKey: ApiKey; onRevoke: (keyId: str
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Key className="h-4 w-4" />
                 <span className="font-mono">
-                    {isVisible ? apiKey.key : `sk_live_••••••••${apiKey.key.slice(-4)}`}
+                    {isVisible && apiKey.key ? apiKey.key : `sk_live_••••••••${apiKey.keyPreview || '••••'}`}
                 </span>
             </div>
+            {!hasOneTimeKey && <p className="text-xs text-muted-foreground mt-1">Shown only once at creation. Revoke and regenerate if you no longer have the key.</p>}
             <p className="text-xs text-muted-foreground mt-1">
                 Created on {format(new Date(apiKey.createdAt), 'PPP p')}
             </p>
         </div>
         <div className="flex items-center gap-2 self-end md:self-center">
-            <Button variant="ghost" size="icon" onClick={() => setIsVisible(!isVisible)} title={isVisible ? 'Hide key' : 'Show key'}>
+            {hasOneTimeKey && <Button variant="ghost" size="icon" onClick={() => setIsVisible(!isVisible)} title={isVisible ? 'Hide key' : 'Show key'}>
                 {isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </Button>
-            <Button variant="ghost" size="icon" onClick={copyToClipboard} title="Copy key">
+            </Button>}
+            {hasOneTimeKey && <Button variant="ghost" size="icon" onClick={copyToClipboard} title="Copy key">
                 <Copy className="h-4 w-4" />
-            </Button>
+            </Button>}
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" title="Revoke key">
@@ -212,7 +216,7 @@ export default function DeveloperPage() {
   const fetchKeys = async () => {
     if (!user) return;
     setLoadingKeys(true);
-    const keys = await getUserApiKeys(user.uid);
+    const keys = await getUserApiKeys(await user.getIdToken());
     setApiKeys(keys.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     setLoadingKeys(false);
   };
@@ -231,7 +235,7 @@ export default function DeveloperPage() {
     if (!user) return;
     setNewlyGeneratedKey(null);
     try {
-        const result = await generateApiKey({ userId: user.uid, keyName });
+        const result = await generateApiKey({ idToken: await user.getIdToken(), keyName });
         setNewlyGeneratedKey(result);
         toast({ title: 'Success!', description: `API key "${result.name}" has been generated.` });
         await fetchKeys(); // Refresh the list
@@ -282,7 +286,7 @@ export default function DeveloperPage() {
                                     <Key className="h-6 w-6"/>
                                     API Keys
                                 </CardTitle>
-                                <CardDescription>Manage your secret keys for accessing the Manda Network API.</CardDescription>
+                                <CardDescription>Manage your secret keys for accessing the Varban Academy API.</CardDescription>
                              </div>
                              <GenerateKeyDialog onGenerate={handleGenerateKey} />
                         </div>
@@ -330,7 +334,7 @@ export default function DeveloperPage() {
                              <div className="space-y-2">
                                 <h4 className="font-medium flex items-center gap-2"><Badge>GET</Badge> /api/courses</h4>
                                 <p className="text-sm text-muted-foreground">
-                                    Retrieves a list of all public courses available on the Manda Network platform.
+                                    Retrieves a list of all public courses available on the Varban Academy platform.
                                 </p>
 
                                 <h5 className="font-semibold text-sm pt-2">Example Request:</h5>

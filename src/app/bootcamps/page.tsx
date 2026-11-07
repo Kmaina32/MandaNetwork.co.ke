@@ -101,7 +101,7 @@ export default function BootcampsPage() {
                         <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit mb-4">
                             <Rocket className="h-10 w-10 text-primary" />
                         </div>
-                        <h1 className="text-4xl md:text-5xl font-bold font-headline">Manda Network Bootcamps</h1>
+                        <h1 className="text-4xl md:text-5xl font-bold font-headline">Varban Academy Bootcamps</h1>
                         <p className="mt-4 text-lg max-w-3xl mx-auto">
                             Accelerate your career with our intensive, hands-on bootcamps designed to get you job-ready.
                         </p>

@@ -45,7 +45,7 @@ export function CohortManager({ user, isOpen, onClose, onSuccess }: CohortManage
   const onSubmit = async (values: z.infer<typeof cohortFormSchema>) => {
     setIsLoading(true);
     try {
-      await saveUser({ ...user, cohort: values.cohort });
+      await saveUser(user.uid, { cohort: values.cohort });
       toast({
         title: 'Success!',
         description: `${user.displayName}'s cohort has been updated.`,

@@ -7,7 +7,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { getCourseById, updateCourse } from '@/lib/firebase-service';
-import type { Course, ExamQuestion, Project } from '@/lib/types';
+import type { Course, ExamQuestion, PortfolioProject as Project } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/shared/Footer';
 import { Button } from '@/components/ui/button';
@@ -95,9 +95,9 @@ export default function EditAssignmentPage() {
   const onSubmit = async (data: z.infer<typeof courseAssignmentSchema>) => {
     setLoading(true);
     try {
-        const dataToSave: Partial<Course> = activeTab === 'exam' 
-            ? { exam: data.exam, project: undefined } 
-            : { project: data.project, exam: [] };
+        const dataToSave = (activeTab === 'exam'
+            ? { exam: data.exam, project: null }
+            : { project: data.project, exam: [] }) as unknown as Partial<Course>;
 
       await updateCourse(course!.id, dataToSave);
       toast({ title: "Success", description: "Assignment has been updated." });
@@ -140,7 +140,30 @@ export default function EditAssignmentPage() {
             courseTitle: course.title,
             courseDescription: course.longDescription,
         });
-        replace(result.exam);
+        const normalizedExam = result.exam.map((rawQuestion, index) => {
+          const question = rawQuestion as any;
+          const maxPoints = Math.max(1, Number(question.maxPoints) || 1);
+          if (question.type === 'short-answer') {
+            return {
+              id: question.id || ('exam-' + (index + 1)),
+              type: 'short-answer' as const,
+              question: question.question,
+              referenceAnswer: question.referenceAnswer || question.question,
+              maxPoints,
+            };
+          }
+          const options = [...(question.options || [])].slice(0, 4);
+          while (options.length < 4) options.push('Option ' + (options.length + 1));
+          return {
+            id: question.id || ('exam-' + (index + 1)),
+            type: 'multiple-choice' as const,
+            question: question.question,
+            options,
+            correctAnswer: Math.min(3, Math.max(0, Number(question.correctAnswer) || 0)),
+            maxPoints,
+          };
+        });
+        replace(normalizedExam as any);
         form.setValue('project', undefined);
         setActiveTab('exam');
         toast({ title: 'Exam Generated!', description: 'Review the new questions below and save.' });

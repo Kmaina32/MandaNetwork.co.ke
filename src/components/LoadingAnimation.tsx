@@ -64,7 +64,7 @@ export function LoadingAnimation({ showText = true, className }: LoadingAnimatio
 
   const config = themeConfigs[activeTheme];
   const BrandIcon = config.icon;
-  const brandName = "Manda Network";
+  const brandName = "Varban Academy";
 
   const renderThemedName = () => {
     if (activeTheme === 'jamhuri' && config.colors.name.length > 0) {

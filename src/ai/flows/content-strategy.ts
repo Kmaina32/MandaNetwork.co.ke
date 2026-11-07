@@ -9,6 +9,7 @@ import { generateCourseContent } from './generate-course-content';
 import { createCourse, createProgram, createBundle } from '@/lib/firebase-service';
 import { z } from 'zod';
 import { ContentStrategyOutputSchema } from '@/lib/types';
+import type { ContentStrategyOutput } from '@/lib/types';
 import { googleAI } from '@genkit-ai/googleai';
 
 // Schema for generating course ideas
@@ -60,7 +61,7 @@ const runContentStrategyFlow = ai.defineFlow(
     // Step 1: Generate 10 course ideas
     console.log('Generating course ideas...');
     const ideasResponse = await ai.generate({
-      prompt: `You are a Content Strategist for Manda Network, an online learning platform for a Kenyan audience. Your task is to brainstorm 10 highly relevant and marketable course ideas that would appeal to students looking to upskill. Provide a title, category, instructor, price, short description, and duration for each.`,
+      prompt: `You are a Content Strategist for Varban Academy, an online learning platform for a Kenyan audience. Your task is to brainstorm 10 highly relevant and marketable course ideas that would appeal to students looking to upskill. Provide a title, category, instructor, price, short description, and duration for each.`,
       output: {
         schema: CourseIdeasSchema,
       },
@@ -73,7 +74,7 @@ const runContentStrategyFlow = ai.defineFlow(
 
     // Step 2: Create draft courses from the ideas
     console.log('Creating draft courses from 10 ideas...');
-    const createdCourses = [];
+    const createdCourses: Array<{ id: string; title: string }> = [];
     for (const idea of courseIdeas) {
       try {
         const courseData = {
@@ -85,7 +86,7 @@ const runContentStrategyFlow = ai.defineFlow(
           exam: []
         };
         const courseId = await createCourse(courseData);
-        createdCourses.push({ id: courseId, ...courseData });
+        createdCourses.push({ id: courseId, title: idea.title });
         console.log(`- Course "${idea.title}" created.`);
       } catch (e) {
           console.error(`Failed to create course "${idea.title}"`, e);

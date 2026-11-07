@@ -1,8 +1,8 @@
-# Manda Network
+# Varban Academy
 
-![Manda Network](https://picsum.photos/seed/mandanetwork/1200/630)
+![Varban Academy](https://picsum.photos/seed/varbanacademy/1200/630)
 
-Manda Network is an AI-powered online learning platform designed to provide high-quality, affordable, and accessible education tailored for the Kenyan market. It leverages generative AI to create course content, assist students, and automate administrative tasks, creating a modern and scalable educational experience.
+Varban Academy is an AI-powered online learning platform designed to provide high-quality, affordable, and accessible education tailored for the Kenyan market. It leverages generative AI to create course content, assist students, and automate administrative tasks, creating a modern and scalable educational experience.
 
 ## ✨ Key Features
 

@@ -28,13 +28,13 @@ import {
   updatePassword,
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { RegisteredUser, saveUser, getUserById, createOrganization, getOrganizationByOwnerId, Organization, getOrganizationMembers, logActivity, getReferralsByAffiliate, createReferral } from '@/lib/firebase-service';
+import { saveUser, getUserById, createOrganization, getOrganizationByOwnerId, getOrganizationMembers, logActivity, getReferralsByAffiliate, createReferral } from '@/lib/firebase-service';
+import type { RegisteredUser, Organization } from '@/lib/types';
 import { ref, onValue, onDisconnect, set, serverTimestamp, update, get, increment } from 'firebase/database';
 import { useToast } from './use-toast';
 import { add } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { slugify } from '@/lib/utils';
-import { randomBytes } from 'crypto';
 
 const ADMIN_UID = 'YlyqSWedlPfEqI9LlGzjN7zlRtC2';
 const SUPER_ADMIN_ORG_NAME = "Manda Network";
@@ -113,7 +113,7 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
 
 
   useEffect(() => {
-    if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true') {
+    if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true' && process.env.NODE_ENV !== 'production') {
         console.warn('%cAUTH BYPASS ACTIVE', 'color: red; font-weight: bold; font-size: 14px;');
         const { user, dbUser, organization } = createBypassUser();
         setUser(user);
@@ -136,7 +136,7 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
 
     // Retroactively add affiliateId if it's missing for an existing user
     if (userProfile && !userProfile.affiliateId) {
-        const newAffiliateId = randomBytes(4).toString('hex');
+        const newAffiliateId = Array.from(crypto.getRandomValues(new Uint8Array(4)), byte => byte.toString(16).padStart(2, '0')).join('');
         await saveUser(user.uid, { affiliateId: newAffiliateId });
         userProfile.affiliateId = newAffiliateId; // Update in-memory profile
     }
@@ -177,7 +177,7 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
   }, []);
 
   useEffect(() => {
-    if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true') return;
+    if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true' && process.env.NODE_ENV !== 'production') return;
 
     if (user) {
       fetchUserData(user);
@@ -325,7 +325,7 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
             lastSeen: serverTimestamp(),
         });
     }
-    if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true') {
+    if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true' && process.env.NODE_ENV !== 'production') {
         console.warn('Cannot log out when auth bypass is active.');
         return Promise.resolve();
     }

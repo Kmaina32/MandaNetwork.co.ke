@@ -1,154 +1,140 @@
-
 'use server';
 
-/**
- * @fileOverview A Genkit flow for handling M-Pesa STK push payments.
- *
- * - processMpesaPayment - A function that initiates an STK push request.
- * - MpesaPaymentInput - The input type for the processMpesaPayment function.
- * - MpesaPaymentOutput - The return type for the processMpesaPayment function.
- */
-
-import { ai } from '@/ai/genkit-instance';
-import { z } from 'genkit';
 import axios from 'axios';
-import { googleAI } from '@genkit-ai/googleai';
+import { z } from 'zod';
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
 
 const MpesaPaymentInputSchema = z.object({
-  userId: z.string().describe("The UID of the user making the payment."),
-  phoneNumber: z.string().describe("The user's 10-digit phone number (e.g., 07xxxxxxxx)."),
-  amount: z.number().describe("The amount to be charged."),
-  courseId: z.string().describe("The ID of the course being purchased."),
+  idToken: z.string().min(20),
+  phoneNumber: z.string().regex(/^(?:0|254)\d{9,11}$/),
+  courseId: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/),
 });
 export type MpesaPaymentInput = z.infer<typeof MpesaPaymentInputSchema>;
 
 const MpesaPaymentOutputSchema = z.object({
-  success: z.boolean().describe("Whether the STK push was initiated successfully."),
-  message: z.string().describe("A message indicating the status of the request."),
-  checkoutRequestId: z.string().optional().describe("The CheckoutRequestID from M-Pesa, used to query the transaction status."),
+  success: z.boolean(),
+  message: z.string(),
+  checkoutRequestId: z.string().optional(),
 });
 export type MpesaPaymentOutput = z.infer<typeof MpesaPaymentOutputSchema>;
 
 function getTimestamp() {
-  const now = new Date();
-  return (
-    now.getFullYear().toString() +
-    ("0" + (now.getMonth() + 1)).slice(-2) +
-    ("0" + now.getDate()).slice(-2) +
-    ("0" + now.getHours()).slice(-2) +
-    ("0" + now.getMinutes()).slice(-2) +
-    ("0" + now.getSeconds()).slice(-2)
-  );
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Africa/Nairobi',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date());
+  const value = (key: string) => parts.find(part => part.type === key)?.value ?? '';
+  return value('year') + value('month') + value('day') + value('hour') + value('minute') + value('second');
 }
 
+function mpesaBaseUrl() {
+  return process.env.MPESA_ENVIRONMENT === 'production'
+    ? 'https://api.safaricom.co.ke'
+    : 'https://sandbox.safaricom.co.ke';
+}
 
 async function getMpesaAccessToken(): Promise<string> {
-    const consumerKey = process.env.MPESA_CONSUMER_KEY;
-    const consumerSecret = process.env.MPESA_CONSUMER_SECRET;
-
-    if (!consumerKey || !consumerSecret) {
-        throw new Error("M-Pesa consumer key or secret is not configured in environment variables.");
-    }
-
-    const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
-    
-    try {
-        const response = await axios.get("https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials", {
-            headers: {
-                'Authorization': `Basic ${auth}`
-            }
-        });
-        return response.data.access_token;
-    } catch (error) {
-        console.error("Failed to get M-Pesa access token:", error);
-        throw new Error("Could not authenticate with M-Pesa.");
-    }
+  const consumerKey = process.env.MPESA_CONSUMER_KEY;
+  const consumerSecret = process.env.MPESA_CONSUMER_SECRET;
+  if (!consumerKey || !consumerSecret) throw new Error('M-Pesa is not configured.');
+  const credentials = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
+  const response = await axios.get(`${mpesaBaseUrl()}/oauth/v1/generate?grant_type=client_credentials`, {
+    headers: { Authorization: `Basic ${credentials}` },
+    timeout: 15000,
+  });
+  if (!response.data?.access_token) throw new Error('M-Pesa authentication failed.');
+  return response.data.access_token;
 }
 
-
-export async function processMpesaPayment(
-  input: MpesaPaymentInput
-): Promise<MpesaPaymentOutput> {
+export async function processMpesaPayment(input: MpesaPaymentInput): Promise<MpesaPaymentOutput> {
   try {
-    return await mpesaPaymentFlow(input);
-  } catch (error) {
-    console.error("Error in processMpesaPayment:", error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during M-Pesa payment processing.';
-    return {
-        success: false,
-        message: errorMessage,
-    }
-  }
-}
+    const parsed = MpesaPaymentInputSchema.parse(input);
+    const decoded = await adminAuth.verifyIdToken(parsed.idToken, true);
+    const userId = decoded.uid;
 
-const mpesaPaymentFlow = ai.defineFlow(
-  {
-    name: 'mpesaPaymentFlow',
-    inputSchema: MpesaPaymentInputSchema,
-    outputSchema: MpesaPaymentOutputSchema,
-  },
-  async ({ userId, phoneNumber, amount, courseId }) => {
-    
+    const courseSnapshot = await adminDb.ref(`courses/${parsed.courseId}`).get();
+    if (!courseSnapshot.exists()) return { success: false, message: 'This course is no longer available.' };
+    const course = courseSnapshot.val();
+    const amount = Number(course.price);
+    if (!Number.isFinite(amount) || amount <= 0 || !Number.isInteger(amount)) {
+      return { success: false, message: 'This course does not have a valid payment amount. Please contact support.' };
+    }
+
     const shortCode = process.env.MPESA_TILL_NUMBER;
     const passkey = process.env.MPESA_PASSKEY;
     const callbackUrl = process.env.MPESA_CALLBACK_URL;
-
     if (!shortCode || !passkey || !callbackUrl) {
-        return {
-            success: false,
-            message: 'M-Pesa Till Number, Passkey, or Callback URL is not configured in environment variables.'
-        }
+      return { success: false, message: 'M-Pesa payments are temporarily unavailable. Please contact support.' };
     }
+    let callback: URL;
+    try { callback = new URL(callbackUrl); } catch { return { success: false, message: 'M-Pesa callback configuration is invalid.' }; }
+    if (callback.protocol !== 'https:') return { success: false, message: 'M-Pesa callback must use HTTPS.' };
+
+    const phone = parsed.phoneNumber.startsWith('254')
+      ? parsed.phoneNumber
+      : `254${parsed.phoneNumber.slice(-9)}`;
+    if (!/^254\d{9}$/.test(phone)) return { success: false, message: 'Enter a valid Kenyan mobile number.' };
 
     const timestamp = getTimestamp();
     const password = Buffer.from(shortCode + passkey + timestamp).toString('base64');
-    
-    // Format phone number to Safaricom's required format (254...)
-    const formattedPhoneNumber = `254${phoneNumber.slice(-9)}`;
+    const accessToken = await getMpesaAccessToken();
+    const response = await axios.post(`${mpesaBaseUrl()}/mpesa/stkpush/v1/processrequest`, {
+      BusinessShortCode: shortCode,
+      Password: password,
+      Timestamp: timestamp,
+      TransactionType: 'CustomerBuyGoodsOnline',
+      Amount: amount,
+      PartyA: phone,
+      PartyB: shortCode,
+      PhoneNumber: phone,
+      CallBackURL: callback.toString(),
+      AccountReference: 'VarbanAcademy',
+      TransactionDesc: `Course payment: ${String(course.title || parsed.courseId).slice(0, 60)}`,
+    }, {
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      timeout: 20000,
+    });
 
-    try {
-        const accessToken = await getMpesaAccessToken();
-
-        const response = await axios.post("https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest", {
-            BusinessShortCode: shortCode,
-            Password: password,
-            Timestamp: timestamp,
-            TransactionType: "CustomerBuyGoodsOnline",
-            Amount: amount,
-            PartyA: formattedPhoneNumber,
-            PartyB: shortCode,
-            PhoneNumber: formattedPhoneNumber,
-            CallBackURL: `${callbackUrl}?courseId=${courseId}&userId=${userId}`,
-            AccountReference: "MandaNetwork",
-            TransactionDesc: `Payment for ${courseId}`
-        }, {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        const { ResponseCode, ResponseDescription, CheckoutRequestID } = response.data;
-        
-        if (ResponseCode === "0") {
-             return {
-                success: true,
-                message: ResponseDescription,
-                checkoutRequestId: CheckoutRequestID
-            };
-        } else {
-             return {
-                success: false,
-                message: ResponseDescription
-            };
-        }
-
-    } catch (error: any) {
-        console.error("M-Pesa STK Push error:", error.response ? error.response.data : error.message);
-         return {
-            success: false,
-            message: "Failed to initiate M-Pesa payment. Please try again."
-        };
+    const checkoutRequestId = response.data?.CheckoutRequestID;
+    if (response.data?.ResponseCode !== '0' || typeof checkoutRequestId !== 'string') {
+      return { success: false, message: response.data?.ResponseDescription || 'M-Pesa could not start the payment. Please try again.' };
     }
+
+    await adminDb.ref(`mpesaTransactions/${checkoutRequestId}`).set({
+      uid: userId,
+      courseId: parsed.courseId,
+      amount,
+      phoneNumber: phone,
+      checkoutRequestId,
+      status: 'pending',
+      createdAt: Date.now(),
+      environment: process.env.MPESA_ENVIRONMENT === 'production' ? 'production' : 'sandbox',
+    });
+
+    return {
+      success: true,
+      message: 'Payment request sent. Complete the M-Pesa prompt; course access is granted only after provider confirmation.',
+      checkoutRequestId,
+    };
+  } catch (error) {
+    console.error('M-Pesa initiation failed:', error instanceof Error ? error.message : 'Unknown error');
+    return {
+      success: false,
+      message: error instanceof Error && error.name === 'FirebaseAuthError'
+        ? 'Your session has expired. Sign in again and retry.'
+        : 'M-Pesa payment could not be initiated. Please try again.',
+    };
   }
-);
+}
+
+export async function getMpesaPaymentStatus(idToken: string, checkoutRequestId: string): Promise<'pending' | 'processing' | 'completed' | 'failed' | 'unknown'> {
+  const decoded = await adminAuth.verifyIdToken(idToken, true);
+  if (!/^[A-Za-z0-9_-]{8,160}$/.test(checkoutRequestId)) throw new Error('Invalid checkout request.');
+  const snapshot = await adminDb.ref(`mpesaTransactions/${checkoutRequestId}`).get();
+  if (!snapshot.exists()) return 'unknown';
+  const transaction = snapshot.val();
+  if (transaction.uid !== decoded.uid) throw new Error('Not authorized to view this payment.');
+  return transaction.status;
+}

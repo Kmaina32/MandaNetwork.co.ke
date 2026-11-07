@@ -81,8 +81,9 @@ export function LessonContent({ lesson }: LessonContentProps) {
                         }
                         return <pre {...props} style={{ whiteSpace: 'pre-wrap' }} />;
                     },
-                    code({node, inline, className, children, ...props}) {
-                         if (inline) {
+                    code({node, className, children, ...props}) {
+                         const isInline = !className && node?.position?.start.line === node?.position?.end.line;
+                         if (isInline) {
                             return <code className="bg-muted px-1.5 py-1 rounded-sm text-sm font-mono" {...props}>{children}</code>;
                         }
                         return null;

@@ -7,12 +7,12 @@ describe('Footer', () => {
     render(<Footer />)
 
     // Check for the company name
-    const companyName = screen.getByText(/Manda Network/i)
+    const companyName = screen.getByText('Varban Academy', { exact: true })
     expect(companyName).toBeInTheDocument()
 
     // Check for the copyright notice
     const currentYear = new Date().getFullYear()
-    const copyrightNotice = screen.getByText(`© ${currentYear} Manda Network. All rights reserved. | ISO 9001 Certified`)
+    const copyrightNotice = screen.getByText(`© ${currentYear} Varban Academy. All rights reserved. | ISO 9001 Certified`)
     expect(copyrightNotice).toBeInTheDocument()
 
     // Check for the navigation links

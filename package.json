@@ -1,6 +1,5 @@
-
 {
-  "name": "nextn",
+  "name": "varban-academy",
   "version": "1.0.1",
   "private": true,
   "type": "module",
@@ -14,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "test": "jest --watch",
     "deploy": "firebase deploy",
-    "blockchain:compile": "cd blockchain && npx hardhat compile"
+    "blockchain:compile": "cd blockchain && npx hardhat compile",
+    "test:ci": "node scripts/run-jest-ci.cjs"
   },
   "dependencies": {
     "@genkit-ai/firebase": "1.18.0",
@@ -63,7 +63,7 @@
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.2",
     "lucide-react": "^0.475.0",
-    "next": "^15.5.2",
+    "next": "15.5.29",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",

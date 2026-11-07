@@ -99,6 +99,7 @@ export default function CreateBootcampPage() {
                 requesterId: user.uid,
                 requesterName: user.displayName || 'Unknown Admin',
                 action: 'create_bootcamp',
+                itemId: 'new',
                 itemData: bootcampPayload,
                 itemName: values.title,
             });

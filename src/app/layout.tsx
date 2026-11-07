@@ -14,21 +14,21 @@ const BASE_URL = 'https://www.mandanetwork.co.ke';
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: {
-    default: 'Manda Network | Empowering Digital Africa',
-    template: `%s | Manda Network`,
+    default: 'Varban Academy | Empowering Digital Africa',
+    template: `%s | Varban Academy`,
   },
-  description: 'Manda Network is Africa’s leading digital learning and innovation platform—building the next generation of tech talent across Kenya, East Africa, and the continent.',
-  keywords: "Manda Network, Africa tech startups, AI learning, online courses, bootcamps, East Africa, Kenya, digital skills, innovation hub",
-  authors: [{ name: "Manda Network" }],
+  description: 'Varban Academy is Africa’s leading digital learning and innovation platform—building the next generation of tech talent across Kenya, East Africa, and the continent.',
+  keywords: "Varban Academy, Africa tech startups, AI learning, online courses, bootcamps, East Africa, Kenya, digital skills, innovation hub",
+  authors: [{ name: "Varban Academy" }],
   robots: "index, follow",
   verification: {
     google: 'qNZsueqgogEIZHV-vcsY-Kv7tkLo82P_-w7BQvJG1jY',
   },
   openGraph: {
-    title: 'Manda Network | Empowering Digital Africa',
-    description: 'Join Africa’s fastest-growing platform for digital learning and innovation. Learn AI, coding, business, and more with Manda Network.',
+    title: 'Varban Academy | Empowering Digital Africa',
+    description: 'Join Africa’s fastest-growing platform for digital learning and innovation. Learn AI, coding, business, and more with Varban Academy.',
     url: BASE_URL,
-    siteName: 'Manda Network',
+    siteName: 'Varban Academy',
     images: [
       {
         url: `${BASE_URL}/assets/og-image.jpg`,
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Manda Network | Empowering Digital Africa',
+    title: 'Varban Academy | Empowering Digital Africa',
     description: 'Build digital skills, launch startups, and innovate with Africa’s top online platform.',
     images: [`${BASE_URL}/assets/og-image.jpg`],
   },
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
 const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  "name": "Manda Network",
+  "name": "Varban Academy",
   "url": "https://www.mandanetwork.co.ke/",
   "logo": "https://www.mandanetwork.co.ke/assets/logo.png",
   "sameAs": [
@@ -74,7 +74,7 @@ const organizationSchema = {
     "name": "George Maina",
     "jobTitle": "CTO"
   },
-  "description": "Manda Network is a pan-African platform that powers digital education, startups, and innovation hubs across Africa. We bridge the talent gap through AI, technology, and entrepreneurship.",
+  "description": "Varban Academy is a pan-African platform that powers digital education, startups, and innovation hubs across Africa. We bridge the talent gap through AI, technology, and entrepreneurship.",
   "address": {
     "@type": "PostalAddress",
     "streetAddress": "Serena Rd",
@@ -86,7 +86,7 @@ const organizationSchema = {
 const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  "name": "Manda Network",
+  "name": "Varban Academy",
   "url": BASE_URL,
   "potentialAction": {
     "@type": "SearchAction",
@@ -106,7 +106,7 @@ export default async function RootLayout({
   const isAiConfigured = !!process.env.GEMINI_API_KEY || !!process.env.OPENAI_API_KEY;
 
   return (
-    <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
+    <html lang="en" style={{ colorScheme: 'light' }}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />

@@ -13,7 +13,7 @@ import { runContentStrategy } from '@/app/actions';
 import type { ContentStrategyOutput, Course, RegisteredUser, UserActivity } from '@/lib/types';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { getAllCourses, getAllUsers, getActivityLogs } from '@/lib/firebase-service';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ComposedChart, Legend } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ComposedChart, Legend, Line } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LoadingAnimation } from '@/components/LoadingAnimation';
 import { format, subDays, parseISO } from 'date-fns';

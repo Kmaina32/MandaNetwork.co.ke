@@ -17,7 +17,7 @@ import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { processMpesaPayment } from '@/app/actions';
+import { processMpesaPayment, getMpesaPaymentStatus } from '@/app/actions';
 
 
 interface MpesaModalProps {
@@ -42,7 +42,7 @@ export function MpesaModal({
   const { toast } = useToast();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [paymentStep, setPaymentStep] = useState<'form' | 'processing' | 'success'>('form');
+  const [paymentStep, setPaymentStep] = useState<'form' | 'processing' | 'submitted' | 'success'>('form');
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,19 +61,26 @@ export function MpesaModal({
     setPaymentStep('processing');
 
     try {
-      const result = await processMpesaPayment({
-        userId: user.uid,
-        phoneNumber,
-        amount: 1, // Using 1 for sandbox environment
-        courseId,
-      });
+      const idToken = await user.getIdToken();
+      const result = await processMpesaPayment({ idToken, phoneNumber, courseId });
 
       if (result.success) {
-        // You could poll a callback or just assume success for demo
+        // Wait for the authenticated status action to observe verified provider settlement
+        if (result.checkoutRequestId) {
+          for (let attempt = 0; attempt < 20; attempt++) {
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            const status = await getMpesaPaymentStatus(idToken, result.checkoutRequestId);
+            if (status === 'completed') {
+              setPaymentStep('success');
+              setIsLoading(false);
+              onPaymentSuccess();
+              return;
+            }
+            if (status === 'failed') throw new Error('M-Pesa reports that this payment was not completed.');
+          }
+        }
         setIsLoading(false);
-        setPaymentStep('success');
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        onPaymentSuccess();
+        setPaymentStep('submitted');
       } else {
         throw new Error(result.message);
       }
@@ -87,12 +94,10 @@ export function MpesaModal({
   };
   
   const handleClose = () => {
-    // only reset if not in success state, otherwise it clears too fast
-    if(paymentStep !== 'success') {
-      setPhoneNumber('');
-      setPaymentStep('form');
-      setIsLoading(false);
-    }
+    // The server retains the transaction status; reset this local form for the next purchase.
+    setPhoneNumber('');
+    setPaymentStep('form');
+    setIsLoading(false);
     onClose();
   }
 
@@ -145,11 +150,18 @@ export function MpesaModal({
 
          {paymentStep === 'success' && (
             <div className="flex flex-col items-center justify-center py-10 text-center">
+              <p className="font-semibold">Payment confirmed</p>
+              <p className="text-sm text-muted-foreground">Your course access has been activated.</p>
+            </div>
+        )}
+
+        {paymentStep === 'submitted' && (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-green-500 mb-4" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                <p className="font-semibold">Payment Successful!</p>
-                <p className="text-sm text-muted-foreground">You now have access to the course.</p>
+                <p className="font-semibold">Payment request sent</p>
+                <p className="text-sm text-muted-foreground">Complete the M-Pesa prompt. Course access will be enabled only after Safaricom confirms the payment.</p>
             </div>
         )}
       </DialogContent>

@@ -82,7 +82,7 @@ export default function BlogPage() {
                 <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit mb-4">
                     <Rss className="h-10 w-10 text-primary" />
                 </div>
-                <h1 className="text-4xl md:text-5xl font-bold font-headline">Manda Network Blog</h1>
+                <h1 className="text-4xl md:text-5xl font-bold font-headline">Varban Academy Blog</h1>
                 <p className="mt-4 text-lg max-w-3xl mx-auto text-muted-foreground">
                     Insights, tutorials, and career advice for the Kenyan tech ecosystem.
                 </p>

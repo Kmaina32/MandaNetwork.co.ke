@@ -3,48 +3,15 @@
 import { db, storage } from './firebase';
 import { ref, get, set, push, update, remove, query, orderByChild, equalTo, increment, limitToLast } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, TeamMember, ContactMessage, Form as FormType, FormSubmission, Referral } from './types';
+import type { Assignment, TutorSettings, Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, TeamMember, ContactMessage, Form as FormType, FormSubmission, Referral, Bootcamp, BlogPost, HeroData } from './types';
 import { getRemoteConfig, fetchAndActivate, getString } from 'firebase/remote-config';
 import { app } from './firebase';
 import { slugify } from './utils';
 
-export type { RegisteredUser } from './types';
+export type { Assignment, Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, TeamMember, ContactMessage, Form, FormSubmission, Referral, Bootcamp, BlogPost, HeroData, TutorSettings } from './types';
 
 
-export interface HeroData {
-    title: string;
-    subtitle: string;
-    imageUrl: string;
-    loginImageUrl: string;
-    signupImageUrl: string;
-    slideshowSpeed: number;
-    imageBrightness: number;
-    recaptchaEnabled: boolean;
-    onboardingEnabled: boolean;
-    theme?: string;
-    animationsEnabled?: boolean;
-    orgHeroTitle?: string;
-    orgHeroSubtitle?: string;
-    orgHeroImageUrl?: string;
-    orgLoginImageUrl?: string;
-    orgSignupImageUrl?: string;
-    programsImageUrl?: string;
-    bootcampsImageUrl?: string;
-    hackathonsImageUrl?: string;
-    portfoliosImageUrl?: string;
-    adsEnabled?: boolean;
-    adInterval?: number;
-    activityTrackingEnabled?: boolean;
-    aiProvider?: 'gemini' | 'openai' | 'anthropic';
-    customModelId?: string;
-}
 
-export interface TutorSettings {
-    voice: string;
-    speed: number;
-    prompts?: string;
-    avatarUrl?: string;
-}
 
 export interface CertificateSettings {
     academicDirector: string;
@@ -278,7 +245,7 @@ export async function getHeroData(): Promise<HeroData> {
         onboardingEnabled: true,
         theme: 'default',
         animationsEnabled: true,
-        orgHeroTitle: 'Manda Network for Business',
+        orgHeroTitle: 'Varban Academy for Business',
         orgHeroSubtitle: 'Empower your workforce with the skills they need to succeed.',
         orgHeroImageUrl: 'https://picsum.photos/1200/800',
         orgLoginImageUrl: 'https://picsum.photos/1200/900',
@@ -1517,4 +1484,42 @@ export async function saveMessage(conversationId: string, message: { senderId: s
   const newMessageRef = push(messagesRef);
   await set(newMessageRef, message);
   await update(ref(db, `conversations/${conversationId}`), { lastMessageAt: new Date().toISOString() });
+}
+
+/**
+ * Creates an assignment for a course. Database rules restrict writes to admins.
+ */
+export async function createAssignment(
+    courseId: string,
+    data: Omit<Assignment, 'id' | 'courseId' | 'createdAt' | 'updatedAt'>
+): Promise<string> {
+    const assignmentRef = push(ref(db, `assignments/${courseId}`));
+    if (!assignmentRef.key) throw new Error('Could not allocate an assignment ID.');
+    await set(assignmentRef, {
+        ...data,
+        courseId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+    });
+    return assignmentRef.key;
+}
+
+export async function updateAssignment(
+    courseId: string,
+    assignmentId: string,
+    data: Partial<Pick<Assignment, 'title' | 'description' | 'dueDate' | 'courseTitle'>>
+): Promise<void> {
+    await update(ref(db, `assignments/${courseId}/${assignmentId}`), {
+        ...data,
+        updatedAt: new Date().toISOString(),
+    });
+}
+
+export async function getAssignments(courseId: string): Promise<Assignment[]> {
+    const snapshot = await get(ref(db, `assignments/${courseId}`));
+    if (!snapshot.exists()) return [];
+    return Object.entries(snapshot.val()).map(([id, value]) => ({
+        id,
+        ...(value as Omit<Assignment, 'id'>),
+    })).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 }

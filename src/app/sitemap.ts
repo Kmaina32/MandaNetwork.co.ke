@@ -5,15 +5,22 @@ import { slugify } from '@/lib/utils';
 
 const BASE_URL = 'https://www.mandanetwork.co.ke';
 
+// Rebuild the sitemap periodically so database-backed entries refresh after deployment.
+export const revalidate = 300;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  // Fetch dynamic data using server-side functions
+  // Dynamic entries are optional at build time. Keep the static sitemap available
+  // when a preview environment has not yet been provisioned with Firebase Admin credentials.
   const [courses, programs, bootcamps, portfolios, blogPosts] = await Promise.all([
     getAllCourses(),
     getAllPrograms(),
     getAllBootcamps(),
     getPublicProfiles(),
     getAllBlogPosts()
-  ]);
+  ]).catch((error) => {
+    console.warn('Sitemap dynamic entries are temporarily unavailable:', error instanceof Error ? error.message : error);
+    return [[], [], [], [], []] as const;
+  });
 
   const courseEntries: MetadataRoute.Sitemap = courses.map((course) => ({
     url: `${BASE_URL}/courses/${slugify(course.title)}`,

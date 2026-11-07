@@ -13,7 +13,7 @@ interface BlogPostContentProps {
 }
 
 // This is a custom renderer for thematic breaks (---)
-const ThematicBreakRenderer = ({ node, ...props }: { node: any, [key: string]: any }) => {
+const ThematicBreakRenderer = ({ node, ...props }: { node?: any, [key: string]: any }) => {
     const adIndex = props.adCounter.current % props.promoItems.length;
     const promoItem = props.promoItems[adIndex];
     

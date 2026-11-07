@@ -14,7 +14,7 @@ import { AppSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useAuth } from '@/hooks/use-auth';
-import type { Course, Submission } from '@/lib/mock-data';
+import type { Course, Submission, UserCourse } from '@/lib/types';
 import { getUserCourses, getSubmissionsByUserId, getAllCourses } from '@/lib/firebase-service';
 import { Button } from '@/components/ui/button';
 import { slugify } from '@/lib/utils';

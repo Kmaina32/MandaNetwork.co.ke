@@ -119,7 +119,7 @@ export default function AdminFormsPage() {
                                         <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4"/></Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => handleShare(form.slug)}>
+                                        <DropdownMenuItem onClick={() => handleShare(form.slug || form.id)}>
                                             <Share2 className="mr-2 h-4 w-4"/> Share
                                         </DropdownMenuItem>
                                         <DropdownMenuItem asChild>

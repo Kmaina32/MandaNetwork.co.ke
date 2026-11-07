@@ -53,9 +53,9 @@ export default function CertificatesPage() {
                 const certs: IssuedCertificate[] = [];
                 allUsers.forEach(user => {
                     if (user.purchasedCourses) {
-                        Object.values(user.purchasedCourses).forEach((uc: UserCourse) => {
+                        Object.entries(user.purchasedCourses).forEach(([courseId, uc]) => {
                             if (uc.certificateAvailable && uc.certificateId) {
-                                const course = courseMap.get(uc.courseId);
+                                const course = courseMap.get(courseId);
                                 if (course) {
                                     certs.push({
                                         studentName: user.displayName || 'Unknown',

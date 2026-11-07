@@ -13,7 +13,7 @@ export function Footer() {
           {/* Brand Section */}
           <div className="flex items-center gap-2">
             <GitBranch className="h-6 w-6 text-yellow-500" />
-            <span className="font-bold font-headline">Manda Network</span>
+            <span className="font-bold font-headline">Varban Academy</span>
           </div>
 
           {/* Links */}
@@ -54,7 +54,7 @@ export function Footer() {
 
         {/* Footer Text */}
         <p className="text-center text-xs text-muted-foreground mt-4">
-          © {new Date().getFullYear()} Manda Network. All rights reserved. | ISO 9001 Certified
+          © {new Date().getFullYear()} Varban Academy. All rights reserved. | ISO 9001 Certified
         </p>
       </div>
     </footer>

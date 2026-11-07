@@ -338,7 +338,7 @@ export function Header({ children }: { children?: React.ReactNode }) {
                 <div className={cn("md:hidden", isMobile ? "block" : "hidden")}>
                     <Link href="/" className="flex items-center gap-2 font-bold text-lg font-headline">
                         <GitBranch className="h-6 w-6 text-primary" />
-                        <span>Manda Network</span>
+                        <span>Varban Academy</span>
                     </Link>
                 </div>
             </div>
