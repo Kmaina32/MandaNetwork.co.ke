@@ -51,8 +51,13 @@ const generateKeySchema = z.object({
 function ApiKeyRow({ apiKey, onRevoke }: { apiKey: ApiKey; onRevoke: (keyId: string) => void; }) {
   const [isVisible, setIsVisible] = useState(false);
   const { toast } = useToast();
+  const hasOneTimeKey = Boolean(apiKey.key);
 
   const copyToClipboard = () => {
+    if (!apiKey.key) {
+      toast({ title: 'Key is not stored', description: 'For security, keys are only shown once when created. Revoke this key and generate a replacement if you lost it.', variant: 'destructive' });
+      return;
+    }
     navigator.clipboard.writeText(apiKey.key);
     toast({ title: 'Copied!', description: 'API key copied to clipboard.' });
   };
@@ -64,20 +69,21 @@ function ApiKeyRow({ apiKey, onRevoke }: { apiKey: ApiKey; onRevoke: (keyId: str
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Key className="h-4 w-4" />
                 <span className="font-mono">
-                    {isVisible ? apiKey.key : `sk_live_••••••••${apiKey.key.slice(-4)}`}
+                    {isVisible && apiKey.key ? apiKey.key : `sk_live_••••••••${apiKey.keyPreview || '••••'}`}
                 </span>
             </div>
+            {!hasOneTimeKey && <p className="text-xs text-muted-foreground mt-1">Shown only once at creation. Revoke and regenerate if you no longer have the key.</p>}
             <p className="text-xs text-muted-foreground mt-1">
                 Created on {format(new Date(apiKey.createdAt), 'PPP p')}
             </p>
         </div>
         <div className="flex items-center gap-2 self-end md:self-center">
-            <Button variant="ghost" size="icon" onClick={() => setIsVisible(!isVisible)} title={isVisible ? 'Hide key' : 'Show key'}>
+            {hasOneTimeKey && <Button variant="ghost" size="icon" onClick={() => setIsVisible(!isVisible)} title={isVisible ? 'Hide key' : 'Show key'}>
                 {isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </Button>
-            <Button variant="ghost" size="icon" onClick={copyToClipboard} title="Copy key">
+            </Button>}
+            {hasOneTimeKey && <Button variant="ghost" size="icon" onClick={copyToClipboard} title="Copy key">
                 <Copy className="h-4 w-4" />
-            </Button>
+            </Button>}
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" title="Revoke key">
