@@ -28,7 +28,7 @@ export type GenerateHackathonIdeasOutput = z.infer<typeof GenerateHackathonIdeas
 
 export async function generateHackathonIdeas(input: GenerateHackathonIdeasInput): Promise<GenerateHackathonIdeasOutput> {
   
-  const prompt = `You are an expert event planner for a Kenyan tech education platform called Manda Network. Your task is to brainstorm ${input.count} creative and engaging hackathon ideas based on the theme: "${input.theme}".
+  const prompt = `You are an expert event planner for a Kenyan tech education platform called Varban Academy. Your task is to brainstorm ${input.count} creative and engaging hackathon ideas based on the theme: "${input.theme}".
 
 For each idea, provide:
 1.  A catchy, marketable title.
