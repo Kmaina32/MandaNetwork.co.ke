@@ -20,7 +20,7 @@ jest.mock('@/lib/firebase-service', () => ({
 describe('AboutPage', () => {
   it('renders the Varban Academy heading', () => {
     render(<AboutPage />);
-    expect(screen.getByRole('heading', { name: /About Varban Academy/i })).toBeInTheDocument();
+    expect(screen.getByText('About Varban Academy', { exact: true })).toBeInTheDocument();
   });
 
   it('renders the mission and courses sections', () => {
