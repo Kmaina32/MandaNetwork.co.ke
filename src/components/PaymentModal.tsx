@@ -58,10 +58,11 @@ export function PaymentModal({
 
   useEffect(() => {
     // Check for wallet connection when modal opens
-    if (isOpen && typeof window.ethereum !== 'undefined') {
+    const injectedProvider = typeof window !== 'undefined' ? window.ethereum : undefined;
+    if (isOpen && injectedProvider) {
         const checkConnection = async () => {
             try {
-                const provider = new ethers.BrowserProvider(window.ethereum);
+                const provider = new ethers.BrowserProvider(injectedProvider as any);
                 const accounts = await provider.listAccounts();
                 if (accounts.length > 0) {
                     const signer = await provider.getSigner();
@@ -89,12 +90,13 @@ export function PaymentModal({
   };
 
   const handleConnectWallet = async () => {
-    if (typeof window.ethereum === 'undefined') {
+    const injectedProvider = typeof window !== 'undefined' ? window.ethereum : undefined;
+    if (!injectedProvider) {
         toast({ title: "MetaMask not found", variant: "destructive" });
         return;
     }
     try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
+        const provider = new ethers.BrowserProvider(injectedProvider as any);
         await provider.send("eth_requestAccounts", []);
         const signer = await provider.getSigner();
         const address = await signer.getAddress();
