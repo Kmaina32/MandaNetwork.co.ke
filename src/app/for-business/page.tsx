@@ -55,7 +55,7 @@ export default async function ForBusinessPage() {
                        <div className="absolute inset-0 bg-black/60"></div>
                   </div>
                   <div className="container mx-auto px-4 md:px-6 text-center relative text-white py-10">
-                      <h1 className="text-4xl md:text-5xl font-bold font-headline">{heroData.orgHeroTitle || 'Manda Network for Organizations'}</h1>
+                      <h1 className="text-4xl md:text-5xl font-bold font-headline">{heroData.orgHeroTitle || 'Varban Academy for Organizations'}</h1>
                       <p className="mt-4 text-lg md:text-xl max-w-3xl mx-auto">{heroData.orgHeroSubtitle || 'Empower your workforce with the skills they need to succeed.'}</p>
                       <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
                          <Button asChild size="lg" className="w-full sm:w-auto">
