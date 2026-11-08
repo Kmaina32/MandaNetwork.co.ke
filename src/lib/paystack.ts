@@ -8,7 +8,7 @@ const PAYSTACK_API = 'https://api.paystack.co';
 type PaystackTransaction = {
   uid: string;
   email: string;
-  itemType: 'course' | 'organization_plan';
+  itemType: 'course' | 'hackathon' | 'organization_plan';
   itemId: string;
   itemName: string;
   organizationId?: string;
@@ -135,6 +135,10 @@ async function applyVerifiedPayment(reference: string, providerData: Awaited<Ret
           paymentReceipt: reference,
         };
       }
+    } else if (payment.itemType === 'hackathon') {
+      const hackathonSnapshot = await adminDb.ref(`hackathons/${payment.itemId}`).get();
+      if (!hackathonSnapshot.exists()) throw new Error('The hackathon is no longer available.');
+      updates[`hackathons/${payment.itemId}/participants/${payment.uid}`] = true;
     } else {
       const organizationSnapshot = await adminDb.ref(`organizations/${payment.organizationId}`).get();
       if (!organizationSnapshot.exists() || organizationSnapshot.val()?.ownerId !== payment.uid) {
