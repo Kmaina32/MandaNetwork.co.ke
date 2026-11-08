@@ -46,15 +46,14 @@ export default async function ForBusinessPage() {
           <main className="flex-grow">
               <section className="relative py-20 md:py-32 bg-secondary p-4">
                    <div className="absolute inset-4 rounded-xl overflow-hidden">
-                      {heroData.orgHeroImageUrl && (
-                          <Image
-                              src={heroData.orgHeroImageUrl}
-                              alt="Professional team collaborating"
-                              fill
-                              className="object-cover"
-                              data-ai-hint="team collaboration"
-                          />
-                      )}
+                      <Image
+                          src={heroData.orgHeroImageUrl || 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1800&q=85'}
+                          alt="Professional team collaborating in a modern workplace"
+                          fill
+                          priority
+                          sizes="100vw"
+                          className="object-cover"
+                      />
                        <div className="absolute inset-0 bg-black/60"></div>
                   </div>
                   <div className="container mx-auto px-4 md:px-6 text-center relative text-white py-10">
