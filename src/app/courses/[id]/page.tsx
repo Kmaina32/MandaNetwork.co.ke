@@ -227,10 +227,15 @@ export default function CourseDetailPage() {
     notFound();
   }
   
-  const handlePaymentSuccess = async (paymentMethod: UserCourse['paymentMethod']) => {
-    if (!user) return;
+  const handlePaymentSuccess = async (_paymentMethod: UserCourse['paymentMethod']) => {
+    if (!user || !course) return;
     try {
-      await enrollUserInCourse(user.uid, course.id, paymentMethod);
+      // The M-Pesa callback verifies settlement and writes the enrollment on the
+      // server. Do not attempt a second client-side write to the protected record.
+      const confirmedEnrollments = await getUserCourses(user.uid);
+      if (!confirmedEnrollments.some((entry) => entry.courseId === course.id && entry.paymentMethod === 'mpesa')) {
+        throw new Error('Payment is confirmed, but course access is still syncing. Refresh your courses shortly.');
+      }
       const achievement = await checkFirstEnrollmentAchievement(user.uid);
       if (achievement) {
           toast({ title: "Achievement Unlocked!", description: `${achievement.name}: ${achievement.description}` });
@@ -240,7 +245,7 @@ export default function CourseDetailPage() {
       setIsEnrolled(true);
       setIsModalOpen(false);
     } catch(error) {
-       toast({ title: 'Enrollment Failed', description: 'Your payment was successful, but we failed to enroll you in the course. Please contact support.', variant: 'destructive'});
+       toast({ title: 'Course access is syncing', description: error instanceof Error ? error.message : 'Your payment was received. Refresh your courses shortly.', variant: 'default'});
     }
   }
 
