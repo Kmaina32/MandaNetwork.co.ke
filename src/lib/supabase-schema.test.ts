@@ -12,12 +12,12 @@ describe('Supabase schema security regression checks', () => {
   ];
 
   it.each(appTables)('enables row-level security on %s', (table) => {
-    expect(migration).toMatch(new RegExp(`alter table public\\.${table} enable row level security`, 'i'));
+    expect(migration.toLowerCase()).toContain(`alter table public.${table} enable row level security`);
   });
 
   it('scopes profile reads and updates to the authenticated profile owner', () => {
-    expect(migration).toMatch(/profile_select_own[\\s\\S]*?using \\(\\(select auth\\.uid\\(\\)\\) = id\\)/i);
-    expect(migration).toMatch(/profile_update_own[\\s\\S]*?using \\(\\(select auth\\.uid\\(\\)\\) = id\\)[\\s\\S]*?with check \\(\\(select auth\\.uid\\(\\)\\) = id\\)/i);
+    expect(migration).toMatch(/profile_select_own[\s\S]*?using \(\(select auth\.uid\(\)\) = id\)/i);
+    expect(migration).toMatch(/profile_update_own[\s\S]*?using \(\(select auth\.uid\(\)\) = id\)[\s\S]*?with check \(\(select auth\.uid\(\)\) = id\)/i);
   });
 
   it('uses trusted app_metadata rather than user-editable user_metadata for admin policies', () => {
@@ -26,8 +26,8 @@ describe('Supabase schema security regression checks', () => {
   });
 
   it('limits enrollment and submission access to the owner or trusted admins', () => {
-    expect(migration).toMatch(/enrollments_owner_access[\\s\\S]*?user_id = \\(select auth\\.uid\\(\\)\\)[\\s\\S]*?role'\\) = 'admin'/i);
-    expect(migration).toMatch(/submissions_owner_access[\\s\\S]*?user_id = \\(select auth\\.uid\\(\\)\\)[\\s\\S]*?role'\\) = 'admin'/i);
+    expect(migration).toMatch(/enrollments_owner_access[\s\S]*?user_id = \(select auth\.uid\(\)\)[\s\S]*?role'\) = 'admin'/i);
+    expect(migration).toMatch(/submissions_owner_access[\s\S]*?user_id = \(select auth\.uid\(\)\)[\s\S]*?role'\) = 'admin'/i);
   });
 
   it('does not grant anonymous access to private learner records', () => {
@@ -37,10 +37,10 @@ describe('Supabase schema security regression checks', () => {
   });
 
   it('scopes private user-file storage paths to the authenticated user id', () => {
-    expect(migration).toMatch(/user_files_owner_access[\\s\\S]*?storage\\.foldername\\(name\\)\\)\[1\] =? ?\\(select auth\\.uid\\(\\)\\)::text/i);
+    expect(migration).toMatch(/user_files_owner_access[\s\S]*?storage\.foldername\(name\)\)\[1\] = \(select auth\.uid\(\)\)::text/i);
   });
 
   it('does not define public write policies for the learning catalog', () => {
-    expect(migration).not.toMatch(/for (insert|update|delete|all) to anon[^;]*on public\\.(courses|programs|bootcamps|blog_posts)/i);
+    expect(migration).not.toMatch(/for (insert|update|delete|all) to anon[^;]*on public\.(courses|programs|bootcamps|blog_posts)/i);
   });
 });
