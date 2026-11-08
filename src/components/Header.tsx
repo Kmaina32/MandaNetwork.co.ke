@@ -5,7 +5,7 @@
 import Link from 'next/link';
 import { User, LogOut, Bell, Calendar, Sparkles, PartyPopper, GitBranch, Moon, Sun, BellRing, Code, Trash2, Clapperboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { SidebarTrigger, useSidebar } from './ui/sidebar';
+import { SidebarTrigger } from './ui/sidebar';
 import { useAuth } from '@/hooks/use-auth';
 import {
   DropdownMenu,
@@ -359,7 +359,6 @@ export function ThemeToggle() {
 
 export function Header({ children }: { children?: React.ReactNode }) {
   const { user, logout, loading } = useAuth();
-  const { isMobile, openMobile } = useSidebar();
   const router = useRouter();
   const pathname = usePathname();
 
