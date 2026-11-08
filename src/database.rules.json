@@ -48,15 +48,7 @@
     },
     "bootcamps": {
       ".read": true,
-      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)",
-      "$bootcampId": {
-        ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)",
-        "participants": {
-          "$userId": {
-            ".write": "auth != null && auth.uid === $userId && newData.val() === true"
-          }
-        }
-      }
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)"
     },
     "hackathons": {
       ".read": true,
@@ -178,7 +170,10 @@
         "cohort"
       ]
     },
-    "serverActionRateLimits": { ".read": false, ".write": false },
+    "serverActionRateLimits": {
+      ".read": false,
+      ".write": false
+    },
     "contactMessages": {
       ".read": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now))",
       ".write": false,
@@ -344,6 +339,14 @@
         ".read": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || auth.uid === $userId)",
         ".write": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || auth.uid === $userId)",
         ".validate": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || (newData.child('uid').val() === auth.uid && newData.child('email').val() === auth.token.email && newData.child('organizationId').val() === root.child('users').child(auth.uid).child('organizationId').val()))"
+      }
+    },
+    "bootcampParticipants": {
+      "$bootcampId": {
+        "$userId": {
+          ".read": "auth != null && (auth.uid === $userId || (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)))",
+          ".write": false
+        }
       }
     }
   }
