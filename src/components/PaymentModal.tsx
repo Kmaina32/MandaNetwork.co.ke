@@ -31,6 +31,7 @@ interface PaymentModalProps {
   onClose: () => void;
   itemId: string;
   itemName: string;
+  purchaseType?: 'course' | 'hackathon' | 'organization_plan';
   price: number;
   onPaymentSuccess: (paymentMethod: UserCourse['paymentMethod']) => void;
 }
@@ -43,6 +44,7 @@ export function PaymentModal({
   onClose,
   itemId,
   itemName,
+  purchaseType = 'course',
   price,
   onPaymentSuccess,
 }: PaymentModalProps) {
@@ -188,14 +190,14 @@ export function PaymentModal({
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs defaultValue={itemId.startsWith('org-upgrade-') ? "card" : "mpesa"} className="w-full">
-            <TabsList className={`grid w-full ${itemId.startsWith('org-upgrade-') ? "grid-cols-3" : "grid-cols-4"}`}>
-                {!itemId.startsWith('org-upgrade-') && <TabsTrigger value="mpesa">M-Pesa</TabsTrigger>}
+        <Tabs defaultValue={purchaseType === "course" ? "mpesa" : "card"} className="w-full">
+            <TabsList className={`grid w-full ${purchaseType === "course" ? "grid-cols-4" : "grid-cols-3"}`}>
+                {purchaseType === 'course' && <TabsTrigger value="mpesa">M-Pesa</TabsTrigger>}
                 <TabsTrigger value="card">Paystack</TabsTrigger>
                 <TabsTrigger value="paypal">PayPal</TabsTrigger>
                 <TabsTrigger value="crypto">Crypto</TabsTrigger>
             </TabsList>
-            {!itemId.startsWith('org-upgrade-') && (
+            {purchaseType === 'course' && (
                 <TabsContent value="mpesa">
                     <form onSubmit={handleMpesaPay}>
                         <div className="grid gap-6 py-4">
@@ -242,7 +244,7 @@ export function PaymentModal({
                                         'Content-Type': 'application/json',
                                         Authorization: `Bearer ${idToken}`,
                                     },
-                                    body: JSON.stringify({ itemId }),
+                                    body: JSON.stringify({ itemId, purchaseType }),
                                 });
                                 const result = await response.json().catch(() => ({}));
                                 if (!response.ok || typeof result.authorizationUrl !== 'string') {
