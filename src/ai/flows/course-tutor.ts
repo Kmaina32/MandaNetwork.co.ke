@@ -11,7 +11,7 @@
 
 import { ai } from '@/ai/genkit-instance';
 import {z} from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
+import { assertNvidiaConfigured } from '@/lib/nvidia-models';
 import { DEFAULT_TUTOR_MODEL, TUTOR_MODEL_IDS } from '@/lib/tutor-models';
 
 const HistoryItemSchema = z.object({
@@ -20,7 +20,7 @@ const HistoryItemSchema = z.object({
 });
 
 const CourseTutorInputSchema = z.object({
-  model: z.enum(TUTOR_MODEL_IDS).default(DEFAULT_TUTOR_MODEL).describe('The Gemini model selected by the learner.'),
+  model: z.enum(TUTOR_MODEL_IDS).default(DEFAULT_TUTOR_MODEL).describe('The NVIDIA model selected by the learner.'),
   question: z.string().optional().describe('The student\'s question about the lesson, or a command like "Tutor me".'),
   action: z.enum(['summarize', 'quiz']).optional().describe('A specific action for the tutor to perform.'),
   courseTitle: z.string().describe('The title of the course, to be used for broader context.'),
@@ -51,9 +51,7 @@ const courseTutorFlow = ai.defineFlow(
     outputSchema: CourseTutorOutputSchema,
   },
   async input => {
-    if (!process.env.GEMINI_API_KEY?.trim()) {
-      throw new Error('GEMINI_API_KEY is not configured for the AI tutor.');
-    }
+    assertNvidiaConfigured();
 
     const historyText = (input.history || [])
       .map((message) => `${message.role}: ${message.content}`)
@@ -81,7 +79,7 @@ For guided tutoring, teach one key concept at a time, check understanding, and p
 Return a helpful answer and optional follow-up suggestions.`;
 
     const response = await ai.generate({
-      model: googleAI.model(input.model || DEFAULT_TUTOR_MODEL),
+      model: input.model || DEFAULT_TUTOR_MODEL,
       prompt: promptText,
       output: { schema: CourseTutorOutputSchema },
     });

@@ -10,7 +10,6 @@ import { createCourse, createProgram, createBundle } from '@/lib/firebase-servic
 import { z } from 'zod';
 import { ContentStrategyOutputSchema } from '@/lib/types';
 import type { ContentStrategyOutput } from '@/lib/types';
-import { googleAI } from '@genkit-ai/googleai';
 
 // Schema for generating course ideas
 const CourseIdeasSchema = z.object({

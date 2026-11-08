@@ -11,7 +11,6 @@
 
 import { ai } from '@/ai/genkit-instance';
 import {z} from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
 import { listCoursesTool } from '../tools/course-catalog';
 
 const GenerateCourseContentInputSchema = z.object({

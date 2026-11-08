@@ -103,7 +103,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const isAiConfigured = !!process.env.GEMINI_API_KEY || !!process.env.OPENAI_API_KEY;
+  const isAiConfigured = !!process.env.NVIDIA_API_KEY;
 
   return (
     <html lang="en" style={{ colorScheme: 'light' }}>
