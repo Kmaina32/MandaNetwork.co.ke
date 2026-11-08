@@ -29,11 +29,15 @@ function ExamsList() {
     const [courses, setCourses] = useState<UserCourseWithDetails[]>([]);
     const [submissions, setSubmissions] = useState<Submission[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [retryKey, setRetryKey] = useState(0);
 
     useEffect(() => {
+        let active = true;
         const fetchData = async () => {
-            if (!user) return;
+            if (!user) { setLoading(false); return; }
             setLoading(true);
+            setError(null);
             try {
                 const [userCoursesData, submissionsData] = await Promise.all([
                     getUserCourses(user.uid),
@@ -48,16 +52,20 @@ function ExamsList() {
                     ...courseMap.get(uc.courseId)
                 })).filter(c => c.title && c.exam && c.exam.length > 0);
 
-                setCourses(enrichedCourses);
-                setSubmissions(submissionsData);
+                if (active) {
+                    setCourses(enrichedCourses);
+                    setSubmissions(submissionsData);
+                }
             } catch (err) {
-                console.error("Failed to fetch data:", err);
+                console.error("Failed to load learner exams:", err);
+                if (active) setError('Your exam information could not be loaded. Please try again.');
             } finally {
-                setLoading(false);
+                if (active) setLoading(false);
             }
         };
         fetchData();
-    }, [user]);
+        return () => { active = false; };
+    }, [user, retryKey]);
 
     const getSubmissionStatus = (courseId: string) => {
         const submission = submissions.find(s => s.courseId === courseId);
@@ -73,6 +81,8 @@ function ExamsList() {
     if(loading) {
         return <div className="flex justify-center items-center py-10"><LoadingAnimation /></div>;
     }
+    if (!user) return null;
+    if (error) return <div role="alert" className="py-8 text-center"><p className="text-sm text-destructive">{error}</p><Button className="mt-4" variant="outline" onClick={() => setRetryKey(value => value + 1)}>Try again</Button></div>;
 
     return (
          <Table>
@@ -117,7 +127,7 @@ export default function MyAssignmentsPage() {
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
-        router.push('/login');
+        router.replace('/login?next=%2Fassignments');
       }
     }
   }, [user, authLoading, router]);
