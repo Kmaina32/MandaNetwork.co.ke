@@ -295,12 +295,18 @@ export default function DashboardPage() {
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [dbUser, setDbUser] = useState<RegisteredUser | null>(null);
 
-  // Redirect organization admins to their specific dashboard, but not site admins
+  // Learner workspace boundary: unauthenticated visitors belong on sign-in,
+  // while administrators and organization managers use their dedicated portals.
   useEffect(() => {
-    if (!authLoading && isOrganizationAdmin && !isAdmin) {
+    if (authLoading) return;
+    if (!user) {
+      router.replace('/login?next=%2Fdashboard');
+    } else if (isAdmin) {
+      router.replace('/admin');
+    } else if (isOrganizationAdmin) {
       router.replace('/organization/dashboard');
     }
-  }, [authLoading, isOrganizationAdmin, isAdmin, router]);
+  }, [authLoading, user, isAdmin, isOrganizationAdmin, router]);
 
   const fetchDashboardData = async () => {
       setLoadingCourses(true);
@@ -504,6 +510,10 @@ export default function DashboardPage() {
 
         </div>
     );
+  }
+
+  if (authLoading || !user || isAdmin || isOrganizationAdmin) {
+    return <div className="flex min-h-screen items-center justify-center bg-background"><LoadingAnimation /></div>;
   }
 
   return (
