@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { notFound, useParams } from "next/navigation";
 import Image from "next/image";
 import Link from 'next/link';
-import type { Bootcamp, Course, UserCourse } from "@/lib/types";
+import type { Bootcamp, Course } from "@/lib/types";
 import { getBootcampById, getAllCourses, getUserCourses } from '@/lib/firebase-service';
 import { getBootcampRegistrationStatus, registerFreeBootcamp } from '@/app/actions';
 import { Footer } from "@/components/Footer";
@@ -20,7 +20,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { slugify } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { PaymentModal } from '@/components/PaymentModal';
 
 export default function BootcampDetailPage() {
   const params = useParams<{ id: string }>();
@@ -32,7 +31,6 @@ export default function BootcampDetailPage() {
   const [userCourses, setUserCourses] = useState<UserCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEnrolling, setIsEnrolling] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
 
   useEffect(() => {
@@ -72,7 +70,7 @@ export default function BootcampDetailPage() {
   const enrolledCourseIds = new Set(userCourses.map(c => c.courseId));
   const isEnrolled = isRegistered;
 
-  const handleEnroll = async (paymentMethod: UserCourse['paymentMethod'] = 'free') => {
+  const handleEnroll = async () => {
       if (!user || !bootcamp) return;
       setIsEnrolling(true);
       try {
@@ -193,7 +191,7 @@ export default function BootcampDetailPage() {
                                         <Link href="/dashboard">Go to Dashboard</Link>
                                     </Button>
                                 ) : (
-                                    <Button size="lg" className="w-full" onClick={() => bootcamp.price > 0 ? toast({ title: 'Paid registration unavailable', description: 'Paid bootcamp enrolment will open when verified payment processing is enabled.', variant: 'destructive' }) : handleEnroll('free')} disabled={isEnrolling}>
+                                    <Button size="lg" className="w-full" onClick={() => bootcamp.price > 0 ? toast({ title: 'Paid registration unavailable', description: 'Paid bootcamp enrolment will open when verified payment processing is enabled.', variant: 'destructive' }) : handleEnroll()} disabled={isEnrolling}>
                                         {isEnrolling ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Award className="mr-2 h-5 w-5" />}
                                         Enroll Now
                                     </Button>
@@ -204,7 +202,6 @@ export default function BootcampDetailPage() {
                 </div>
              </div>
         </main>
-        
         <Footer />
       </SidebarInset>
     </SidebarProvider>
