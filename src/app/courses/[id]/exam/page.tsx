@@ -96,28 +96,35 @@ export default function ExamPage() {
   });
 
   useEffect(() => {
+    let cancelled = false;
     const fetchCourseAndSubmission = async () => {
       if (!user) return;
       setLoading(true);
-      const allCourses = await getAllCourses();
-      const courseData = allCourses.find(c => slugify(c.title) === params.id);
-
-      if (!courseData) {
-        notFound();
-        return;
+      setCourse(null);
+      setSubmission(null);
+      try {
+        const allCourses = await getAllCourses();
+        const courseData = allCourses.find(c => slugify(c.title) === params.id);
+        if (!courseData) {
+          if (!cancelled) notFound();
+          return;
+        }
+        const userSubmissions = await getUserSubmissionsForCourse(user.uid, courseData.id);
+        if (cancelled) return;
+        setCourse(courseData);
+        setSubmission(userSubmissions[0] || null);
+      } catch (error) {
+        console.error('Failed to load exam data', error);
+        if (!cancelled) {
+          toast({ title: 'Unable to load exam', description: 'Check your connection and retry the page.', variant: 'destructive' });
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setCourse(courseData);
-      const userSubmissions = await getUserSubmissionsForCourse(user.uid, courseData.id);
-      if (userSubmissions.length > 0) {
-          setSubmission(userSubmissions[0]);
-      }
-      setLoading(false);
     };
-
-    if (!authLoading && user) {
-      fetchCourseAndSubmission();
-    }
-  }, [params.id, user, authLoading]);
+    if (!authLoading && user) fetchCourseAndSubmission();
+    return () => { cancelled = true; };
+  }, [params.id, user, authLoading, toast]);
 
   const onSubmit = async (data: ExamFormValues) => {
     if (!user || !course) return;
