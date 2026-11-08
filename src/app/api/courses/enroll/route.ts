@@ -57,8 +57,8 @@ export async function POST(request: NextRequest) {
       const activityRef = adminDb.ref('userActivity').push();
       await activityRef.set({
         userId,
-        userName: profile.displayName || decoded.name || 'Learner',
-        userAvatar: profile.photoURL || decoded.picture || '',
+        userName: profile.displayName || 'Learner',
+        userAvatar: profile.photoURL || '',
         path: '/courses',
         type: 'enrollment',
         details: { courseTitle: course.title || 'Course', courseId },
