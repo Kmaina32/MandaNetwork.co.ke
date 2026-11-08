@@ -831,19 +831,21 @@ export async function createInvitation(inviteData: Omit<Invitation, 'id'>): Prom
     const invitesRef = ref(db, 'invitations');
     const newInviteRef = push(invitesRef);
     
-    await createNotification({
-        userId: inviteData.userId!,
-        title: 'Organization Invitation',
-        body: `You have been invited to join ${inviteData.organizationName}.`,
-        actions: [{
-            title: 'Accept',
-            action: 'accept_org_invite',
-            payload: {
-                inviteId: newInviteRef.key!,
-                organizationId: inviteData.organizationId,
-            }
-        }]
-    });
+    if (inviteData.userId) {
+        await createNotification({
+            userId: inviteData.userId,
+            title: 'Organization Invitation',
+            body: `You have been invited to join ${inviteData.organizationName}.`,
+            actions: [{
+                title: 'Accept',
+                action: 'accept_org_invite',
+                payload: {
+                    inviteId: newInviteRef.key!,
+                    organizationId: inviteData.organizationId,
+                }
+            }]
+        });
+    }
 
     await set(newInviteRef, inviteData);
     return newInviteRef.key!;
