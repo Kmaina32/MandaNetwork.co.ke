@@ -22,7 +22,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { ContactStudentDialog } from '@/components/ContactStudentDialog';
 import { Separator } from '@/components/ui/separator';
 import * as LucideIcons from 'lucide-react';
-import { achievementList } from '@/lib/achievements';
 import { OrganizationSidebar } from '@/components/OrganizationSidebar';
 
 type CourseWithDetails = UserCourse & Partial<Course>;
