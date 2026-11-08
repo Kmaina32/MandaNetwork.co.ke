@@ -22,14 +22,17 @@ export default function NotebooksListPage() {
   const router = useRouter();
   const [courses, setCourses] = useState<EnrolledCourse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
     const fetchCourses = async () => {
       if (!user) {
         setLoading(false);
         return;
       }
       setLoading(true);
+      setError(null);
       try {
         const userCourses = await getUserCourses(user.uid);
         const allCourses = await getAllCourses();
@@ -40,11 +43,12 @@ export default function NotebooksListPage() {
             ...courseMap.get(uc.courseId)
         })).filter(c => c.title); // Filter out courses that couldn't be fetched
 
-        setCourses(enrolledCourses);
+        if (active) setCourses(enrolledCourses);
       } catch (err) {
-        console.error("Failed to fetch courses:", err);
+        console.error("Failed to fetch notebook courses:", err);
+        if (active) setError('Your enrolled courses could not be loaded. Please try again.');
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
@@ -55,6 +59,7 @@ export default function NotebooksListPage() {
         router.push('/login');
       }
     }
+    return () => { active = false; };
   }, [user, authLoading, router]);
   
   if (authLoading || loading) {
@@ -82,7 +87,9 @@ export default function NotebooksListPage() {
                         <CardDescription>Select a course to view or edit your notes.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {courses.length > 0 ? (
+                      {error ? (
+                        <div role="alert" className="py-8 text-center"><p className="text-sm text-destructive">{error}</p><Button className="mt-4" onClick={() => router.refresh()} variant="outline">Try again</Button></div>
+                      ) : courses.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {courses.map((course) => (
                                 <Link key={course.courseId} href={`/notebook/${course.courseId}`} passHref>
