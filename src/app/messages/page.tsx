@@ -63,7 +63,7 @@ export default function MessagesPage() {
     const fetchMessages = async () => {
         setLoading(true);
         try {
-            const allNotifications = await getAllNotifications();
+            const allNotifications = await getAllNotifications(user.uid);
             // Filter for messages specifically targeted at this user
             const userMessages = allNotifications.filter(
                 n => n.userId === user.uid && 

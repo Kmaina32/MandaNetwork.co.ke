@@ -33,4 +33,19 @@ describe('Firebase Realtime Database security rules', () => {
   it('does not expose payment transaction records to browser clients', () => {
     expect(rules).not.toHaveProperty('mpesaTransactions');
   });
+  it('limits notifications to their recipient or an active admin', () => {
+    const notificationRules = rules.notifications;
+    expect(notificationRules['.read']).toContain("query.orderByChild === 'userId'");
+    expect(notificationRules['.read']).toContain("query.equalTo === auth.uid");
+    expect(notificationRules.$notificationId['.read']).toContain("data.child('userId').val() === auth.uid");
+    expect(notificationRules['.indexOn']).toContain('userId');
+  });
+
+  it('does not expose invitations publicly and scopes reads to recipients or their organization', () => {
+    const invitationRules = rules.invitations;
+    expect(invitationRules['.read']).toBe(false);
+    expect(invitationRules.$invitationId['.read']).toContain("data.child('userId').val() === auth.uid");
+    expect(invitationRules.$invitationId['.read']).toContain("data.child('organizationId').val()");
+  });
+
 });

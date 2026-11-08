@@ -89,10 +89,11 @@
       }
     },
     "invitations": {
-      ".read": "true",
+      ".read": false,
       ".write": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true)",
       "$invitationId": {
-        ".validate": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || newData.child('organizationId').val() === root.child('users').child(auth.uid).child('organizationId').val())"
+        ".validate": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || newData.child('organizationId').val() === root.child('users').child(auth.uid).child('organizationId').val())",
+        ".read": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || data.child('userId').val() === auth.uid || (root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true && data.child('organizationId').val() === root.child('users').child(auth.uid).child('organizationId').val()))"
       }
     },
     "userNotes": {
@@ -165,10 +166,12 @@
       }
     },
     "notifications": {
-      ".read": "auth != null",
+      ".read": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || (query.orderByChild === 'userId' && query.equalTo === auth.uid))",
       "$notificationId": {
-        ".write": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || (root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true) || (data.child('userId').val() === auth.uid && newData.child('userId').val() === auth.uid))"
-      }
+        ".write": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || (root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true) || (data.child('userId').val() === auth.uid && newData.child('userId').val() === auth.uid))",
+        ".read": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || data.child('userId').val() === auth.uid)"
+      },
+      ".indexOn": "userId"
     },
     "contactMessages": {
       ".read": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now))",

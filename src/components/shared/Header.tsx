@@ -90,7 +90,7 @@ function NotificationsPopover({ onOpenFormDialog }: { onOpenFormDialog: (formId:
             const userCohort = userProfile?.cohort;
 
             try {
-                const dbNotifications = await getAllNotifications();
+                const dbNotifications = await getAllNotifications(user.uid);
                 const formattedDbNotifications = dbNotifications
                     .filter(n => new Date(n.createdAt) > userCreationTime)
                     .filter(n => !n.cohort || n.cohort === userCohort || n.userId === user.uid)

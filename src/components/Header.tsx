@@ -82,7 +82,7 @@ function NotificationsPopover() {
 
             // 1. Fetch DB notifications
             try {
-                const dbNotifications = await getAllNotifications();
+                const dbNotifications = await getAllNotifications(user.uid);
                 const formattedDbNotifications = (Array.isArray(dbNotifications) ? dbNotifications : [])
                     .filter(n => new Date(n.createdAt) > userCreationTime)
                      // Filter based on cohort or if it's a targeted notification for the user

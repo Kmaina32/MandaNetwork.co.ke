@@ -478,8 +478,9 @@ export async function createNotification(notificationData: Partial<Omit<Notifica
     return newNotificationRef.key!;
 }
 
-export async function getAllNotifications(): Promise<Notification[]> {
-    const notificationsRef = ref(db, 'notifications');
+export async function getAllNotifications(userId: string): Promise<Notification[]> {
+    if (!userId) throw new Error('A signed-in user is required to load notifications.');
+    const notificationsRef = query(ref(db, 'notifications'), orderByChild('userId'), equalTo(userId));
     const snapshot = await get(notificationsRef);
     if (snapshot.exists()) {
         const notificationsData = snapshot.val();
