@@ -10,6 +10,7 @@ describe('Firebase Realtime Database security rules', () => {
   it('does not expose private user records through public portfolio visibility', () => {
     expect(rules.users.$userId['.read']).not.toContain("portfolio/public");
     expect(rules.users.$userId['.read']).toContain("auth.uid === $userId");
+    expect(rules.users.$userId['.read']).toContain("organizationId').val() === data.child('organizationId').val()");
     expect(rules.publicProfiles['.read']).toBe(true);
   });
 
