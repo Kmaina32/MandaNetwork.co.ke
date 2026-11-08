@@ -12,7 +12,6 @@
 import { ai } from '@/ai/genkit-instance';
 import {z} from 'genkit';
 import { textToSpeech } from './text-to-speech';
-import { googleAI } from '@genkit-ai/googleai';
 
 const HistoryItemSchema = z.object({
   role: z.enum(['user', 'model']),
@@ -44,7 +43,7 @@ export async function courseTutor(
 
 const prompt = ai.definePrompt({
   name: 'courseTutorPrompt',
-  model: googleAI.model('gemini-1.5-flash-latest'),
+  model: 'nvidia/meta/llama-3.1-70b-instruct',
   input: {schema: CourseTutorInputSchema},
   output: {schema: CourseTutorOutputSchema},
   prompt: `You are Gina, an expert AI Tutor for the Varban Academy online learning platform. Your tone is encouraging, friendly, and very helpful. You are having a continuous conversation with a student.
