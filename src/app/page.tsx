@@ -9,7 +9,6 @@ import { getAllCourses, getAllBlogPosts } from '@/lib/firebase-service';
 import type { Course } from '@/lib/mock-data';
 import type { BlogPost } from '@/lib/types';
 import { slugify } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 const HERO_IMAGE = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1600&q=85';
@@ -32,18 +31,15 @@ function SectionHeading({ eyebrow, title, description, href, linkLabel = 'View a
 }
 
 export default function Home() {
-  const { user, isAdmin, loading: authLoading } = useAuth();
-  const router = useRouter();
+  const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    if (authLoading || !user) return;
-    router.replace(isAdmin ? '/admin' : '/dashboard');
-  }, [authLoading, user, isAdmin, router]);
+  const mobileNavLinks: [string, string][] = user
+    ? [['Courses', '#courses'], ['Learning resources', '#resources'], ['Programs', '/programs'], ['Insights', '/blog'], ['My dashboard', '/dashboard']]
+    : [['Courses', '#courses'], ['Learning resources', '#resources'], ['Programs', '/programs'], ['Insights', '/blog'], ['Log in', '/login'], ['Get started', '/signup']];
 
   useEffect(() => {
     let active = true;
@@ -67,9 +63,6 @@ export default function Home() {
     return courses.filter((course) => !query || [course.title, course.category, course.description].some((value) => String(value || '').toLowerCase().includes(query))).slice(0, 3);
   }, [courses, searchQuery]);
 
-  if (authLoading || user) {
-    return <div className="flex min-h-screen items-center justify-center bg-white"><LoadingAnimation /></div>;
-  }
 
   return (
     <div className="min-h-screen overflow-hidden bg-white text-neutral-950">
@@ -86,8 +79,14 @@ export default function Home() {
             <Link className="text-sm font-medium text-neutral-600 transition hover:text-black" href="/blog">Insights</Link>
           </nav>
           <div className="hidden items-center gap-3 md:flex">
-            <Link href="/login" className="rounded-lg px-4 py-2.5 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-100">Log in</Link>
-            <Link href="/signup" className="rounded-lg bg-black px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-neutral-800">Get started</Link>
+            {user ? (
+              <Link href="/dashboard" className="rounded-lg bg-black px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-neutral-800">My dashboard</Link>
+            ) : (
+              <>
+                <Link href="/login" className="rounded-lg px-4 py-2.5 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-100">Log in</Link>
+                <Link href="/signup" className="rounded-lg bg-black px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-neutral-800">Get started</Link>
+              </>
+            )}
           </div>
           <button type="button" onClick={() => setMobileMenuOpen((open) => !open)} className="flex h-10 w-10 items-center justify-center rounded-lg border border-neutral-200 md:hidden" aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'} aria-expanded={mobileMenuOpen}>
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -96,7 +95,7 @@ export default function Home() {
         {mobileMenuOpen && (
           <nav className="border-t border-neutral-200 bg-white px-5 py-4 md:hidden" aria-label="Mobile navigation">
             <div className="flex flex-col gap-1">
-              {[['Courses', '#courses'], ['Learning resources', '#resources'], ['Programs', '/programs'], ['Insights', '/blog'], ['Log in', '/login'], ['Get started', '/signup']].map(([label, href]) => (
+              {mobileNavLinks.map(([label, href]) => (
                 <Link key={label} href={href} onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-3 py-3 text-sm font-medium text-neutral-800 hover:bg-neutral-100">{label}</Link>
               ))}
             </div>
