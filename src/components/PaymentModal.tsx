@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, CreditCard, MoveRight, AlertCircle, Coins } from 'lucide-react';
+import { Loader2, MoveRight, Coins } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -191,7 +191,7 @@ export function PaymentModal({
         <Tabs defaultValue="mpesa" className="w-full">
             <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="mpesa">M-Pesa</TabsTrigger>
-                <TabsTrigger value="card">Card</TabsTrigger>
+                <TabsTrigger value="card">Paystack</TabsTrigger>
                 <TabsTrigger value="paypal">PayPal</TabsTrigger>
                 <TabsTrigger value="crypto">Crypto</TabsTrigger>
             </TabsList>
@@ -217,11 +217,56 @@ export function PaymentModal({
                 </form>
             </TabsContent>
             <TabsContent value="card">
-                 <div className="py-8 text-center space-y-3">
-                    <AlertCircle className="mx-auto h-8 w-8 text-muted-foreground" />
-                    <p className="font-medium">Card payments are not available yet.</p>
-                    <p className="text-sm text-muted-foreground">Card checkout will be enabled after a PCI-compliant provider integration is configured. No card details are collected here.</p>
-                 </div>
+                <div className="space-y-4 py-6">
+                    <div className="text-center space-y-2">
+                        <p className="font-medium">Secure checkout with Paystack</p>
+                        <p className="text-sm text-muted-foreground">Pay in Kenyan Shillings using the payment methods enabled on your Paystack account.</p>
+                    </div>
+                    <Button
+                        type="button"
+                        className="w-full"
+                        disabled={isLoading || !user}
+                        onClick={async () => {
+                            if (!user) {
+                                router.push('/login');
+                                return;
+                            }
+                            setIsLoading(true);
+                            try {
+                                const idToken = await user.getIdToken();
+                                const response = await fetch('/api/paystack/initialize', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        Authorization: `Bearer ${idToken}`,
+                                    },
+                                    body: JSON.stringify({ itemId }),
+                                });
+                                const result = await response.json().catch(() => ({}));
+                                if (!response.ok || typeof result.authorizationUrl !== 'string') {
+                                    throw new Error(result.error || 'Paystack checkout could not be started.');
+                                }
+                                const checkoutUrl = new URL(result.authorizationUrl);
+                                if (checkoutUrl.protocol !== 'https:' || checkoutUrl.hostname !== 'checkout.paystack.com') {
+                                    throw new Error('Paystack returned an invalid checkout address.');
+                                }
+                                window.location.assign(checkoutUrl.toString());
+                            } catch (error) {
+                                toast({
+                                    title: 'Payment could not start',
+                                    description: error instanceof Error ? error.message : 'Please try again.',
+                                    variant: 'destructive',
+                                });
+                                setIsLoading(false);
+                            }
+                        }}
+                    >
+                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Continue to Paystack
+                        {!isLoading ? <MoveRight className="ml-2 h-4 w-4" /> : null}
+                    </Button>
+                    <p className="text-xs text-center text-muted-foreground">Your card details are entered securely on Paystack. Varban Academy never stores them.</p>
+                </div>
             </TabsContent>
              <TabsContent value="paypal">
                 <div className="py-10 text-center">
