@@ -75,7 +75,7 @@ export default function LoginPage() {
     setError(null);
     try {
       await login(values.email, values.password);
-      router.push('/dashboard');
+      router.replace(getSafeReturnPath());
     } catch (e: any) {
       if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-password') {
         setError('Incorrect password or email. Please try again.');
