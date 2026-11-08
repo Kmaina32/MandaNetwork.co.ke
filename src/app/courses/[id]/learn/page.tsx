@@ -300,7 +300,7 @@ export default function CoursePlayerPage() {
         <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
           <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:flex-row">
             {!isMobile && (
-              <aside className="hidden w-72 shrink-0 overflow-y-auto overscroll-contain border-r bg-background lg:block xl:w-80">
+              <aside className="w-full shrink-0 overflow-y-auto overscroll-contain border-r bg-background md:w-72 xl:w-80">
                  <CourseOutline 
                     course={course}
                     progress={progress}
