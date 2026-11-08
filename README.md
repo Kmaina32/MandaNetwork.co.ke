@@ -1,109 +1,28 @@
 # Varban Academy
 
-![Varban Academy](https://picsum.photos/seed/varbanacademy/1200/630)
+Varban Academy is an AI-powered online learning platform designed to provide high-quality, affordable, and accessible education tailored for the Kenyan market.
 
-Varban Academy is an AI-powered online learning platform designed to provide high-quality, affordable, and accessible education tailored for the Kenyan market. It leverages generative AI to create course content, assist students, and automate administrative tasks, creating a modern and scalable educational experience.
+## AI providers
 
-## ✨ Key Features
+- **Text generation:** NVIDIA NIM, with separate model routing for student learning, help/support, and administrator workflows.
+- **Text-to-speech:** NVIDIA Magpie Multilingual (Nemotron Speech).
+- **Speech-to-text:** NVIDIA Parakeet ASR through NVIDIA's hosted NIM endpoint.
+- **Credentials:** Keep the NVIDIA API key and speech function IDs on the server. Never expose them through NEXT_PUBLIC variables.
 
--   **AI-Powered Content Generation**: Automatically create comprehensive courses, including modules, lessons, and exams, from a simple title or context.
--   **AI Career Coach**: Generates a personalized learning path of courses based on a student's career goals.
--   **AI Tutor "Gina"**: A 24/7 AI assistant available in each lesson to answer student questions, provide summaries, and offer quizzes.
--   **Personalized Student Dashboard**: Includes quick actions, a "Learning Goals" to-do list, a portfolio strength meter, a recent activity feed, and a community leaderboard.
--   **M-Pesa Integration**: Seamlessly handle course payments using Safaricom's M-Pesa STK Push API.
--   **Comprehensive Admin Dashboard**: Manage courses, users, payments, site content, and view platform analytics.
--   **User & Organization Management**: Supports both individual student accounts and B2B organization portals for team management.
--   **Dynamic Theming**: Easily change the look and feel of the application for holidays or special events.
--   **Live Classroom**: Real-time video broadcasting functionality for instructors to engage with students.
--   **Permission-Based Access Control**: Differentiates between regular admins and a super admin for sensitive operations.
+## NVIDIA environment variables
 
-## 🚀 Tech Stack
+```env
+NVIDIA_API_KEY=YOUR_NVIDIA_API_KEY
+NVIDIA_STUDENT_MODEL=nvidia/nemotron-3.5-lightning-30b-a3b
+NVIDIA_SUPPORT_MODEL=nvidia/nemotron-3.5-bolt-e4b
+NVIDIA_ADMIN_MODEL=nvidia/nemotron-3-super-120b-a12b
+NVIDIA_TTS_FUNCTION_ID=877104f7-e885-42b9-8de8-f6e4c6303969
+NVIDIA_ASR_FUNCTION_ID=1598d209-5e27-4d3c-8079-4751568b1081
+NVIDIA_SPEECH_LANGUAGE=en-US
+```
 
--   **Framework**: [Next.js](https://nextjs.org/) (App Router)
--   **Language**: [TypeScript](https://www.typescriptlang.org/)
--   **Styling**: [Tailwind CSS](https://tailwindcss.com/) with [ShadCN/UI](https://ui.shadcn.com/) components.
--   **Backend & Database**: [Firebase](https://firebase.google.com/) (Authentication, Realtime Database, Storage, Remote Config).
--   **Generative AI**: [Genkit](https://genkit.dev/) routed through [NVIDIA NIM](https://build.nvidia.com/) using NVIDIA-hosted Nemotron, DeepSeek and GLM models.
--   **Payments**: [Safaricom Daraja API](https://developer.safaricom.co.ke/) for M-Pesa payments.
+Speech requests are sent from server actions directly to NVIDIA's hosted speech endpoints. The configured ASR endpoint is English (en-US) and accepts WAV, OGG/Opus, and FLAC uploads. Browser WebM recordings must be converted before transcription. NVIDIA may require these hosted model endpoints to be enabled for the account and API key; confirm access in the NVIDIA API Catalog.
 
-## ⚙️ Getting Started
+## Backend
 
-Follow these instructions to get a copy of the project up and running on your local machine for development and testing purposes.
-
-### Prerequisites
-
--   Node.js (v18 or later)
--   An active Firebase project.
--   An NVIDIA API Catalog API key with access to the selected NIM models.
--   A Safaricom Daraja developer account with sandbox credentials.
-
-### Installation
-
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/your-username/manda-network.git
-    cd manda-network
-    ```
-
-2.  **Install dependencies:**
-    ```bash
-    npm install
-    ```
-
-3.  **Set up environment variables:**
-
-    Create a `.env` file in the root of your project and add the following variables. Replace the placeholder values with your actual credentials.
-
-    ```env
-    # Firebase - From your Firebase project settings
-    NEXT_PUBLIC_FIREBASE_API_KEY="YOUR_FIREBASE_API_KEY"
-    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="YOUR_FIREBASE_AUTH_DOMAIN"
-    NEXT_PUBLIC_FIREBASE_DATABASE_URL="YOUR_FIREBASE_DATABASE_URL"
-    NEXT_PUBLIC_FIREBASE_PROJECT_ID="YOUR_FIREBASE_PROJECT_ID"
-    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="YOUR_FIREBASE_STORAGE_BUCKET"
-    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="YOUR_FIREBASE_MESSAGING_SENDER_ID"
-    NEXT_PUBLIC_FIREBASE_APP_ID="YOUR_FIREBASE_APP_ID"
-
-    # NVIDIA NIM (server-only; never expose this key to the browser)
-    NVIDIA_API_KEY="YOUR_NVIDIA_API_KEY"
-    # Optional per-surface model overrides (exact NVIDIA API Catalog IDs)
-    NVIDIA_STUDENT_MODEL="nvidia/nemotron-3.5-lightning-30b-a3b"
-    NVIDIA_HELP_MODEL="deepseek-ai/deepseek-v4.1-flash"
-    NVIDIA_ADMIN_MODEL="nvidia/nemotron-3-super-120b-a12b"
-
-    # M-Pesa Daraja API (Sandbox)
-    MPESA_CONSUMER_KEY="YOUR_MPESA_CONSUMER_KEY"
-    MPESA_CONSUMER_SECRET="YOUR_MPESA_CONSUMER_SECRET"
-    MPESA_PASSKEY="YOUR_MPESA_PASSKEY"
-    MPESA_TILL_NUMBER="YOUR_MPESA_TILL_NUMBER"
-    MPESA_CALLBACK_URL="YOUR_NGROK_OR_PUBLIC_URL/api/mpesa/callback"
-    
-    # Cron Job Security
-    NEXT_PUBLIC_CRON_SECRET="GENERATE_A_RANDOM_SECURE_STRING"
-
-    # Google reCAPTCHA
-    NEXT_PUBLIC_RECAPTCHA_SITE_KEY="YOUR_RECAPTCHA_SITE_KEY"
-    ```
-
-### Running the Application
-
-1.  **Start the Genkit development server:**
-
-    This server handles all AI-related tasks.
-
-    ```bash
-    npm run genkit:dev
-    ```
-
-2.  **Start the Next.js development server:**
-
-    In a separate terminal, run:
-
-    ```bash
-    npm run dev
-    ```
-
-3.  **Open your browser:**
-
-    Navigate to `http://localhost:9002` to see the application in action.
-    The Genkit inspection UI will be available at `http://localhost:4000`.
+The application currently retains existing Firebase services while the clean-slate Supabase backend migration is in progress. Supabase is configured for the next migration stage; Firebase has not yet been fully removed.

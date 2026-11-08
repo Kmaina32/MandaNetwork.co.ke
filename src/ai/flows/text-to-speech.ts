@@ -1,127 +1,75 @@
-
 'use server';
-/**
- * @fileOverview Flows for converting text to speech and speech to text.
- *
- * - textToSpeech - Converts a string of text to audible speech.
- * - speechToText - Converts audio data to a string of text.
- */
-
+/** NVIDIA Nemotron Speech integration. Calls are server-side; the API key never reaches the browser. */
 import { ai } from '@/ai/genkit-instance';
 import { z } from 'genkit';
-import wav from 'wav';
-import { googleAI } from '@genkit-ai/googleai';
+import { assertNvidiaConfigured } from '@/lib/nvidia-models';
+import { audioDataUriToFile, pcmToWav } from '@/lib/nvidia-speech';
 
-// --- Text to Speech ---
+const TTS_FUNCTION_ID = process.env.NVIDIA_TTS_FUNCTION_ID?.trim() || '877104f7-e885-42b9-8de8-f6e4c6303969';
+const ASR_FUNCTION_ID = process.env.NVIDIA_ASR_FUNCTION_ID?.trim() || '1598d209-5e27-4d3c-8079-4751568b1081';
+const SPEECH_LANGUAGE = process.env.NVIDIA_SPEECH_LANGUAGE?.trim() || 'en-US';
 
-const TextToSpeechInputSchema = z.object({
-  text: z.string().describe('The text to convert to speech.'),
-  voice: z.string().optional().describe('The prebuilt voice to use (e.g., algenib, achernar).'),
-});
+const TextToSpeechInputSchema = z.object({ text: z.string().trim().min(1).max(5000), voice: z.string().optional() });
 export type TextToSpeechInput = z.infer<typeof TextToSpeechInputSchema>;
-
-const TextToSpeechOutputSchema = z.object({
-  media: z.string().describe("A data URI of the generated audio in WAV format. Format: 'data:audio/wav;base64,<encoded_data>'."),
-});
+const TextToSpeechOutputSchema = z.object({ media: z.string() });
 export type TextToSpeechOutput = z.infer<typeof TextToSpeechOutputSchema>;
 
 export async function textToSpeech(input: TextToSpeechInput): Promise<TextToSpeechOutput> {
-    return textToSpeechFlow(input);
+  assertNvidiaConfigured();
+  return textToSpeechFlow(input);
 }
-
 const textToSpeechFlow = ai.defineFlow(
-  {
-    name: 'textToSpeechFlow',
-    inputSchema: TextToSpeechInputSchema,
-    outputSchema: TextToSpeechOutputSchema,
-  },
+  { name: 'textToSpeechFlow', inputSchema: TextToSpeechInputSchema, outputSchema: TextToSpeechOutputSchema },
   async ({ text, voice }) => {
-    const { media } = await ai.generate({
-      model: googleAI.model('gemini-2.5-flash-preview-tts'),
-      config: {
-        responseModalities: ['AUDIO'],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: voice || 'Algenib' },
-          },
-        },
-      },
-      prompt: text,
-    });
-    if (!media) {
-      throw new Error('no media returned');
-    }
-    const audioBuffer = Buffer.from(
-      media.url.substring(media.url.indexOf(',') + 1),
-      'base64'
+    assertNvidiaConfigured();
+    const form = new FormData();
+    form.set('text', text);
+    form.set('language', SPEECH_LANGUAGE);
+    form.set('voice', voice?.startsWith('Magpie-Multilingual.') ? voice : 'Magpie-Multilingual.EN-US.Aria');
+    form.set('encoding', 'LINEAR_PCM');
+    form.set('sample_rate_hz', '44100');
+    const response = await fetch(
+      `https://${TTS_FUNCTION_ID}.invocation.api.nvcf.nvidia.com/v1/audio/synthesize`,
+      { method: 'POST', headers: { Authorization: `Bearer ${process.env.NVIDIA_API_KEY?.trim()}` }, body: form, cache: 'no-store' },
     );
-    return {
-      media: 'data:audio/wav;base64,' + (await toWav(audioBuffer)),
-    };
-  }
+    if (!response.ok) {
+      const detail = (await response.text()).slice(0, 300);
+      throw new Error(`NVIDIA speech synthesis failed (${response.status}): ${detail || 'provider request failed'}`);
+    }
+    const audio = Buffer.from(await response.arrayBuffer());
+    if (audio.length < 2) throw new Error('NVIDIA speech synthesis returned empty audio.');
+    const wavBytes = audio.subarray(0, 4).toString('ascii') === 'RIFF' ? audio : pcmToWav(audio, 44100, 1, 16);
+    return { media: `data:audio/wav;base64,${wavBytes.toString('base64')}` };
+  },
 );
 
-
-// --- Speech to Text ---
-
-export const SpeechToTextInputSchema = z.object({
-  audioDataUri: z.string().describe("Audio data as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."),
-});
+export const SpeechToTextInputSchema = z.object({ audioDataUri: z.string().min(1).max(28_000_000) });
 export type SpeechToTextInput = z.infer<typeof SpeechToTextInputSchema>;
-
-export const SpeechToTextOutputSchema = z.object({
-  transcript: z.string().describe("The transcribed text from the audio."),
-});
+export const SpeechToTextOutputSchema = z.object({ transcript: z.string() });
 export type SpeechToTextOutput = z.infer<typeof SpeechToTextOutputSchema>;
 
-
 export async function speechToText(input: SpeechToTextInput): Promise<SpeechToTextOutput> {
-    return speechToTextFlow(input);
+  assertNvidiaConfigured();
+  return speechToTextFlow(input);
 }
-
 const speechToTextFlow = ai.defineFlow(
-    {
-        name: 'speechToTextFlow',
-        inputSchema: SpeechToTextInputSchema,
-        outputSchema: SpeechToTextOutputSchema,
-    },
-    async ({ audioDataUri }) => {
-        const { text } = await ai.generate({
-            model: googleAI.model('gemini-1.5-flash-latest'),
-            prompt: [
-                { text: "Transcribe the following audio recording." },
-                { media: { url: audioDataUri } },
-            ],
-        });
-        return { transcript: text };
+  { name: 'speechToTextFlow', inputSchema: SpeechToTextInputSchema, outputSchema: SpeechToTextOutputSchema },
+  async ({ audioDataUri }) => {
+    assertNvidiaConfigured();
+    const { bytes, mimeType, filename } = audioDataUriToFile(audioDataUri);
+    const form = new FormData();
+    form.set('language', SPEECH_LANGUAGE);
+    form.set('response_format', 'json');
+    form.set('file', new Blob([bytes], { type: mimeType }), filename);
+    const response = await fetch(
+      `https://${ASR_FUNCTION_ID}.invocation.api.nvcf.nvidia.com/v1/audio/transcriptions`,
+      { method: 'POST', headers: { Authorization: `Bearer ${process.env.NVIDIA_API_KEY?.trim()}` }, body: form, cache: 'no-store' },
+    );
+    if (!response.ok) {
+      const detail = (await response.text()).slice(0, 300);
+      throw new Error(`NVIDIA speech recognition failed (${response.status}): ${detail || 'provider request failed'}`);
     }
+    const result = await response.json() as { text?: string };
+    return { transcript: typeof result.text === 'string' ? result.text.trim() : '' };
+  },
 );
-
-
-// Helper function to convert PCM audio to WAV format
-async function toWav(
-  pcmData: Buffer,
-  channels = 1,
-  rate = 24000,
-  sampleWidth = 2
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const writer = new wav.Writer({
-      channels,
-      sampleRate: rate,
-      bitDepth: sampleWidth * 8,
-    });
-
-    let bufs: any[] = [];
-    writer.on('error', reject);
-    writer.on('data', function (d: Buffer) {
-      bufs.push(d);
-    });
-    writer.on('end', function () {
-      resolve(Buffer.concat(bufs).toString('base64'));
-    });
-
-    writer.write(pcmData);
-    writer.end();
-  });
-}
