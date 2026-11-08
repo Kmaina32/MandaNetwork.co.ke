@@ -152,6 +152,7 @@ export default function OrganizationBillingPage() {
                     itemId={`org-upgrade-${paymentModalState.plan.id}`}
                     itemName={`Upgrade to ${paymentModalState.plan.name} Plan`}
                     price={paymentModalState.plan.price}
+                    purchaseType="organization_plan"
                     onPaymentSuccess={handlePaymentSuccess}
                 />
             )}
