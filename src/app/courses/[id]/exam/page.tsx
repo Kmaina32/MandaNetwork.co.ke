@@ -189,9 +189,9 @@ export default function ExamPage() {
       <AppSidebar />
       <SidebarInset>
         <Header />
-        <div className="flex flex-col min-h-screen">
-          <main className="flex-grow container mx-auto px-4 md:px-6 py-12">
-            <div className="max-w-3xl mx-auto">
+        <div className="flex min-h-[calc(100dvh-var(--header-height,4rem))] flex-col">
+          <main className="mx-auto w-full max-w-7xl flex-1 px-3 py-5 sm:px-5 sm:py-8 md:px-6 md:py-10">
+            <div className="mx-auto w-full max-w-3xl min-w-0">
               {submission?.graded ? null : (
                  <Link href={`/courses/${slugify(course.title)}/learn`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
                     <ArrowLeft className="h-4 w-4" />
@@ -209,7 +209,7 @@ export default function ExamPage() {
                       <div className="mx-auto bg-secondary p-3 rounded-full w-fit">
                           <ListTodo className="h-8 w-8 text-secondary-foreground" />
                       </div>
-                      <CardTitle className="mt-4 text-2xl font-headline">Final Exam: {course.title}</CardTitle>
+                      <CardTitle className="mt-4 break-words text-xl font-headline sm:text-2xl">Final Exam: {course.title}</CardTitle>
                       <CardDescription>
                           Complete the following questions to the best of your ability.
                       </CardDescription>
@@ -218,7 +218,7 @@ export default function ExamPage() {
                     <Form {...form}>
                       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                         {course.exam.map((q, index) => (
-                          <Card key={q.id} className="p-6">
+                          <Card key={q.id} className="min-w-0 p-4 sm:p-6">
                             <FormLabel className="text-base font-semibold">{index + 1}. {q.question}</FormLabel>
                              <div className="mt-4">
 {q.type === 'multiple-choice' && q.options ? (
@@ -269,8 +269,8 @@ export default function ExamPage() {
                             </div>
                           </Card>
                         ))}
-                         <div className="flex justify-end">
-                            <Button type="submit" size="lg" disabled={isSubmitting}>
+                         <div className="flex justify-stretch sm:justify-end">
+                            <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={isSubmitting}>
                                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                                 Submit Exam
                             </Button>

@@ -55,25 +55,25 @@ export function CoursePlayerTabs({ lesson, course }: CoursePlayerTabsProps) {
     }
 
     return (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-grow flex flex-col">
-            <TabsList className="mb-4 flex-shrink-0">
-                <TabsTrigger value="lesson">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex w-full min-w-0 flex-1 flex-col">
+            <TabsList className="mb-4 grid h-auto w-full grid-cols-3 gap-1 p-1 sm:flex sm:w-fit sm:gap-0">
+                <TabsTrigger value="lesson" className="min-w-0 px-2 text-xs sm:px-3 sm:text-sm">
                     <FileText className="mr-2 h-4 w-4" />
                     Lesson
                 </TabsTrigger>
-                <TabsTrigger value="video" disabled={!hasVideo}>
+                <TabsTrigger value="video" disabled={!hasVideo} className="min-w-0 px-2 text-xs sm:px-3 sm:text-sm">
                     <Video className="mr-2 h-4 w-4" />
                     Video
                 </TabsTrigger>
-                <TabsTrigger value="discussion">
+                <TabsTrigger value="discussion" className="min-w-0 px-2 text-xs sm:px-3 sm:text-sm">
                     <MessageCircle className="mr-2 h-4 w-4" />
                     Discussion
                 </TabsTrigger>
             </TabsList>
-            <TabsContent value="lesson" className="flex-grow">
+            <TabsContent value="lesson" className="min-w-0 flex-1">
                 <LessonContent lesson={lesson} />
             </TabsContent>
-            <TabsContent value="video" className="h-full flex-grow">
+            <TabsContent value="video" className="min-h-0 min-w-0 flex-1">
                 {videoUrl ? (
                     <iframe
                         src={videoUrl}
@@ -81,7 +81,7 @@ export function CoursePlayerTabs({ lesson, course }: CoursePlayerTabsProps) {
                         frameBorder="0"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                         allowFullScreen
-                        className="w-full h-full aspect-video rounded-lg"
+                        className="aspect-video w-full rounded-lg"
                     ></iframe>
                 ) : (
                     <div className="flex items-center justify-center h-full bg-black rounded-lg">

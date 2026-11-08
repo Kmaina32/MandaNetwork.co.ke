@@ -5,7 +5,6 @@ import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Lesson } from '@/lib/types';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Check, Copy, Loader2 } from 'lucide-react';
@@ -62,11 +61,10 @@ export function LessonContent({ lesson }: LessonContentProps) {
   if (!lesson) return null;
 
   return (
-    <div className="flex flex-col h-full">
-      <ScrollArea className="flex-grow">
+    <div className="min-w-0 w-full">
         <div className="pr-4">
-          <h1 className="text-3xl font-bold font-headline mb-4">{lesson.title}</h1>
-          <div className="prose text-foreground/90 mb-6" style={{ whiteSpace: 'pre-wrap' }}>
+          <h1 className="mb-4 break-words text-2xl font-bold font-headline sm:text-3xl">{lesson.title}</h1>
+          <div className="prose prose-sm max-w-none break-words text-foreground/90 mb-6 sm:prose-base [overflow-wrap:anywhere]" style={{ whiteSpace: 'pre-wrap' }}>
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
@@ -115,7 +113,6 @@ export function LessonContent({ lesson }: LessonContentProps) {
             </div>
           )}
         </div>
-      </ScrollArea>
     </div>
   );
 }
