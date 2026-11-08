@@ -1,8 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import { useAuth } from '@/hooks/use-auth';
 
 export function Footer() {
+  const { user, loading } = useAuth();
+
+  // Footer navigation and marketing disclosures belong to the public experience.
+  // Authenticated pages keep their workspace focused on the application.
+  if (loading || user) return null;
+
   return (
     <footer className="border-t border-neutral-200 bg-white text-neutral-950">
       <div className="mx-auto max-w-7xl px-5 py-12 sm:px-8">
