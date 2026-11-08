@@ -180,6 +180,7 @@ export default function AdminDashboardPage() {
       <main className="flex-grow container mx-auto px-4 md:px-6 py-12 md:py-16">
         <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold font-headline">Admin Dashboard</h1>
+            <Link href="/admin/media" className="inline-flex items-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800">Media uploads</Link>
         </div>
         
         {loading ? (
