@@ -61,8 +61,7 @@ export function LessonContent({ lesson }: LessonContentProps) {
   if (!lesson) return null;
 
   return (
-    <div className="flex flex-col h-full">
-      <ScrollArea className="flex-grow">
+    <div className="min-w-0 w-full">
         <div className="pr-4">
           <h1 className="mb-4 break-words text-2xl font-bold font-headline sm:text-3xl">{lesson.title}</h1>
           <div className="prose prose-sm max-w-none break-words text-foreground/90 mb-6 sm:prose-base [overflow-wrap:anywhere]" style={{ whiteSpace: 'pre-wrap' }}>
