@@ -19,7 +19,8 @@ describe('Firebase Realtime Database security rules', () => {
   });
 
   it('requires ownership for user-generated submissions', () => {
-    expect(rules.submissions.$submissionId['.write']).toContain("data.child('userId').val() === auth.uid");
+    expect(rules.submissions.$submissionId['.write']).toContain("!data.exists()");
+    expect(rules.submissions.$submissionId['.write']).toContain("newData.child('userId').val() === auth.uid");
     expect(rules.formSubmissions.$submissionId['.write']).toContain("!data.exists()");
   });
 
