@@ -23,6 +23,8 @@ export default function CalendarPage() {
   const router = useRouter();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const { toast } = useToast();
 
@@ -34,24 +36,31 @@ export default function CalendarPage() {
     }
   }, [user, authLoading, router]);
 
-  const fetchEvents = async () => {
-    try {
-      setLoading(true);
-      const fetchedEvents = await getAllCalendarEvents();
-      setEvents(fetchedEvents);
-    } catch (err) {
-      console.error("Failed to fetch events:", err);
-      toast({ title: "Error", description: "Failed to load calendar events.", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (user) {
-      fetchEvents();
-    }
-  }, [user]);
+    let active = true;
+    const fetchEvents = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setLoadError(false);
+      try {
+        const fetchedEvents = await getAllCalendarEvents();
+        if (active) setEvents(fetchedEvents);
+      } catch (err) {
+        console.error("Failed to fetch events:", err);
+        if (active) {
+          setLoadError(true);
+          toast({ title: "Error", description: "Failed to load calendar events. Please try again.", variant: "destructive" });
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    if (!authLoading) void fetchEvents();
+    return () => { active = false; };
+  }, [user, authLoading, retryKey, toast]);
 
   const eventDates = useMemo(() => {
     return new Set(events.map(event => format(startOfDay(new Date(event.date)), 'yyyy-MM-dd')));
@@ -112,10 +121,10 @@ export default function CalendarPage() {
                         <CardDescription>Keep track of your course schedule and deadlines.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                       {loading ? (
-                         <div className="flex justify-center items-center py-10">
-                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                            <p className="ml-2">Loading calendar...</p>
+                       {loadError ? (
+                         <div className="flex flex-col items-center gap-3 py-10 text-center">
+                           <p className="text-sm text-muted-foreground">Your calendar could not be loaded.</p>
+                           <Button onClick={() => setRetryKey(value => value + 1)}>Try again</Button>
                          </div>
                         ) : (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
