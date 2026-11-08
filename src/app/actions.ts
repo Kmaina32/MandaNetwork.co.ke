@@ -142,6 +142,40 @@ export async function generateHackathonIdeas(input: GenerateHackathonIdeasInput)
 }
 
 
+
+async function requireActiveAdmin(idToken: string, requireSuperAdmin = false) {
+    const decoded = await adminAuth.verifyIdToken(idToken, true);
+    const snapshot = await adminDb.ref(`users/${decoded.uid}`).get();
+    const profile = snapshot.val();
+    const allowed = requireSuperAdmin ? profile?.isSuperAdmin === true : profile?.isAdmin === true;
+    if (!allowed) throw new Error('Administrator access is required.');
+    if (profile.adminExpiresAt != null) {
+        const expiry = typeof profile.adminExpiresAt === 'number' ? profile.adminExpiresAt : Date.parse(profile.adminExpiresAt);
+        if (!Number.isFinite(expiry) || expiry <= Date.now()) throw new Error('Administrator access has expired.');
+    }
+    return decoded;
+}
+
+export async function getBootcampParticipantCounts(idToken: string): Promise<Record<string, number>> {
+    await requireActiveAdmin(idToken);
+    const snapshot = await adminDb.ref('bootcampParticipants').get();
+    const values = snapshot.val() || {};
+    return Object.fromEntries(Object.entries(values).map(([bootcampId, participants]) => [
+        bootcampId,
+        participants && typeof participants === 'object' ? Object.keys(participants as Record<string, unknown>).length : 0,
+    ]));
+}
+
+export async function deleteBootcampAndRegistrations(idToken: string, bootcampId: string): Promise<void> {
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(bootcampId)) throw new Error('Invalid bootcamp identifier.');
+    await requireActiveAdmin(idToken, true);
+    const updates: Record<string, null> = {
+        [`bootcamps/${bootcampId}`]: null,
+        [`bootcampParticipants/${bootcampId}`]: null,
+    };
+    await adminDb.ref().update(updates);
+}
+
 export async function getBootcampRegistrationStatus(idToken: string, bootcampId: string): Promise<boolean> {
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(bootcampId)) throw new Error('Invalid bootcamp identifier.');
     const decoded = await adminAuth.verifyIdToken(idToken, true);

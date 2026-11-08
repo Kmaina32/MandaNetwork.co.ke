@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Bootcamp } from "@/lib/types";
-import { getAllBootcamps, deleteBootcamp, createPermissionRequest } from '@/lib/firebase-service';
+import { getAllBootcamps, createPermissionRequest } from '@/lib/firebase-service';
+import { getBootcampParticipantCounts, deleteBootcampAndRegistrations } from '@/app/actions';
 import { FilePlus2, Pencil, Trash2, Loader2, Library, Rocket, Users, GitBranch } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -32,6 +33,7 @@ export default function AdminBootcampsPage() {
   const { user, isSuperAdmin } = useAuth();
   const [bootcamps, setBootcamps] = useState<Bootcamp[]>([]);
   const [loading, setLoading] = useState(true);
+  const [participantCounts, setParticipantCounts] = useState<Record<string, number>>({});
   const { toast } = useToast();
 
   const fetchBootcamps = async () => {
@@ -39,6 +41,7 @@ export default function AdminBootcampsPage() {
       setLoading(true);
       const fetched = await getAllBootcamps();
       setBootcamps(fetched.reverse());
+      if (user) setParticipantCounts(await getBootcampParticipantCounts(await user.getIdToken()));
     } catch (err) {
       toast({ title: "Error", description: "Failed to fetch bootcamps.", variant: "destructive" });
       console.error(err);
@@ -56,7 +59,7 @@ export default function AdminBootcampsPage() {
     
     if (isSuperAdmin) {
         try {
-        await deleteBootcamp(bootcamp.id);
+        await deleteBootcampAndRegistrations(await user.getIdToken(), bootcamp.id);
         toast({ title: "Success", description: `Bootcamp "${bootcamp.title}" has been deleted.` });
         fetchBootcamps();
         } catch (error) {
@@ -130,7 +133,7 @@ export default function AdminBootcampsPage() {
                       bootcamps.map((bootcamp) => (
                         <TableRow key={bootcamp.id}>
                           <TableCell className="font-medium">{bootcamp.title}</TableCell>
-                          <TableCell>{bootcamp.participants ? Object.keys(bootcamp.participants).length : 0}</TableCell>
+                          <TableCell>{participantCounts[bootcamp.id] || 0}</TableCell>
                           <TableCell>Ksh {bootcamp.price.toLocaleString()}</TableCell>
                           <TableCell>{bootcamp.duration}</TableCell>
                           <TableCell className="text-right">
