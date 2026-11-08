@@ -84,6 +84,14 @@ export default function CoursePlayerPage() {
                 getTutorSettings(),
                 getUserCourses(user.uid)
             ]);
+
+            // Authentication alone must not grant access to paid course lessons.
+            // Send non-enrolled learners back to the course page to review/enroll.
+            const currentUserCourse = userCourses.find(c => c.courseId === fetchedCourse.id);
+            if (!currentUserCourse) {
+                router.replace(`/courses/${slugify(fetchedCourse.title)}`);
+                return;
+            }
             
             setCourse(fetchedCourse);
             setTutorSettings(fetchedTutorSettings);
@@ -91,7 +99,6 @@ export default function CoursePlayerPage() {
             const lessons = fetchedCourse.modules?.flatMap(m => m.lessons) || [];
             setAllLessons(lessons);
 
-            const currentUserCourse = userCourses.find(c => c.courseId === fetchedCourse.id);
             const enrolledDate = currentUserCourse?.enrollmentDate;
             
             if (currentUserCourse?.completedLessons) {
@@ -157,24 +164,30 @@ export default function CoursePlayerPage() {
   const handleCompleteLesson = async () => {
     if (!currentLesson || !user || !course) return;
 
+    if (allLessons.length === 0) return;
     const newCompleted = new Set(completedLessons);
     newCompleted.add(currentLesson.id);
-    setCompletedLessons(newCompleted);
-
     const newProgress = (newCompleted.size / allLessons.length) * 100;
 
-    await updateUserCourseProgress(user.uid, course.id, {
-        completedLessons: Array.from(newCompleted),
-        progress: Math.round(newProgress),
-        completed: newProgress === 100
-    });
+    try {
+      await updateUserCourseProgress(user.uid, course.id, {
+          completedLessons: Array.from(newCompleted),
+          progress: Math.round(newProgress),
+          completed: newProgress === 100
+      });
+      setCompletedLessons(newCompleted);
+    } catch (error) {
+      console.error('Failed to save lesson progress:', error);
+      toast({ title: 'Progress not saved', description: 'Your lesson could not be marked complete. Please try again.', variant: 'destructive' });
+      return;
+    }
 
     if (newProgress === 100) {
         const achievement = await checkCourseCompletionAchievements(user.uid, course.id);
         if (achievement) {
             toast({
                 title: 'Achievement Unlocked!',
-                description: `${'achievement.name'}: ${'achievement.description'}`
+                description: `${achievement.name}: ${achievement.description}`
             });
         }
     }
