@@ -21,12 +21,13 @@ interface NotesSheetProps {
     courseTitle: string;
 }
 
-const GoogleDriveIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" {...props}>
-        <path d="M330.2 284.4l-15.1 26.2-70.2-121.5L200 81l130.2 203.4z" fill="#ffc107"/>
-        <path d="M117.9 284.4L73 368.8l102.3-177.2L219.7 121l-101.8 163.4z" fill="#03a9f4"/>
-        <path d="M375.1 368.8L440 256H199.3l-47.5 82.3 223.3.5z" fill="#4caf50"/>
-    </svg>
+const GoogleDriveIcon = ({ className }: { className?: string }) => (
+    <img
+        src="https://ssl.gstatic.com/images/branding/productlogos/drive_2026/v2/ico/drive_2026_256dp.ico"
+        alt=""
+        aria-hidden="true"
+        className={className}
+    />
 );
 
 export function NotebookSheet({ courseId, courseTitle }: NotesSheetProps) {
@@ -147,7 +148,7 @@ export function NotebookSheet({ courseId, courseTitle }: NotesSheetProps) {
                                     <DialogTrigger asChild>
                                         <Button variant="outline" size="sm">
                                             <GoogleDriveIcon className="mr-2 h-4 w-4" />
-                                            Save to Drive
+                                            Save to Google Drive
                                         </Button>
                                     </DialogTrigger>
                                     <DialogContent>

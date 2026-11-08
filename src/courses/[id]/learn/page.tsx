@@ -23,6 +23,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { courseTutor, speechToText, textToSpeech } from '@/app/actions';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TUTOR_MODELS, DEFAULT_TUTOR_MODEL, type TutorModelId } from '@/lib/tutor-models';
 import { useRecorder } from '@/hooks/use-recorder';
 import { Separator } from '@/components/ui/separator';
 import jsPDF from 'jspdf';
@@ -74,12 +76,8 @@ function getWeekdayCount(startDate: Date, endDate: Date): number {
 }
 
 
-const GoogleDriveIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" {...props}>
-        <path d="M330.2 284.4l-15.1 26.2-70.2-121.5L200 81l130.2 203.4z" fill="#ffc107"/>
-        <path d="M117.9 284.4L73 368.8l102.3-177.2L219.7 121l-101.8 163.4z" fill="#03a9f4"/>
-        <path d="M375.1 368.8L440 256H199.3l-47.5 82.3 223.3.5z" fill="#4caf50"/>
-    </svg>
+const GoogleDriveIcon = ({ className }: { className?: string }) => (
+    <img src="https://ssl.gstatic.com/images/branding/productlogos/drive_2026/v2/ico/drive_2026_256dp.ico" alt="" aria-hidden="true" className={className} />
 );
 
 
@@ -194,6 +192,7 @@ function AiTutor({ course, lesson, settings }: { course: Course, lesson: Lesson 
     const [messages, setMessages] = useState<TutorMessage[]>([]);
     const [question, setQuestion] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [selectedModel, setSelectedModel] = useState<TutorModelId>(DEFAULT_TUTOR_MODEL);
     const audioRef = useRef<HTMLAudioElement>(null);
     const { isRecording, startRecording, stopRecording } = useRecorder();
 
@@ -203,6 +202,13 @@ function AiTutor({ course, lesson, settings }: { course: Course, lesson: Lesson 
         { label: 'Tutor Me', icon: Pencil, action: 'tutor_me' as const },
     ];
     
+    useEffect(() => {
+        const savedModel = window.localStorage.getItem('varban-lesson-tutor-model');
+        if (savedModel && TUTOR_MODELS.some(model => model.id === savedModel)) {
+            setSelectedModel(savedModel as TutorModelId);
+        }
+    }, []);
+
     useEffect(() => {
         const loadHistory = async () => {
             if (user && course && lesson) {
@@ -239,7 +245,8 @@ function AiTutor({ course, lesson, settings }: { course: Course, lesson: Lesson 
                 courseContext: lesson.content,
                 history: messages.map(({ audioUrl, suggestions, ...rest }) => ({ ...rest, role: rest.role === 'assistant' ? 'model' as const : 'user' as const })), // pass clean history
                 voice: settings?.voice,
-                speed: settings?.speed
+                speed: settings?.speed,
+                model: selectedModel
             });
             
             const tutorMessage: TutorMessage = { 
@@ -255,7 +262,8 @@ function AiTutor({ course, lesson, settings }: { course: Course, lesson: Lesson 
 
         } catch (error) {
             console.error("AI Tutor failed:", error);
-            toast({ title: 'Error', description: 'The AI Tutor is currently unavailable. Please try again later.', variant: 'destructive'});
+            const missingKey = error instanceof Error && error.message.includes('GEMINI_API_KEY');
+            toast({ title: 'AI tutor unavailable', description: missingKey ? 'The AI tutor service is not configured. Please contact the academy team.' : 'The tutor could not connect to its AI provider. Please try again shortly.', variant: 'destructive'});
             setMessages(prev => prev.slice(0, -1));
         } finally {
             setIsLoading(false);
@@ -294,6 +302,25 @@ function AiTutor({ course, lesson, settings }: { course: Course, lesson: Lesson 
                                 <SheetDescription>
                                     Your AI tutor for this lesson.
                                 </SheetDescription>
+                                <div className="mt-3 flex flex-wrap items-center gap-2">
+                                    <span className="text-xs font-medium text-muted-foreground">AI model</span>
+                                    <Select value={selectedModel} onValueChange={(value) => {
+                                        const nextModel = value as TutorModelId;
+                                        setSelectedModel(nextModel);
+                                        window.localStorage.setItem('varban-lesson-tutor-model', nextModel);
+                                    }}>
+                                        <SelectTrigger className="h-9 w-full max-w-[250px] text-xs">
+                                            <SelectValue placeholder="Choose an AI model" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {TUTOR_MODELS.map((model) => (
+                                                <SelectItem key={model.id} value={model.id}>
+                                                    {model.name}{model.recommended ? ' · Recommended' : ''}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                         </div>
                     </SheetHeader>
