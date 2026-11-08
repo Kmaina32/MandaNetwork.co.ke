@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useAuth } from '@/hooks/use-auth';
 
 const groups = [
   { title: 'Learn', links: [['Courses and programs', '/programs'], ['Bootcamps', '/bootcamps'], ['Insights and guides', '/blog'], ['Live learning', '/live']] },
@@ -9,6 +10,11 @@ const groups = [
 ];
 
 export function Footer() {
+  const { user, loading } = useAuth();
+
+  // Keep public disclosures on public pages, not inside authenticated workspaces.
+  if (loading || user) return null;
+
   return (
     <footer className="border-t border-neutral-200 bg-white text-neutral-950">
       <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:py-16">
