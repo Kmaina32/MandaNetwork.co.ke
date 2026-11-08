@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +15,9 @@ import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 export default function UnverifiedPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedPath = searchParams.get('next') || searchParams.get('redirect') || '/dashboard';
+  const returnPath = requestedPath.startsWith('/') && !requestedPath.startsWith('//') ? requestedPath : '/dashboard';
   const { user, loading, sendVerificationEmail, logout } = useAuth();
   const { toast } = useToast();
   const [isSending, setIsSending] = useState(false);
@@ -22,9 +25,9 @@ export default function UnverifiedPage() {
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        router.push('/login');
+        router.replace(`/login?next=${encodeURIComponent(returnPath)}`);
       } else if (user.emailVerified) {
-        router.push('/dashboard');
+        router.replace(returnPath);
       }
     }
   }, [user, loading, router]);

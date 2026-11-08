@@ -3,7 +3,7 @@
 'use client';
 
 import { useAuth } from '@/hooks/use-auth';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Loader2 } from 'lucide-react';
@@ -19,10 +19,13 @@ export default function PortalLayout({
 }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/login?redirect=/portal/hackathons');
+      const requested = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+      router.replace(`/login?redirect=${encodeURIComponent(requested)}`);
     }
   }, [user, loading, router]);
 
