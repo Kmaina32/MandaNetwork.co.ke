@@ -38,7 +38,7 @@ const CodeBlock = ({ node, inline, className, children, ...props }: any) => {
     }
 
     return (
-        <div className="my-4 min-w-0 max-w-full overflow-hidden">
+        <div className="my-4">
             <div className={cn("rounded-md border", match ? `language-${match[1]}` : '')}>
                 <div className="flex items-center justify-between bg-secondary px-4 py-2 rounded-t-md">
                     <span className="text-xs font-semibold uppercase text-muted-foreground">{match ? match[1] : 'code'}</span>
@@ -46,7 +46,7 @@ const CodeBlock = ({ node, inline, className, children, ...props }: any) => {
                         {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                     </Button>
                 </div>
-                 <pre className="max-w-full overflow-x-auto p-3 sm:p-4 bg-background rounded-b-md text-xs sm:text-sm font-mono" {...props}>{children}</pre>
+                 <pre className="p-4 bg-background rounded-b-md overflow-x-auto text-sm font-mono" {...props}>{children}</pre>
             </div>
         </div>
     );
@@ -62,7 +62,7 @@ export function LessonContent({ lesson }: LessonContentProps) {
 
   return (
     <div className="min-w-0 w-full">
-        <div className="w-full min-w-0 max-w-full pr-1 sm:pr-4">
+        <div className="pr-4">
           <h1 className="mb-4 break-words text-2xl font-bold font-headline sm:text-3xl">{lesson.title}</h1>
           <div className="prose prose-sm max-w-none break-words text-foreground/90 mb-6 sm:prose-base [overflow-wrap:anywhere]" style={{ whiteSpace: 'pre-wrap' }}>
               <ReactMarkdown
