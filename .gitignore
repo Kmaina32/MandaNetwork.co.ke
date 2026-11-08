@@ -39,3 +39,6 @@ next-env.d.ts
 # Generated deployment/workspace snapshots; application source lives in src/.
 /vercel/
 /workspace/
+
+# Never commit local credential examples or local secret files
+.env.local.example
