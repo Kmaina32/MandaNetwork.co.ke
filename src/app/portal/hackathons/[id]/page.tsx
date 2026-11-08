@@ -188,6 +188,7 @@ export default function HackathonDetailPage() {
           itemId={hackathon.id}
           itemName={hackathon.title}
           price={hackathon.entryFee}
+          purchaseType="hackathon"
           onPaymentSuccess={handleRegister}
         />
       )}
