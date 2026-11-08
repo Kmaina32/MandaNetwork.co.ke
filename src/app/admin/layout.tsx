@@ -61,12 +61,10 @@ export default function AdminLayout({
       return <AdminAccessDenied />;
   }
 
+  // Auth has finished loading. A missing profile must fail closed instead of
+  // leaving the administrator on an infinite loading screen.
   if (!dbUser) {
-      return (
-        <div className="flex h-screen items-center justify-center">
-          <LoadingAnimation />
-        </div>
-      );
+      return <AdminAccessDenied />;
   }
 
   if (!isAdmin) {
