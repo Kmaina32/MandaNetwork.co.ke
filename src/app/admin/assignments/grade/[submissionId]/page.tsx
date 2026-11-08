@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
-import { getSubmissionById, getCourseById, updateSubmission, updateUserCourseProgress, awardLeaderboardPoints } from '@/lib/firebase-service';
+import { getSubmissionById, getCourseById, updateSubmission, updateUserCourseProgress, awardLeaderboardPoints, publishCertificateRecord } from '@/lib/firebase-service';
 import type { Submission, Course, ExamQuestion, ShortAnswerQuestion } from '@/lib/types';
 import { gradeShortAnswerExam } from '@/app/actions';
 import type { GradeShortAnswerExamOutput } from '@/ai/flows/grade-short-answer-exam';
@@ -148,6 +148,14 @@ export default function GradeSubmissionPage() {
             await updateUserCourseProgress(submission.userId, submission.courseId, {
                 certificateAvailable: true,
                 certificateId: certificateId,
+            });
+            await publishCertificateRecord({
+                certificateId,
+                studentName: submission.userName || 'Student',
+                courseId: course.id,
+                courseTitle: course.title,
+                issuedAt: new Date().toISOString(),
+                status: 'valid',
             });
             toast({ title: 'Grade Saved! Certificate Awarded.', description: `Final score: ${totalPointsAwarded}/${totalMaxPoints} (${Math.round(finalPercentage)}%)` });
         } else {
