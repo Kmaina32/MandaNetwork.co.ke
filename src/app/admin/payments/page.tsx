@@ -77,6 +77,8 @@ export default function AdminPaymentsPage() {
     switch (method) {
         case 'mpesa':
             return <Icon icon="simple-icons:mpesa" className="h-5 w-5 text-green-600" />;
+        case 'paystack':
+            return <Icon icon="simple-icons:paystack" className="h-5 w-5" />;
         case 'card':
             return <CreditCard className="h-5 w-5 text-blue-500" />;
         case 'paypal':
