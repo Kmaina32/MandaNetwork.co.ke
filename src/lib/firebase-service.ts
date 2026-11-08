@@ -909,37 +909,38 @@ export async function getDocument(docType: string): Promise<string> {
 
 
 // Certificate Verification
-export async function getVerifiedCertificateData(certificateId: string): Promise<{isValid: boolean, student?: RegisteredUser, course?: Course}> {
-    const usersRef = ref(db, 'users');
-    const snapshot = await get(usersRef);
-    if (!snapshot.exists()) return { isValid: false };
-    
-    const usersData = snapshot.val();
-    let foundUser: RegisteredUser | undefined;
-    let foundCourseId: string | undefined;
+export interface PublicCertificateRecord {
+    certificateId: string;
+    studentName: string;
+    studentPhotoURL?: string;
+    courseId: string;
+    courseTitle: string;
+    issuedAt: string;
+    status: 'valid' | 'revoked';
+}
 
-    for (const uid of Object.keys(usersData)) {
-        const user = usersData[uid];
-        if (user.purchasedCourses) {
-            for (const courseId of Object.keys(user.purchasedCourses)) {
-                if (user.purchasedCourses[courseId].certificateId === certificateId) {
-                    foundUser = { uid, ...user };
-                    foundCourseId = courseId;
-                    break;
-                }
-            }
-        }
-        if (foundUser) break;
+export async function publishCertificateRecord(record: PublicCertificateRecord): Promise<void> {
+    if (!record.certificateId || !record.studentName || !record.courseId || !record.courseTitle) {
+        throw new Error('Certificate verification record is incomplete.');
     }
-    
-    if (foundUser && foundCourseId) {
-        const course = await getCourseById(foundCourseId);
-        if (course) {
-            return { isValid: true, student: foundUser, course: course };
-        }
-    }
-    
-    return { isValid: false };
+    await set(ref(db, `publicCertificates/${record.certificateId}`), { ...record, status: 'valid' });
+}
+
+export async function getVerifiedCertificateData(certificateId: string): Promise<{
+    isValid: boolean;
+    student?: Pick<RegisteredUser, 'displayName' | 'photoURL'>;
+    course?: Pick<Course, 'id' | 'title'>;
+}> {
+    if (!certificateId) return { isValid: false };
+    const snapshot = await get(ref(db, `publicCertificates/${certificateId}`));
+    if (!snapshot.exists()) return { isValid: false };
+    const record = snapshot.val() as PublicCertificateRecord;
+    if (record.status !== 'valid' || record.certificateId !== certificateId) return { isValid: false };
+    return {
+        isValid: true,
+        student: { displayName: record.studentName, photoURL: record.studentPhotoURL || '' },
+        course: { id: record.courseId, title: record.courseTitle },
+    };
 }
 
 

@@ -81,11 +81,12 @@
       ".write": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now))"
     },
     "organizations": {
-      ".read": "auth != null",
+      ".read": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || (query.orderByChild === 'ownerId' && query.equalTo === auth.uid))",
       ".indexOn": "ownerId",
       "$orgId": {
         ".write": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || (data.exists() && data.child('ownerId').val() === auth.uid) || (!data.exists() && newData.child('ownerId').val() === auth.uid))",
-        ".validate": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now) || (!data.exists() && newData.child('ownerId').val() === auth.uid && newData.child('subscriptionTier').val() === 'trial' && newData.child('memberLimit').val() <= 5) || (newData.child('ownerId').val() === data.child('ownerId').val() && newData.child('subscriptionTier').val() === data.child('subscriptionTier').val() && newData.child('subscriptionExpiresAt').val() === data.child('subscriptionExpiresAt').val() && newData.child('memberLimit').val() === data.child('memberLimit').val()))"
+        ".validate": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now) || (!data.exists() && newData.child('ownerId').val() === auth.uid && newData.child('subscriptionTier').val() === 'trial' && newData.child('memberLimit').val() <= 5) || (newData.child('ownerId').val() === data.child('ownerId').val() && newData.child('subscriptionTier').val() === data.child('subscriptionTier').val() && newData.child('subscriptionExpiresAt').val() === data.child('subscriptionExpiresAt').val() && newData.child('memberLimit').val() === data.child('memberLimit').val()))",
+        ".read": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || data.child('ownerId').val() === auth.uid || root.child('users').child(auth.uid).child('organizationId').val() === $orgId)"
       }
     },
     "invitations": {
@@ -323,6 +324,14 @@
     "assignments": {
       ".read": "auth != null",
       ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
+    },
+    "publicCertificates": {
+      ".read": true,
+      "$certificateId": {
+        ".read": true,
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now))",
+        ".validate": "newData.hasChildren(['certificateId','studentName','courseId','courseTitle','issuedAt','status']) && newData.child('certificateId').val() === $certificateId && (newData.child('status').val() === 'valid' || newData.child('status').val() === 'revoked')"
+      }
     }
   }
 }

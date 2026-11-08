@@ -13,8 +13,8 @@ import Link from 'next/link';
 
 interface VerificationResult {
     isValid: boolean;
-    student?: RegisteredUser;
-    course?: Course;
+    student?: Pick<RegisteredUser, 'displayName' | 'photoURL'>;
+    course?: Pick<Course, 'id' | 'title'>;
 }
 
 const getInitials = (name: string | null | undefined) => {

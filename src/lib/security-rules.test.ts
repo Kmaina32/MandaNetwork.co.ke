@@ -50,4 +50,17 @@ describe('Firebase Realtime Database security rules', () => {
     expect(invitationRules.$invitationId['.read']).toContain("data.child('organizationId').val()");
   });
 
+  it('limits organization reads to admins, owners, and members', () => {
+    expect(rules.organizations['.read']).toContain("query.orderByChild === 'ownerId'");
+    expect(rules.organizations['.read']).toContain("query.equalTo === auth.uid");
+    expect(rules.organizations.$orgId['.read']).toContain("data.child('ownerId').val() === auth.uid");
+    expect(rules.organizations.$orgId['.read']).toContain("child('organizationId').val() === $orgId");
+  });
+
+  it('publishes minimal public certificate records and restricts writes to admins', () => {
+    expect(rules.publicCertificates['.read']).toBe(true);
+    expect(rules.publicCertificates.$certificateId['.write']).toContain("child('isAdmin')");
+    expect(rules.publicCertificates.$certificateId['.validate']).toContain("newData.child('certificateId').val() === $certificateId");
+  });
+
 });
