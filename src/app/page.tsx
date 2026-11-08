@@ -16,7 +16,6 @@ import { Header } from "@/components/Header";
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
-import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
 
@@ -26,7 +25,6 @@ export default function Home() {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [userCourses, setUserCourses] = useState<UserCourse[]>([]);
   const [heroData, setHeroData] = useState({ title: '', subtitle: '', imageUrl: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,6 +114,14 @@ export default function Home() {
                     <p className="text-lg md:text-xl max-w-3xl mx-auto break-words">
                     {heroData.subtitle}
                     </p>
+                    <div className="mt-7 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row">
+                      <Button asChild size="lg" className="min-w-44 bg-white text-black hover:bg-white/90">
+                        <Link href="/signup">Get started</Link>
+                      </Button>
+                      <Button asChild size="lg" variant="outline" className="min-w-44 border-white/80 bg-transparent text-white hover:bg-white/10 hover:text-white">
+                        <Link href="/programs">Explore programs</Link>
+                      </Button>
+                    </div>
                 </div>
               </div>
             </div>
