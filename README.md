@@ -68,7 +68,7 @@ Follow these instructions to get a copy of the project up and running on your lo
     NVIDIA_API_KEY="YOUR_NVIDIA_API_KEY"
     # Optional per-surface model overrides (exact NVIDIA API Catalog IDs)
     NVIDIA_STUDENT_MODEL="nvidia/nemotron-3.5-lightning-30b-a3b"
-    NVIDIA_HELP_MODEL="deepseek-ai/deepseek-v4-flash"
+    NVIDIA_HELP_MODEL="deepseek-ai/deepseek-v4.1-flash"
     NVIDIA_ADMIN_MODEL="nvidia/nemotron-3-super-120b-a12b"
 
     # M-Pesa Daraja API (Sandbox)

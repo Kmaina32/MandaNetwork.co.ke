@@ -1,14 +1,14 @@
-/** Server-side NVIDIA NIM routing. Overrides are exact NVIDIA API Catalog model IDs. */
+/** Server-side NVIDIA NIM routing. Values are exact NVIDIA API Catalog model IDs. */
+const modelRef = (modelId: string) => `nvidiaNim/${modelId}`;
+
 export const NVIDIA_MODEL_ROUTING = {
-  student: process.env.NVIDIA_STUDENT_MODEL?.trim()
-    ? `nvidiaNim/${process.env.NVIDIA_STUDENT_MODEL.trim()}`
-    : 'nvidiaNim/nvidia/nemotron-3.5-lightning-30b-a3b',
-  help: process.env.NVIDIA_HELP_MODEL?.trim()
-    ? `nvidiaNim/${process.env.NVIDIA_HELP_MODEL.trim()}`
-    : 'nvidiaNim/deepseek-ai/deepseek-v4-flash',
-  admin: process.env.NVIDIA_ADMIN_MODEL?.trim()
-    ? `nvidiaNim/${process.env.NVIDIA_ADMIN_MODEL.trim()}`
-    : 'nvidiaNim/nvidia/nemotron-3-super-120b-a12b',
+  student: modelRef(process.env.NVIDIA_STUDENT_MODEL?.trim() || 'deepseek-ai/deepseek-v4.1-flash'),
+  help: modelRef(
+    process.env.NVIDIA_HELP_MODEL?.trim()
+      || process.env.NVIDIA_SUPPORT_MODEL?.trim()
+      || 'nvidia/nemotron-3.5-bolt-e4b',
+  ),
+  admin: modelRef(process.env.NVIDIA_ADMIN_MODEL?.trim() || 'nvidia/nemotron-3-super-120b-a12b'),
 } as const;
 
 export function assertNvidiaConfigured(): void {
