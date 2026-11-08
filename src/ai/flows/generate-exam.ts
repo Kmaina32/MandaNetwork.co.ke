@@ -10,7 +10,6 @@
 
 import { ai } from '@/ai/genkit-instance';
 import {z} from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
 
 const GenerateExamInputSchema = z.object({
   courseTitle: z.string().describe('The title of the course.'),

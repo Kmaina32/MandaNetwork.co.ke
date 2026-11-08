@@ -24,6 +24,7 @@ import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { headers } from 'next/headers';
 import { createHash } from 'node:crypto';
 import { checkHackathonParticipantAchievement } from '@/lib/achievements';
+import { assertNvidiaConfigured } from '@/lib/nvidia-models';
 
 
 const SERVER_ACTION_WINDOW_MS = 10 * 60 * 1000;
@@ -55,12 +56,14 @@ async function enforceServerActionRateLimit(actionName: string, maxCalls = SERVE
 // is only loaded on the server when the action is executed.
 
 export async function getLearningPath(input: LearningPathInput): Promise<LearningPathOutput> {
+    assertNvidiaConfigured();
     await enforceServerActionRateLimit('getLearningPath');
   const { getLearningPath } = await import('@/ai/flows/career-coach');
   return getLearningPath(input);
 }
 
 export async function runContentStrategy(): Promise<ContentStrategyOutput> {
+    assertNvidiaConfigured();
     await enforceServerActionRateLimit('runContentStrategy');
   const { runContentStrategy } = await import('@/ai/flows/content-strategy');
   return runContentStrategy();
@@ -68,6 +71,7 @@ export async function runContentStrategy(): Promise<ContentStrategyOutput> {
 
 export async function courseTutor(input: CourseTutorInput): Promise<CourseTutorOutput> {
     // Students on shared school/mobile networks should not exhaust a tiny global IP quota.
+    assertNvidiaConfigured();
     await enforceServerActionRateLimit('courseTutor', 60);
   const { courseTutor } = await import('@/ai/flows/course-tutor');
   return courseTutor(input);
@@ -80,24 +84,28 @@ export async function generateApiKey(input: GenerateApiKeyInput): Promise<ApiKey
 }
 
 export async function generateCourseContent(input: GenerateCourseContentInput): Promise<GenerateCourseContentOutput> {
+    assertNvidiaConfigured();
     await enforceServerActionRateLimit('generateCourseContent');
   const { generateCourseContent } = await import('@/ai/flows/generate-course-content');
   return generateCourseContent(input);
 }
 
 export async function generateExam(input: GenerateExamInput): Promise<GenerateExamOutput> {
+    assertNvidiaConfigured();
     await enforceServerActionRateLimit('generateExam');
   const { generateExam } = await import('@/ai/flows/generate-exam');
   return generateExam(input);
 }
 
 export async function generateProject(input: GenerateProjectInput): Promise<GenerateProjectOutput> {
+    assertNvidiaConfigured();
     await enforceServerActionRateLimit('generateProject');
     const { generateProject } = await import('@/ai/flows/generate-project');
     return generateProject(input);
 }
 
 export async function gradeShortAnswerExam(input: GradeShortAnswerExamInput): Promise<GradeShortAnswerExamOutput> {
+    assertNvidiaConfigured();
     await enforceServerActionRateLimit('gradeShortAnswerExam');
   const { gradeShortAnswerExam } = await import('@/ai/flows/grade-short-answer-exam');
   return gradeShortAnswerExam(input);
@@ -137,12 +145,14 @@ export async function processPayPalPayment(_input: PayPalPaymentInput): Promise<
 
 
 export async function siteHelp(input: SiteHelpInput): Promise<SiteHelpOutput> {
+    assertNvidiaConfigured();
     await enforceServerActionRateLimit('siteHelp');
   const { siteHelp } = await import('@/ai/flows/site-help');
   return siteHelp(input);
 }
 
 export async function studentHelp(input: StudentHelpInput): Promise<StudentHelpOutput> {
+    assertNvidiaConfigured();
     await enforceServerActionRateLimit('studentHelp');
   const { studentHelp } = await import('@/ai/flows/student-help');
   return studentHelp(input);
@@ -167,6 +177,7 @@ export async function sendOrganizationInvite(input: SendOrgInviteInput): Promise
 }
 
 export async function generateFormalDocument(input: { docType: string; content: string; }): Promise<GenerateFormalDocumentOutput> {
+    assertNvidiaConfigured();
     await enforceServerActionRateLimit('generateFormalDocument');
     const { generateFormalDocument } = await import('@/ai/flows/generate-document');
     const result = await generateFormalDocument({ docType: input.docType as any, content: input.content });
@@ -175,6 +186,7 @@ export async function generateFormalDocument(input: { docType: string; content: 
 }
 
 export async function generateHackathonIdeas(input: GenerateHackathonIdeasInput): Promise<GenerateHackathonIdeasOutput> {
+    assertNvidiaConfigured();
     await enforceServerActionRateLimit('generateHackathonIdeas');
     const { generateHackathonIdeas } = await import('@/ai/flows/generate-hackathon-ideas');
     const result = await generateHackathonIdeas(input);

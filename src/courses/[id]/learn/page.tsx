@@ -262,7 +262,7 @@ function AiTutor({ course, lesson, settings }: { course: Course, lesson: Lesson 
 
         } catch (error) {
             console.error("AI Tutor failed:", error);
-            const missingKey = error instanceof Error && error.message.includes('GEMINI_API_KEY');
+            const missingKey = error instanceof Error && error.message.includes('NVIDIA_API_KEY');
             toast({ title: 'AI tutor unavailable', description: missingKey ? 'The AI tutor service is not configured. Please contact the academy team.' : 'The tutor could not connect to its AI provider. Please try again shortly.', variant: 'destructive'});
             setMessages(prev => prev.slice(0, -1));
         } finally {

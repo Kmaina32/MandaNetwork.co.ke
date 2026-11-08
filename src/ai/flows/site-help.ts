@@ -10,7 +10,7 @@
 
 import { ai } from '@/ai/genkit-instance';
 import {z} from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
+import { NVIDIA_MODEL_ROUTING, assertNvidiaConfigured } from '@/lib/nvidia-models';
 
 const SiteHelpInputSchema = z.object({
   question: z.string().describe('The question the user is asking about the site.'),
@@ -25,6 +25,7 @@ export type SiteHelpOutput = z.infer<typeof SiteHelpOutputSchema>;
 export async function siteHelp(
   input: SiteHelpInput
 ): Promise<SiteHelpOutput> {
+  assertNvidiaConfigured();
   return siteHelpFlow(input);
 }
 
@@ -86,7 +87,7 @@ const siteHelpFlow = ai.defineFlow(
     outputSchema: SiteHelpOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const {output} = await prompt(input, { model: NVIDIA_MODEL_ROUTING.admin });
     return output!;
   }
 );

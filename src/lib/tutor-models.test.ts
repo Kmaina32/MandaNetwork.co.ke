@@ -14,6 +14,9 @@ describe('lesson tutor model selection', () => {
       expect(model.description.trim()).not.toBe('');
     }
   });
+  it('uses only NVIDIA NIM model identifiers', () => {
+    expect(TUTOR_MODEL_IDS.every((id) => id.startsWith('nvidiaNim/'))).toBe(true);
+  });
   it('marks no more than one model as recommended', () => {
     expect(TUTOR_MODELS.filter((model) => model.recommended).length).toBeLessThanOrEqual(1);
   });

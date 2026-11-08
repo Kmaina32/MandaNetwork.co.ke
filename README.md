@@ -23,7 +23,7 @@ Varban Academy is an AI-powered online learning platform designed to provide hig
 -   **Language**: [TypeScript](https://www.typescriptlang.org/)
 -   **Styling**: [Tailwind CSS](https://tailwindcss.com/) with [ShadCN/UI](https://ui.shadcn.com/) components.
 -   **Backend & Database**: [Firebase](https://firebase.google.com/) (Authentication, Realtime Database, Storage, Remote Config).
--   **Generative AI**: [Google's Genkit](https://firebase.google.com/docs/genkit) framework integrated with the Gemini family of models.
+-   **Generative AI**: [Genkit](https://genkit.dev/) routed through [NVIDIA NIM](https://build.nvidia.com/) using NVIDIA-hosted Nemotron, DeepSeek and GLM models.
 -   **Payments**: [Safaricom Daraja API](https://developer.safaricom.co.ke/) for M-Pesa payments.
 
 ## ⚙️ Getting Started
@@ -34,7 +34,7 @@ Follow these instructions to get a copy of the project up and running on your lo
 
 -   Node.js (v18 or later)
 -   An active Firebase project.
--   A Google AI API Key with the Gemini models enabled.
+-   An NVIDIA API Catalog API key with access to the selected NIM models.
 -   A Safaricom Daraja developer account with sandbox credentials.
 
 ### Installation
@@ -64,8 +64,12 @@ Follow these instructions to get a copy of the project up and running on your lo
     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="YOUR_FIREBASE_MESSAGING_SENDER_ID"
     NEXT_PUBLIC_FIREBASE_APP_ID="YOUR_FIREBASE_APP_ID"
 
-    # Google AI (Gemini)
-    GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+    # NVIDIA NIM (server-only; never expose this key to the browser)
+    NVIDIA_API_KEY="YOUR_NVIDIA_API_KEY"
+    # Optional per-surface model overrides (exact NVIDIA API Catalog IDs)
+    NVIDIA_STUDENT_MODEL="nvidia/nemotron-3.5-lightning-30b-a3b"
+    NVIDIA_HELP_MODEL="deepseek-ai/deepseek-v4-flash"
+    NVIDIA_ADMIN_MODEL="nvidia/nemotron-3-super-120b-a12b"
 
     # M-Pesa Daraja API (Sandbox)
     MPESA_CONSUMER_KEY="YOUR_MPESA_CONSUMER_KEY"

@@ -6,7 +6,6 @@
 
 import { ai } from '@/ai/genkit-instance';
 import { z } from 'zod';
-import { googleAI } from '@genkit-ai/googleai';
 
 export const GenerateHackathonIdeasInputSchema = z.object({
   theme: z.string().describe('The central theme for the hackathon ideas, e.g., "Fintech in Kenya".'),

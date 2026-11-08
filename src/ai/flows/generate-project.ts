@@ -10,7 +10,6 @@
 
 import { ai } from '@/ai/genkit-instance';
 import {z} from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
 import { updateCourse } from '@/lib/firebase-service';
 import { PortfolioProject } from '@/lib/types';
 
