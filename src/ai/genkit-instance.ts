@@ -1,23 +1,18 @@
-
-// This file is for SERVER-SIDE use only.
-// It initializes the Genkit instance with plugins that have server dependencies.
-// Do NOT import this file in any client-side components.
-
+// Server-only Genkit configuration for NVIDIA NIM.
 import { genkit } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
+import { openAICompatible } from '@genkit-ai/compat-oai';
 
-const plugins = [];
+const apiKey = process.env.NVIDIA_API_KEY;
 
-if (process.env.GEMINI_API_KEY) {
-  plugins.push(googleAI());
-} else {
-  if (process.env.NODE_ENV === 'production') {
-    console.warn("GEMINI_API_KEY is not set. Google AI features will be disabled.");
-  } else {
-    console.warn("GEMINI_API_KEY is not set. All AI features will be disabled.");
-  }
+if (!apiKey && process.env.NODE_ENV === 'production') {
+  console.warn('NVIDIA_API_KEY is not configured. Varban Academy AI features are unavailable.');
 }
 
 export const ai = genkit({
-  plugins,
+  plugins: apiKey ? [openAICompatible({
+    name: 'nvidia',
+    apiKey,
+    baseURL: 'https://integrate.api.nvidia.com/v1',
+  })] : [],
+  model: 'nvidia/meta/llama-3.1-70b-instruct',
 });
