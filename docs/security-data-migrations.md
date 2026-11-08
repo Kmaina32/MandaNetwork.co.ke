@@ -13,7 +13,7 @@ The script removes records not explicitly marked public and rewrites public reco
 
 ## Certificate verification
 
-New awards create a minimal `publicCertificates/{certificateId}` record. Public verification reads only that record; only active administrators may write it. Certificates issued before this change need a backfill before they can be verified using the new path. The former full-users scan is intentionally removed.
+New awards create a minimal `publicCertificates/{certificateId}` record. Public verification reads only that record; only active administrators may write it. Certificates issued before this change need a backfill before they can be verified using the new path. Run `node scripts/backfill-public-certificates.cjs` with the same trusted service-account environment. The backfill preserves records already marked revoked. The former full-users scan is intentionally removed.
 
 ## Organization access
 
