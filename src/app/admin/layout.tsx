@@ -55,25 +55,23 @@ export default function AdminLayout({
      )
   }
 
-  // If user is not logged in OR if user data is still being fetched (dbUser is null) and it's not the initial loading phase
-  if (!user || (!dbUser && !loading)) {
+  // Keep the admin boundary explicit: authenticate first, wait for the profile,
+  // then authorize the role before rendering any admin navigation or content.
+  if (!user) {
       return <AdminAccessDenied />;
   }
 
-  // If user is loaded but not an admin
-  if (dbUser && !isAdmin) {
+  if (!dbUser) {
+      return (
+        <div className="flex h-screen items-center justify-center">
+          <LoadingAnimation />
+        </div>
+      );
+  }
+
+  if (!isAdmin) {
       return <AdminAccessDenied />;
   }
-
-  // Show a loading state while dbUser is being populated for a logged-in user
-  if (user && !dbUser) {
-    return (
-       <div className="flex h-screen items-center justify-center">
-           <LoadingAnimation />
-       </div>
-    )
-  }
-
 
   // If we are here, user is an admin.
   return (
