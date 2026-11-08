@@ -55,8 +55,8 @@ export function CoursePlayerTabs({ lesson, course }: CoursePlayerTabsProps) {
     }
 
     return (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex w-full min-w-0 flex-1 flex-col">
-            <TabsList className="mb-4 grid h-auto w-full grid-cols-3 gap-1 p-1 sm:flex sm:w-fit sm:gap-0">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex w-full min-w-0 max-w-full flex-1 flex-col overflow-x-hidden">
+            <TabsList className="mb-4 grid h-auto w-full max-w-full grid-cols-3 gap-1 p-1 sm:flex sm:w-fit sm:gap-0">
                 <TabsTrigger value="lesson" className="min-w-0 px-2 text-xs sm:px-3 sm:text-sm">
                     <FileText className="mr-2 h-4 w-4" />
                     Lesson
@@ -70,10 +70,10 @@ export function CoursePlayerTabs({ lesson, course }: CoursePlayerTabsProps) {
                     Discussion
                 </TabsTrigger>
             </TabsList>
-            <TabsContent value="lesson" className="min-w-0 flex-1">
+            <TabsContent value="lesson" className="w-full min-w-0 max-w-full flex-1">
                 <LessonContent lesson={lesson} />
             </TabsContent>
-            <TabsContent value="video" className="min-h-0 min-w-0 flex-1">
+            <TabsContent value="video" className="min-h-0 w-full min-w-0 max-w-full flex-1">
                 {videoUrl ? (
                     <iframe
                         src={videoUrl}
@@ -81,7 +81,7 @@ export function CoursePlayerTabs({ lesson, course }: CoursePlayerTabsProps) {
                         frameBorder="0"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                         allowFullScreen
-                        className="aspect-video w-full rounded-lg"
+                        className="block aspect-video h-auto max-h-[70dvh] w-full max-w-full rounded-lg"
                     ></iframe>
                 ) : (
                     <div className="flex items-center justify-center h-full bg-black rounded-lg">
@@ -89,7 +89,7 @@ export function CoursePlayerTabs({ lesson, course }: CoursePlayerTabsProps) {
                     </div>
                 )}
             </TabsContent>
-            <TabsContent value="discussion">
+            <TabsContent value="discussion" className="w-full min-w-0 max-w-full flex-1">
                 <DiscussionForum courseId={course.id} />
             </TabsContent>
         </Tabs>

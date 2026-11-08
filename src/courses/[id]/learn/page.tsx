@@ -635,8 +635,8 @@ export default function CoursePlayerPage() {
            </Header>
          ) : <Header />}
 
-        <div className="flex h-[calc(100vh-4rem)]">
-          <div className="flex-grow flex flex-col md:flex-row overflow-hidden relative">
+        <div className="flex h-[calc(100dvh-4rem)] w-full min-w-0 max-w-full overflow-hidden">
+          <div className="flex w-full min-w-0 max-w-full flex-1 flex-col overflow-hidden relative md:flex-row">
             {!isMobile && (
               <aside className="w-full md:w-80 lg:w-96 bg-background border-r flex-shrink-0 overflow-y-auto">
                  <CourseOutline 
@@ -651,23 +651,23 @@ export default function CoursePlayerPage() {
               </aside>
             )}
 
-            <main className="flex-grow p-6 md:p-8 overflow-y-auto bg-secondary relative flex flex-col">
-               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-grow flex flex-col">
-                  <TabsList className="mb-4 flex-shrink-0">
-                    <TabsTrigger value="lesson">
+            <main className="relative flex w-full min-w-0 max-w-full flex-1 flex-col overflow-x-hidden overflow-y-auto bg-secondary p-3 sm:p-4 md:p-8">
+               <Tabs value={activeTab} onValueChange={setActiveTab} className="flex w-full min-w-0 max-w-full flex-1 flex-col">
+                  <TabsList className="mb-4 grid h-auto w-full flex-shrink-0 grid-cols-3 gap-1 p-1 sm:flex sm:w-fit sm:gap-0">
+                    <TabsTrigger value="lesson" className="min-w-0 px-2 text-xs sm:px-3 sm:text-sm">
                         <FileText className="mr-2 h-4 w-4" />
                         Lesson
                     </TabsTrigger>
-                     <TabsTrigger value="video" disabled={!hasVideo}>
+                     <TabsTrigger value="video" disabled={!hasVideo} className="min-w-0 px-2 text-xs sm:px-3 sm:text-sm">
                         <Video className="mr-2 h-4 w-4" />
                         Video
                     </TabsTrigger>
-                    <TabsTrigger value="discussion">
+                    <TabsTrigger value="discussion" className="min-w-0 px-2 text-xs sm:px-3 sm:text-sm">
                         <MessageCircle className="mr-2 h-4 w-4" />
                         Discussion
                     </TabsTrigger>
                   </TabsList>
-                  <TabsContent value="lesson" className="flex-grow">
+                  <TabsContent value="lesson" className="w-full min-w-0 max-w-full flex-1">
                      {currentLesson ? (
                         <LessonContent lesson={currentLesson} onComplete={handleCompleteLesson} />
                     ) : (
@@ -693,7 +693,7 @@ export default function CoursePlayerPage() {
                         </div>
                     )}
                   </TabsContent>
-                   <TabsContent value="video" className="h-full flex-grow">
+                   <TabsContent value="video" className="w-full min-w-0 max-w-full flex-1">
                         {videoUrl ? (
                             <iframe
                                 src={videoUrl}
@@ -701,7 +701,7 @@ export default function CoursePlayerPage() {
                                 frameBorder="0"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                 allowFullScreen
-                                className="w-full h-full aspect-video rounded-lg"
+                                className="block aspect-video h-auto max-h-[70dvh] w-full max-w-full rounded-lg"
                             ></iframe>
                         ) : (
                             <div className="flex items-center justify-center h-full bg-black rounded-lg">
@@ -709,7 +709,7 @@ export default function CoursePlayerPage() {
                             </div>
                         )}
                    </TabsContent>
-                   <TabsContent value="discussion">
+                   <TabsContent value="discussion" className="w-full min-w-0 max-w-full flex-1">
                      <DiscussionForum courseId={course.id} />
                   </TabsContent>
                 </Tabs>
