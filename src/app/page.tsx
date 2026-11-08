@@ -105,44 +105,27 @@ export default function Home() {
       </header>
 
       <main>
-        <section className="relative isolate overflow-hidden bg-neutral-100 bg-cover bg-center px-5 pb-14 pt-10 sm:px-8 sm:pb-20 sm:pt-14 lg:pt-16" style={{ backgroundImage: `linear-gradient(90deg, rgba(255,255,255,0.94) 0%, rgba(255,255,255,0.88) 48%, rgba(255,255,255,0.76) 100%), url("${HERO_IMAGE}")` }}>
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-white/60" aria-hidden="true" />
-          <div className="relative mx-auto max-w-7xl">
-          <div className="grid items-center gap-10 lg:grid-cols-[0.92fr_1.08fr] lg:gap-14">
-            <div className="max-w-xl">
-              <p className="mb-5 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Varban Academy · Financial education</p>
-              <h1 className="text-[2.7rem] font-semibold leading-[1.06] tracking-[-0.055em] text-black sm:text-6xl lg:text-[4.25rem]">
+        <section className="relative isolate flex min-h-[560px] items-center overflow-hidden bg-neutral-100 bg-cover bg-center px-5 py-20 sm:px-8 sm:py-24 lg:min-h-[640px]" style={{ backgroundImage: `linear-gradient(90deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.91) 48%, rgba(255,255,255,0.72) 100%), url("${HERO_IMAGE}")` }}>
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-white/50" aria-hidden="true" />
+          <div className="relative mx-auto w-full max-w-7xl">
+            <div className="max-w-3xl">
+              <p className="mb-5 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-600">Varban Academy · Financial education</p>
+              <h1 className="text-[2.7rem] font-semibold leading-[1.06] tracking-[-0.055em] text-black sm:text-6xl lg:text-[4.5rem]">
                 Know more.<br />Trade better.
               </h1>
-              <p className="mt-6 max-w-lg text-base leading-7 text-neutral-600 sm:text-lg sm:leading-8">
+              <p className="mt-6 max-w-2xl text-base leading-7 text-neutral-700 sm:text-lg sm:leading-8">
                 Build your understanding of financial markets with practical courses, guided lessons and learning resources designed to help you make more informed decisions.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link href="/programs" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-black px-6 text-sm font-semibold text-white transition hover:bg-neutral-800">Explore courses <ArrowRight className="h-4 w-4" /></Link>
-                <Link href="/blog" className="inline-flex min-h-12 items-center justify-center rounded-lg border border-neutral-300 bg-white px-6 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-50">Browse learning resources</Link>
+                <Link href="/blog" className="inline-flex min-h-12 items-center justify-center rounded-lg border border-neutral-300 bg-white/95 px-6 text-sm font-semibold text-neutral-900 transition hover:bg-white">Browse learning resources</Link>
               </div>
-              <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-neutral-200 pt-6 text-xs font-medium text-neutral-500">
-                <span className="inline-flex items-center gap-2"><BookOpen className="h-4 w-4 text-neutral-800" /> Structured learning</span>
-                <span className="inline-flex items-center gap-2"><Video className="h-4 w-4 text-neutral-800" /> Practical lessons</span>
-                <span className="inline-flex items-center gap-2"><ChartNoAxesCombined className="h-4 w-4 text-neutral-800" /> Market knowledge</span>
-              </div>
-            </div>
-            <div className="relative">
-              <div className="relative aspect-[1.22/1] overflow-hidden rounded-2xl bg-neutral-100 sm:aspect-[1.3/1]">
-                <Image src={HERO_IMAGE} alt="Financial market charts displayed on a trading workstation" fill priority sizes="(max-width: 1024px) 100vw, 55vw" className="object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-tr from-black/35 via-transparent to-transparent" />
-              </div>
-              <div className="absolute -bottom-5 left-4 max-w-[230px] border-l-2 border-black bg-white/95 py-2 pl-4 pr-2 shadow-sm sm:-left-6 sm:bottom-7">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">Your learning journey</p>
-                <p className="mt-1 text-sm font-semibold text-neutral-950">Start with the foundations.</p>
-                <Link href="/programs" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-neutral-800">Find your starting point <ArrowRight className="h-3.5 w-3.5" /></Link>
-              </div>
-              <div className="absolute -right-2 top-5 hidden w-36 border-l-2 border-black bg-white/95 p-3 shadow-sm backdrop-blur sm:block">
-                <ChartNoAxesCombined className="h-5 w-5 text-black" />
-                <p className="mt-2 text-[10px] font-semibold leading-4 text-neutral-700">Learn at your own pace</p>
+              <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-neutral-300/80 pt-6 text-xs font-medium text-neutral-600">
+                <span className="inline-flex items-center gap-2"><BookOpen className="h-4 w-4 text-neutral-900" /> Structured learning</span>
+                <span className="inline-flex items-center gap-2"><Video className="h-4 w-4 text-neutral-900" /> Practical lessons</span>
+                <span className="inline-flex items-center gap-2"><ChartNoAxesCombined className="h-4 w-4 text-neutral-900" /> Market knowledge</span>
               </div>
             </div>
-          </div>
           </div>
         </section>
 

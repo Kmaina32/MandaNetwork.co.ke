@@ -291,7 +291,7 @@ function SignupFormComponent() {
         </div>
       </div>
         <div className="hidden bg-muted lg:block p-8">
-         <div className="w-full h-full bg-cover bg-center rounded-lg" style={{backgroundImage: `url('${siteSettings?.signupImageUrl}')`}} data-ai-hint="learning online">
+         <div className="w-full h-full bg-cover bg-center rounded-lg" style={{backgroundImage: `linear-gradient(rgba(0,0,0,0.38), rgba(0,0,0,0.58)), url('${siteSettings?.signupImageUrl || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1400&q=85'}')`}} data-ai-hint="learning online">
             <div className="w-full h-full bg-black/50 rounded-lg flex items-end p-8 text-white">
                 <div>
                     <h2 className="text-4xl font-bold font-headline">Start Your Journey</h2>

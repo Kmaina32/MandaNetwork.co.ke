@@ -112,7 +112,7 @@ export default function ProgramDetailPage() {
              <section className="relative py-12 md:py-20">
                 <div className="absolute inset-0">
                     <Image
-                        src={program.certificateImageUrl}
+                        src={program.certificateImageUrl || 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1800&q=85'}
                         alt={program.title}
                         fill
                         className="object-cover"

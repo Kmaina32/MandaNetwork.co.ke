@@ -113,7 +113,7 @@ export default function BootcampDetailPage() {
              <section className="relative py-12 md:py-20">
                 <div className="absolute inset-0">
                     <Image
-                        src={bootcamp.imageUrl}
+                        src={bootcamp.imageUrl || 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1800&q=85'}
                         alt={bootcamp.title}
                         fill
                         className="object-cover"

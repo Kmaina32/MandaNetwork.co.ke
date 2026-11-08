@@ -209,7 +209,7 @@ export default function LoginPage() {
         </div>
       </div>
       <div className="hidden bg-muted lg:flex items-center justify-center p-8">
-         <div className="w-full h-full bg-cover bg-center rounded-lg" style={{backgroundImage: `url('${imageUrl}')`}} data-ai-hint="classroom students">
+         <div className="w-full h-full bg-cover bg-center rounded-lg" style={{backgroundImage: `linear-gradient(rgba(0,0,0,0.38), rgba(0,0,0,0.58)), url('${imageUrl || 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1400&q=85'}')`}} data-ai-hint="classroom students">
             <div className="w-full h-full bg-black/50 rounded-lg flex items-end p-8 text-white">
                 <div>
                     <h2 className="text-4xl font-bold font-headline">Unlock Your Potential</h2>
