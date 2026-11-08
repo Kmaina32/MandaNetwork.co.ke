@@ -193,7 +193,29 @@ export async function registerFreeBootcamp(idToken: string, bootcampId: string):
     if (!Number.isFinite(price) || price > 0) {
         throw new Error('Paid bootcamp registration is unavailable until verified bootcamp payment processing is enabled.');
     }
-    await adminDb.ref(`bootcampParticipants/${bootcampId}/${decoded.uid}`).set(true);
+    const courseIds = Array.isArray(bootcamp.courseIds) ? bootcamp.courseIds : [];
+    const purchasedRef = adminDb.ref(`users/${decoded.uid}/purchasedCourses`);
+    const purchasedSnapshot = await purchasedRef.get();
+    const purchased = purchasedSnapshot.val() || {};
+    const enrolledAt = new Date().toISOString();
+    const updates: Record<string, unknown> = {
+        [`bootcampParticipants/${bootcampId}/${decoded.uid}`]: true,
+    };
+    for (const courseId of courseIds) {
+        if (typeof courseId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(courseId)) continue;
+        if (purchased[courseId]) continue;
+        const courseSnapshot = await adminDb.ref(`courses/${courseId}`).get();
+        if (!courseSnapshot.exists()) continue;
+        updates[`users/${decoded.uid}/purchasedCourses/${courseId}`] = {
+            progress: 0,
+            completed: false,
+            certificateAvailable: false,
+            completedLessons: [],
+            enrollmentDate: enrolledAt,
+            paymentMethod: 'free',
+        };
+    }
+    await adminDb.ref().update(updates);
 }
 
 export async function awardPoints(idToken: string, targetUserId: string, points: number): Promise<void> {

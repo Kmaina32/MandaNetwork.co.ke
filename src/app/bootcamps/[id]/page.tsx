@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { notFound, useParams } from "next/navigation";
+import { notFound, useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from 'next/link';
 import type { Bootcamp, Course, UserCourse } from "@/lib/types";
@@ -24,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 export default function BootcampDetailPage() {
   const params = useParams<{ id: string }>();
   const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const { toast } = useToast();
 
   const [bootcamp, setBootcamp] = useState<Bootcamp | null>(null);
@@ -71,12 +72,17 @@ export default function BootcampDetailPage() {
   const isEnrolled = isRegistered;
 
   const handleEnroll = async () => {
-      if (!user || !bootcamp) return;
+      if (!bootcamp) return;
+      if (!user) {
+        router.push(`/login?redirect=${encodeURIComponent(`/bootcamps/${bootcamp.id}`)}`);
+        return;
+      }
       setIsEnrolling(true);
       try {
         const idToken = await user.getIdToken();
         await registerFreeBootcamp(idToken, bootcamp.id);
         setIsRegistered(true);
+        setUserCourses(await getUserCourses(user.uid));
         
         toast({ title: 'Enrolled Successfully!', description: `You are now enrolled in the ${bootcamp.title}.`});
         
