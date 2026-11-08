@@ -15,7 +15,6 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { getTeamMembers } from '@/lib/firebase-service';
 import type { TeamMember } from '@/lib/types';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
-import Head from 'next/head';
 
 export default function AboutPage() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -31,20 +30,8 @@ export default function AboutPage() {
     fetchTeam();
   }, []);
 
-  const pageTitle = "About Varban Academy | Empowering Digital Africa";
-  const pageDescription = "Learn about Varban Academy's mission to bridge the digital skills gap in Kenya and East Africa through high-quality, accessible online education in AI, technology, and business.";
-
   return (
-    <>
-      <Head>
-        <title>{pageTitle}</title>
-        <meta name="description" content={pageDescription} />
-        <meta property="og:title" content={pageTitle} />
-        <meta property="og:description" content={pageDescription} />
-        <meta name="twitter:title" content={pageTitle} />
-        <meta name="twitter:description" content={pageDescription} />
-      </Head>
-      <SidebarProvider>
+    <SidebarProvider>
           <AppSidebar />
           <SidebarInset>
               <Header />
@@ -140,6 +127,5 @@ export default function AboutPage() {
               </div>
           </SidebarInset>
       </SidebarProvider>
-    </>
   );
 }
