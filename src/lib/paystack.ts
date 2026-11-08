@@ -131,7 +131,7 @@ async function applyVerifiedPayment(reference: string, providerData: Awaited<Ret
           certificateAvailable: false,
           completedLessons: [],
           enrollmentDate: completedAt,
-          paymentMethod: 'card',
+          paymentMethod: 'paystack',
           paymentReceipt: reference,
         };
       }
