@@ -253,10 +253,12 @@ function CommunityLeaderboard() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        getLeaderboard().then(data => {
-            setLeaderboard(data.slice(0, 5));
-            setLoading(false);
-        });
+        let active = true;
+        getLeaderboard()
+          .then(data => { if (active) setLeaderboard(data.slice(0, 5)); })
+          .catch(error => console.error('Failed to load community leaderboard:', error))
+          .finally(() => { if (active) setLoading(false); });
+        return () => { active = false; };
     }, []);
 
     return (
@@ -294,6 +296,7 @@ export default function DashboardPage() {
   const [purchasedCourses, setPurchasedCourses] = useState<PurchasedCourseDetail[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [dbUser, setDbUser] = useState<RegisteredUser | null>(null);
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
 
   // Learner workspace boundary: unauthenticated visitors belong on sign-in,
   // while administrators and organization managers use their dedicated portals.
@@ -309,29 +312,33 @@ export default function DashboardPage() {
   }, [authLoading, user, isAdmin, isOrganizationAdmin, router]);
 
   const fetchDashboardData = async () => {
+      if (!user) return;
       setLoadingCourses(true);
-      
-      if (user) {
+      setDashboardError(null);
+      try {
         const [allCoursesData, userCoursesData, userProfile] = await Promise.all([
             getAllCourses(),
             getUserCourses(user.uid),
             getUserById(user.uid),
         ]);
-        
+
+        if (!userProfile) throw new Error('Your learner profile could not be found. Please sign in again.');
         setDbUser(userProfile);
 
-        const courseDetailsPromises = allCoursesData.map(async (course) => {
-            const userCourse = userCoursesData.find(c => c.courseId === course.id);
-            if (userCourse) {
-                 return { ...userCourse, ...course };
-            }
-            return null;
-        });
-
-        const detailedCourses = (await Promise.all(courseDetailsPromises)).filter(Boolean) as PurchasedCourseDetail[];
-        setPurchasedCourses(detailedCourses.filter(c => c.title));
+        const courseMap = new Map(allCoursesData.map(course => [course.id, course]));
+        const detailedCourses = userCoursesData
+          .map(userCourse => {
+            const course = courseMap.get(userCourse.courseId);
+            return course ? { ...userCourse, ...course } : null;
+          })
+          .filter((course): course is PurchasedCourseDetail => Boolean(course?.title));
+        setPurchasedCourses(detailedCourses);
+      } catch (error) {
+        console.error('Failed to load learner dashboard:', error);
+        setDashboardError('We could not load your learning data. Check your connection and try again.');
+      } finally {
+        setLoadingCourses(false);
       }
-      setLoadingCourses(false);
     };
 
   useEffect(() => {
@@ -371,6 +378,10 @@ export default function DashboardPage() {
                 </Button>
             </div>
         )
+    }
+
+    if (dashboardError) {
+        return <div className="mx-auto max-w-2xl py-12 text-center"><Card><CardHeader><CardTitle>Dashboard unavailable</CardTitle><CardDescription>{dashboardError}</CardDescription></CardHeader><CardFooter className="justify-center"><Button onClick={fetchDashboardData}>Try again</Button></CardFooter></Card></div>;
     }
 
     const achievementsToDisplay = isSuperAdmin
@@ -482,7 +493,7 @@ export default function DashboardPage() {
                                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                                              <div>
                                                 <h3 className="font-semibold">{course.title}</h3>
-                                                <p className="text-sm text-muted-foreground">Completed on {new Date().toLocaleDateString()}</p>
+                                                <p className="text-sm text-muted-foreground">Completed on {course.enrollmentDate && !Number.isNaN(new Date(course.enrollmentDate).getTime()) ? new Date(course.enrollmentDate).toLocaleDateString() : 'Date unavailable'}</p>
                                              </div>
                                              <Button asChild variant="outline" className="mt-2 sm:mt-0">
                                                 <Link href={`/dashboard/certificate/${slugify(course.title)}`}>
