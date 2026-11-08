@@ -106,7 +106,8 @@
       ".indexOn": "userId",
       "$submissionId": {
         ".read": "auth != null && (data.child('userId').val() === auth.uid || (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)))",
-        ".write": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || (!data.exists() && newData.child('userId').val() === auth.uid) || (data.child('userId').val() === auth.uid && newData.child('userId').val() === auth.uid))"
+        ".write": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || (!data.exists() && newData.child('userId').val() === auth.uid))",
+        ".validate": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || (newData.child('userId').val() === auth.uid && newData.child('graded').val() === false && !newData.child('pointsAwarded').exists() && !newData.child('feedback').exists() && newData.child('answers').exists() && newData.child('courseId').isString() && newData.child('submittedAt').isString()))"
       }
     },
     "hackathonSubmissions": {

@@ -8,7 +8,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '@/hooks/use-auth';
-import { getCourseById, createSubmission, getUserSubmissionsForCourse, getAllCourses } from '@/lib/firebase-service';
+import { getCourseById, createSubmission, getUserSubmissionsForCourse, getAllCourses, getUserCourses } from '@/lib/firebase-service';
 import type { Course, ExamQuestion, Submission } from '@/lib/mock-data';
 import { AppSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
@@ -96,35 +96,34 @@ export default function ExamPage() {
   });
 
   useEffect(() => {
-    let cancelled = false;
     const fetchCourseAndSubmission = async () => {
       if (!user) return;
       setLoading(true);
-      setCourse(null);
-      setSubmission(null);
-      try {
-        const allCourses = await getAllCourses();
-        const courseData = allCourses.find(c => slugify(c.title) === params.id);
-        if (!courseData) {
-          if (!cancelled) notFound();
-          return;
-        }
-        const userSubmissions = await getUserSubmissionsForCourse(user.uid, courseData.id);
-        if (cancelled) return;
-        setCourse(courseData);
-        setSubmission(userSubmissions[0] || null);
-      } catch (error) {
-        console.error('Failed to load exam data', error);
-        if (!cancelled) {
-          toast({ title: 'Unable to load exam', description: 'Check your connection and retry the page.', variant: 'destructive' });
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+      const allCourses = await getAllCourses();
+      const courseData = allCourses.find(c => slugify(c.title) === params.id);
+
+      if (!courseData) {
+        notFound();
+        return;
       }
+      const enrolledCourses = await getUserCourses(user.uid);
+      const enrollment = enrolledCourses.find(item => item.courseId === courseData.id);
+      if (!enrollment || enrollment.progress < 100) {
+        router.replace(`/courses/${params.id}/learn`);
+        return;
+      }
+      setCourse(courseData);
+      const userSubmissions = await getUserSubmissionsForCourse(user.uid, courseData.id);
+      if (userSubmissions.length > 0) {
+          setSubmission(userSubmissions[0]);
+      }
+      setLoading(false);
     };
-    if (!authLoading && user) fetchCourseAndSubmission();
-    return () => { cancelled = true; };
-  }, [params.id, user, authLoading, toast]);
+
+    if (!authLoading && user) {
+      fetchCourseAndSubmission();
+    }
+  }, [params.id, user, authLoading]);
 
   const onSubmit = async (data: ExamFormValues) => {
     if (!user || !course) return;

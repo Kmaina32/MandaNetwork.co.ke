@@ -1,6 +1,6 @@
 'use client';
 
-import { auth, db, storage } from './firebase';
+import { db, storage } from './firebase';
 import { ref, get, set, push, update, remove, query, orderByChild, equalTo, increment, limitToLast } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { Assignment, TutorSettings, Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, TeamMember, ContactMessage, Form as FormType, FormSubmission, Referral, Bootcamp, BlogPost, HeroData } from './types';
@@ -101,43 +101,19 @@ export async function deleteCourse(courseId: string): Promise<void> {
 export async function saveUser(uid: string, dataToSave: Partial<Omit<RegisteredUser, 'uid'>>): Promise<void> {
     const userRef = ref(db, `users/${uid}`);
     await update(userRef, dataToSave);
-    const userSnapshot = await get(userRef);
-    const fullUser = userSnapshot.val() || {};
-
-    // Minimal email lookup index for organization invitations. Rules bind the
-    // email to the caller's verified Firebase Auth token.
-    const directoryEmail = fullUser.email || (auth.currentUser?.uid === uid ? auth.currentUser.email : null);
-    if (directoryEmail) {
-        await set(ref(db, `userDirectory/${uid}`), {
-            uid,
-            email: String(directoryEmail).trim(),
-            organizationId: fullUser.organizationId || null,
-        });
-    } else {
-        await remove(ref(db, `userDirectory/${uid}`));
-    }
 
     if (dataToSave.portfolio || dataToSave.displayName || dataToSave.photoURL) {
-        const publicProfileRef = ref(db, `publicProfiles/${uid}`);
+        const userSnapshot = await get(userRef);
+        const fullUser = userSnapshot.val();
+        
         if (fullUser.portfolio?.public) {
-            const portfolio = fullUser.portfolio;
-            // Deliberately exclude phone, postal address, wallet and all account fields.
-            const publicPortfolio = {
-                public: true,
-                aboutMe: portfolio.aboutMe || '',
-                socialLinks: portfolio.socialLinks || {},
-                projects: portfolio.projects || [],
-                workExperience: portfolio.workExperience || [],
-                education: portfolio.education || [],
-            };
+            const publicProfileRef = ref(db, `publicProfiles/${uid}`);
             await set(publicProfileRef, {
-                uid,
-                displayName: fullUser.displayName || '',
-                photoURL: fullUser.photoURL || '',
-                portfolio: publicPortfolio,
+                uid: uid,
+                displayName: fullUser.displayName,
+                photoURL: fullUser.photoURL,
+                portfolio: fullUser.portfolio
             });
-        } else {
-            await remove(publicProfileRef);
         }
     }
 }
@@ -151,23 +127,13 @@ export async function getUserById(uid: string): Promise<RegisteredUser | null> {
     return null;
 }
 
-// Public portfolio reads use a separate, intentionally limited record.
-// Never fetch the private users/{uid} node for anonymous portfolio visitors.
-export async function getPublicProfileById(uid: string): Promise<RegisteredUser | null> {
-    const profileRef = ref(db, `publicProfiles/${uid}`);
-    const snapshot = await get(profileRef);
-    if (!snapshot.exists()) return null;
-    return { uid, ...snapshot.val() } as RegisteredUser;
-}
-
 export async function getUserByEmail(email: string): Promise<RegisteredUser | null> {
-    const directoryRef = query(ref(db, 'userDirectory'), orderByChild('email'), equalTo(email.trim()));
-    const snapshot = await get(directoryRef);
+    const usersRef = query(ref(db, 'users'), orderByChild('email'), equalTo(email));
+    const snapshot = await get(usersRef);
     if (snapshot.exists()) {
-        const records = snapshot.val();
-        const uid = Object.keys(records)[0];
-        const record = records[uid];
-        return { uid, email: record.email || null, displayName: null, organizationId: record.organizationId || undefined };
+        const usersData = snapshot.val();
+        const uid = Object.keys(usersData)[0];
+        return { uid, ...usersData[uid] };
     }
     return null;
 }
@@ -491,25 +457,18 @@ export async function createNotification(notificationData: Partial<Omit<Notifica
     return newNotificationRef.key!;
 }
 
-export async function getAllNotifications(userId: string, cohort?: string): Promise<Notification[]> {
-    if (!userId) throw new Error('A signed-in user is required to load notifications.');
-    const userQuery = query(ref(db, 'notifications'), orderByChild('userId'), equalTo(userId));
-    const requests = [get(userQuery)];
-    if (cohort) {
-        const cohortQuery = query(ref(db, 'notifications'), orderByChild('cohort'), equalTo(cohort));
-        requests.push(get(cohortQuery));
+export async function getAllNotifications(): Promise<Notification[]> {
+    const notificationsRef = ref(db, 'notifications');
+    const snapshot = await get(notificationsRef);
+    if (snapshot.exists()) {
+        const notificationsData = snapshot.val();
+        const notifications = Object.keys(notificationsData).map(key => ({
+            id: key,
+            ...notificationsData[key]
+        }));
+        return notifications.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
-    const snapshots = await Promise.all(requests);
-    const notificationsById = new Map<string, Notification>();
-    for (const snapshot of snapshots) {
-        if (!snapshot.exists()) continue;
-        const data = snapshot.val();
-        for (const key of Object.keys(data)) {
-            notificationsById.set(key, { id: key, ...data[key] });
-        }
-    }
-    return Array.from(notificationsById.values())
-        .sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return [];
 }
 
 // User Notes Functions
@@ -831,21 +790,19 @@ export async function createInvitation(inviteData: Omit<Invitation, 'id'>): Prom
     const invitesRef = ref(db, 'invitations');
     const newInviteRef = push(invitesRef);
     
-    if (inviteData.userId) {
-        await createNotification({
-            userId: inviteData.userId,
-            title: 'Organization Invitation',
-            body: `You have been invited to join ${inviteData.organizationName}.`,
-            actions: [{
-                title: 'Accept',
-                action: 'accept_org_invite',
-                payload: {
-                    inviteId: newInviteRef.key!,
-                    organizationId: inviteData.organizationId,
-                }
-            }]
-        });
-    }
+    await createNotification({
+        userId: inviteData.userId!,
+        title: 'Organization Invitation',
+        body: `You have been invited to join ${inviteData.organizationName}.`,
+        actions: [{
+            title: 'Accept',
+            action: 'accept_org_invite',
+            payload: {
+                inviteId: newInviteRef.key!,
+                organizationId: inviteData.organizationId,
+            }
+        }]
+    });
 
     await set(newInviteRef, inviteData);
     return newInviteRef.key!;
@@ -924,38 +881,37 @@ export async function getDocument(docType: string): Promise<string> {
 
 
 // Certificate Verification
-export interface PublicCertificateRecord {
-    certificateId: string;
-    studentName: string;
-    studentPhotoURL?: string;
-    courseId: string;
-    courseTitle: string;
-    issuedAt: string;
-    status: 'valid' | 'revoked';
-}
-
-export async function publishCertificateRecord(record: PublicCertificateRecord): Promise<void> {
-    if (!record.certificateId || !record.studentName || !record.courseId || !record.courseTitle) {
-        throw new Error('Certificate verification record is incomplete.');
-    }
-    await set(ref(db, `publicCertificates/${record.certificateId}`), { ...record, status: 'valid' });
-}
-
-export async function getVerifiedCertificateData(certificateId: string): Promise<{
-    isValid: boolean;
-    student?: Pick<RegisteredUser, 'displayName' | 'photoURL'>;
-    course?: Pick<Course, 'id' | 'title'>;
-}> {
-    if (!certificateId) return { isValid: false };
-    const snapshot = await get(ref(db, `publicCertificates/${certificateId}`));
+export async function getVerifiedCertificateData(certificateId: string): Promise<{isValid: boolean, student?: RegisteredUser, course?: Course}> {
+    const usersRef = ref(db, 'users');
+    const snapshot = await get(usersRef);
     if (!snapshot.exists()) return { isValid: false };
-    const record = snapshot.val() as PublicCertificateRecord;
-    if (record.status !== 'valid' || record.certificateId !== certificateId) return { isValid: false };
-    return {
-        isValid: true,
-        student: { displayName: record.studentName, photoURL: record.studentPhotoURL || '' },
-        course: { id: record.courseId, title: record.courseTitle },
-    };
+    
+    const usersData = snapshot.val();
+    let foundUser: RegisteredUser | undefined;
+    let foundCourseId: string | undefined;
+
+    for (const uid of Object.keys(usersData)) {
+        const user = usersData[uid];
+        if (user.purchasedCourses) {
+            for (const courseId of Object.keys(user.purchasedCourses)) {
+                if (user.purchasedCourses[courseId].certificateId === certificateId) {
+                    foundUser = { uid, ...user };
+                    foundCourseId = courseId;
+                    break;
+                }
+            }
+        }
+        if (foundUser) break;
+    }
+    
+    if (foundUser && foundCourseId) {
+        const course = await getCourseById(foundCourseId);
+        if (course) {
+            return { isValid: true, student: foundUser, course: course };
+        }
+    }
+    
+    return { isValid: false };
 }
 
 
@@ -1325,8 +1281,11 @@ export async function deleteAdvertisement(id: string): Promise<void> {
 export async function getTeamMembers(): Promise<TeamMember[]> {
     const teamRef = ref(db, 'teamMembers');
     const snapshot = await get(teamRef);
-    if (snapshot.exists()) {
-        return snapshot.val() || [];
+    if (!snapshot.exists()) return [];
+    const value = snapshot.val();
+    if (Array.isArray(value)) return value.filter(Boolean);
+    if (value && typeof value === 'object') {
+        return Object.entries(value).map(([id, member]) => ({ id, ...(member as Omit<TeamMember, 'id'>) }));
     }
     return [];
 }
