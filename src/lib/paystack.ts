@@ -146,6 +146,7 @@ async function applyVerifiedPayment(reference: string, providerData: Awaited<Ret
       updates[`organizations/${payment.organizationId}/subscriptionExpiresAt`] = null;
     }
 
+    updates[`paymentCheckoutLocks/${payment.uid}/${payment.itemType}-${payment.itemId}`] = null;
     updates[`paystackTransactions/${reference}`] = {
       ...payment,
       status: 'completed',
