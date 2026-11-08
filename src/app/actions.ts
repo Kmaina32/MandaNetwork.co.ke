@@ -22,7 +22,34 @@ import type { GetPortfolioFeedbackInput, GetPortfolioFeedbackOutput } from '@/ai
 
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { headers } from 'next/headers';
+import { createHash } from 'node:crypto';
 import { checkHackathonParticipantAchievement } from '@/lib/achievements';
+
+
+const SERVER_ACTION_WINDOW_MS = 10 * 60 * 1000;
+const SERVER_ACTION_LIMIT = 12;
+
+async function enforceServerActionRateLimit(actionName: string, maxCalls = SERVER_ACTION_LIMIT): Promise<void> {
+  const requestHeaders = await headers();
+  const forwarded = requestHeaders.get('x-vercel-forwarded-for')
+    || requestHeaders.get('x-forwarded-for')
+    || requestHeaders.get('x-real-ip')
+    || '';
+  const clientIp = forwarded.split(',')[0].trim();
+  if (!clientIp) throw new Error('Unable to verify request origin. Please retry.');
+  const key = createHash('sha256').update(clientIp).digest('hex');
+  const rateRef = adminDb.ref(`serverActionRateLimits/${actionName}/${key}`);
+  const now = Date.now();
+  const result = await rateRef.transaction((current) => {
+    const windowStart = Number(current?.windowStart) || 0;
+    const count = windowStart > 0 && now - windowStart < SERVER_ACTION_WINDOW_MS
+      ? Number(current?.count) || 0
+      : 0;
+    if (count >= maxCalls) return;
+    return { windowStart: count === 0 ? now : windowStart, count: count + 1, updatedAt: now };
+  });
+  if (!result.committed) throw new Error('Too many requests. Please wait a few minutes and try again.');
+}
 
 // Each function dynamically imports its corresponding flow, ensuring that the AI logic
 // is only loaded on the server when the action is executed.
