@@ -365,7 +365,7 @@ export function Header({ children }: { children?: React.ReactNode }) {
 
   useEffect(() => {
       if (!loading && user && !user.emailVerified && pathname !== '/unverified') {
-          router.push('/unverified');
+          router.replace(`/unverified?next=${encodeURIComponent(pathname || '/dashboard')}`);
       }
   }, [user, loading, pathname, router]);
 
