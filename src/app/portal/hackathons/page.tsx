@@ -211,16 +211,15 @@ export default function HackathonsPage() {
           <section className="relative bg-secondary/50 py-12 md:py-16">
             <div className="container mx-auto px-4 md:px-6">
                 <div className="relative rounded-xl overflow-hidden min-h-[400px] flex items-center justify-center text-center p-4">
-                    {heroData.hackathonsImageUrl && (
-                      <Image
-                          src={heroData.hackathonsImageUrl}
-                          alt="A group of developers collaborating at a hackathon"
-                          fill
-                          className="object-cover"
-                          data-ai-hint="developers collaboration"
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-black/60"></div>
+                    <Image
+                        src={heroData.hackathonsImageUrl || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1800&q=85'}
+                        alt="Developers collaborating at a technology event"
+                        fill
+                        priority
+                        sizes="100vw"
+                        className="object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/55 to-black/65"></div>
                     <div className="relative z-10 text-white">
                         <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit mb-4">
                             <Trophy className="h-10 w-10 text-primary" />
