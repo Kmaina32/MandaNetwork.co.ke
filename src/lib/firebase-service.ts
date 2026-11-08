@@ -106,14 +106,26 @@ export async function saveUser(uid: string, dataToSave: Partial<Omit<RegisteredU
         const userSnapshot = await get(userRef);
         const fullUser = userSnapshot.val();
         
+        const publicProfileRef = ref(db, `publicProfiles/${uid}`);
         if (fullUser.portfolio?.public) {
-            const publicProfileRef = ref(db, `publicProfiles/${uid}`);
+            const portfolio = fullUser.portfolio;
+            // Deliberately exclude phone, postal address, wallet and all account fields.
+            const publicPortfolio = {
+                public: true,
+                aboutMe: portfolio.aboutMe || '',
+                socialLinks: portfolio.socialLinks || {},
+                projects: portfolio.projects || [],
+                workExperience: portfolio.workExperience || [],
+                education: portfolio.education || [],
+            };
             await set(publicProfileRef, {
-                uid: uid,
-                displayName: fullUser.displayName,
-                photoURL: fullUser.photoURL,
-                portfolio: fullUser.portfolio
+                uid,
+                displayName: fullUser.displayName || '',
+                photoURL: fullUser.photoURL || '',
+                portfolio: publicPortfolio,
             });
+        } else {
+            await remove(publicProfileRef);
         }
     }
 }
@@ -125,6 +137,15 @@ export async function getUserById(uid: string): Promise<RegisteredUser | null> {
         return { uid, ...snapshot.val() };
     }
     return null;
+}
+
+// Public portfolio reads use a separate, intentionally limited record.
+// Never fetch the private users/{uid} node for anonymous portfolio visitors.
+export async function getPublicProfileById(uid: string): Promise<RegisteredUser | null> {
+    const profileRef = ref(db, `publicProfiles/${uid}`);
+    const snapshot = await get(profileRef);
+    if (!snapshot.exists()) return null;
+    return { uid, ...snapshot.val() } as RegisteredUser;
 }
 
 export async function getUserByEmail(email: string): Promise<RegisteredUser | null> {

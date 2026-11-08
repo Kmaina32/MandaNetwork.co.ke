@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { notFound, useParams, usePathname, useRouter } from 'next/navigation';
-import { getUserById, getUserCourses, getAllCourses, getLeaderboard } from '@/lib/firebase-service';
+import { getUserById, getPublicProfileById, getUserCourses, getAllCourses, getLeaderboard } from '@/lib/firebase-service';
 import type { RegisteredUser, Course, UserCourse, LeaderboardEntry } from '@/lib/types';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -69,13 +69,13 @@ export default function PortfolioPage() {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const userData = await getUserById(params.userId as string);
-                
-                if (!userData) {
-                    notFound();
-                    return;
-                }
-                if (!userData.portfolio?.public && (!authUser || (!isEmployer && authUser.uid !== userData.uid))) {
+                const isOwner = authUser?.uid === params.userId;
+                const canReadPrivateProfile = Boolean(isOwner || isAdmin);
+                const userData = canReadPrivateProfile
+                    ? await getUserById(params.userId as string)
+                    : await getPublicProfileById(params.userId as string);
+
+                if (!userData || (!userData.portfolio?.public && !canReadPrivateProfile)) {
                     notFound();
                     return;
                 }
@@ -133,7 +133,7 @@ export default function PortfolioPage() {
     }
     
     const achievementsToDisplay = Object.values(user.achievements || {});
-    const canViewPrivateContact = authUser?.uid === user.uid || isEmployer;
+    const canViewPrivateContact = authUser?.uid === user.uid || isAdmin;
 
     const IconComponent = ({ name, ...props }: { name: string } & LucideIcons.LucideProps) => {
         const LucideIcon = (LucideIcons as any)[name];
