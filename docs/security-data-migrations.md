@@ -9,7 +9,7 @@ Older `publicProfiles` records may contain contact details. After deploying the 
 3. Review the scanned/sanitized/removed counts and spot-check public profiles in Firebase Console.
 4. Unset the credential after the run.
 
-The script removes records not explicitly marked public and rewrites public records using a strict allowlist. It does not read or modify private user records.
+The script removes records not explicitly marked public and rewrites public records using a strict allowlist. It uses Firebase Admin privileges to read existing account records for the email and organization ID needed by the invitation lookup index; it does not modify the private `users` collection or expose those full records to browser clients.
 
 ## Certificate verification
 
