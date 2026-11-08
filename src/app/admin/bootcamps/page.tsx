@@ -51,8 +51,8 @@ export default function AdminBootcampsPage() {
   };
 
   useEffect(() => {
-    fetchBootcamps();
-  }, []);
+    if (user) fetchBootcamps();
+  }, [user]);
 
   const handleDelete = async (bootcamp: Bootcamp) => {
     if (!user) return;
