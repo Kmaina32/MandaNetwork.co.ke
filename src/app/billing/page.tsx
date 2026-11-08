@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { format, isValid } from 'date-fns';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
+import { Button } from '@/components/ui/button';
 import { Icon } from '@iconify/react';
 
 type PurchaseHistoryItem = UserCourse & Partial<Course>;
@@ -27,16 +28,20 @@ export default function PurchaseHistoryPage() {
   const router = useRouter();
   const [history, setHistory] = useState<PurchaseHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
+    let active = true;
     if (authLoading) return;
     if (!user) {
-      router.push('/login');
+      router.replace('/login?next=%2Fbilling');
       return;
     }
 
     const fetchHistory = async () => {
         setLoading(true);
+        setError(null);
         try {
             const [userCourses, allCourses] = await Promise.all([
                 getUserCourses(user.uid),
@@ -50,17 +55,23 @@ export default function PurchaseHistoryPage() {
                 ...courseMap.get(uc.courseId)
             })).filter(c => c.title);
 
-            setHistory(purchaseHistory.sort((a,b) => new Date(b.enrollmentDate).getTime() - new Date(a.enrollmentDate).getTime()));
+            setHistory(purchaseHistory.sort((a,b) => {
+              const dateA = Date.parse(a.enrollmentDate || '');
+              const dateB = Date.parse(b.enrollmentDate || '');
+              return (Number.isFinite(dateB) ? dateB : 0) - (Number.isFinite(dateA) ? dateA : 0);
+            }));
 
-        } catch (error) {
-            console.error("Failed to fetch purchase history:", error);
+        } catch (fetchError) {
+            console.error("Failed to fetch purchase history:", fetchError);
+            if (active) setError('Your billing history could not be loaded. Please try again.');
         } finally {
-            setLoading(false);
+            if (active) setLoading(false);
         }
     };
 
     fetchHistory();
-  }, [user, authLoading, router]);
+    return () => { active = false; };
+  }, [user, authLoading, router, retryKey]);
   
   if (authLoading || loading) {
     return (
@@ -106,7 +117,9 @@ export default function PurchaseHistoryPage() {
                         <CardDescription>A record of your course enrollments and payments.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                       <Table>
+                      {error ? (
+                        <div role="alert" className="py-8 text-center"><p className="text-sm text-destructive">{error}</p><Button className="mt-4" variant="outline" onClick={() => setRetryKey(value => value + 1)}>Try again</Button></div>
+                      ) : <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>Item</TableHead>
@@ -125,7 +138,7 @@ export default function PurchaseHistoryPage() {
                                 <TableCell>
                                     <div className="flex items-center gap-2 capitalize">
                                         {getPaymentIcon(item.paymentMethod)}
-                                        <span>{item.paymentMethod === 'free' ? '' : item.paymentMethod}</span>
+                                        <span>{item.paymentMethod === 'free' ? 'Free' : item.paymentMethod || 'Not recorded'}</span>
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-right">
@@ -145,7 +158,7 @@ export default function PurchaseHistoryPage() {
                             </TableRow>
                           )}
                         </TableBody>
-                      </Table>
+                      </Table>}
                     </CardContent>
                 </Card>
             </div>
