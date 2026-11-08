@@ -188,34 +188,36 @@ export function PaymentModal({
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs defaultValue="mpesa" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="mpesa">M-Pesa</TabsTrigger>
+        <Tabs defaultValue={itemId.startsWith('org-upgrade-') ? "card" : "mpesa"} className="w-full">
+            <TabsList className={`grid w-full ${itemId.startsWith('org-upgrade-') ? "grid-cols-3" : "grid-cols-4"}`}>
+                {!itemId.startsWith('org-upgrade-') && <TabsTrigger value="mpesa">M-Pesa</TabsTrigger>}
                 <TabsTrigger value="card">Paystack</TabsTrigger>
                 <TabsTrigger value="paypal">PayPal</TabsTrigger>
                 <TabsTrigger value="crypto">Crypto</TabsTrigger>
             </TabsList>
-            <TabsContent value="mpesa">
-                <form onSubmit={handleMpesaPay}>
-                    <div className="grid gap-6 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="phone">M-Pesa Phone Number</Label>
-                            <Input
-                            id="phone"
-                            value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value)}
-                            placeholder="0712345678"
-                            required
-                            />
+            {!itemId.startsWith('org-upgrade-') && (
+                <TabsContent value="mpesa">
+                    <form onSubmit={handleMpesaPay}>
+                        <div className="grid gap-6 py-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="phone">M-Pesa Phone Number</Label>
+                                <Input
+                                id="phone"
+                                value={phoneNumber}
+                                onChange={(e) => setPhoneNumber(e.target.value)}
+                                placeholder="0712345678"
+                                required
+                                />
+                            </div>
                         </div>
-                    </div>
-                    <DialogFooter>
-                        <Button type="submit" className="w-full" disabled={isLoading}>
-                            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : `Pay Ksh ${price.toLocaleString()} via M-Pesa`}
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </TabsContent>
+                        <DialogFooter>
+                            <Button type="submit" className="w-full" disabled={isLoading}>
+                                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : `Pay Ksh ${price.toLocaleString()} via M-Pesa`}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </TabsContent>
+            )}
             <TabsContent value="card">
                 <div className="space-y-4 py-6">
                     <div className="text-center space-y-2">
