@@ -37,7 +37,7 @@ describe('Supabase schema security regression checks', () => {
   });
 
   it('scopes private user-file storage paths to the authenticated user id', () => {
-    expect(migration).toMatch(/user_files_owner_access[\s\S]*?storage\.foldername\(name\)\)\[1\] = \(select auth\.uid\(\)\)::text/i);
+    expect(migration).toMatch(/user_files_owner_access[\s\S]*?storage\.foldername\(name\)\)\[1\]\s*=\s*\(select auth\.uid\(\)\)::text/i);
   });
 
   it('does not define public write policies for the learning catalog', () => {
