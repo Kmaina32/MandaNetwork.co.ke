@@ -260,7 +260,7 @@ export default function CoursePlayerPage() {
      <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-         <div className="flex flex-col h-screen">
+         <div className="flex h-[100dvh] min-h-0 flex-col overflow-hidden">
          {isMobile ? (
            <Header>
               <div className="flex items-center gap-2">
@@ -278,7 +278,7 @@ export default function CoursePlayerPage() {
                             <Menu />
                         </Button>
                     </SheetTrigger>
-                    <SheetContent side="right" className="w-[300px] sm:w-[400px] p-0">
+                    <SheetContent side="right" className="w-[min(88vw,380px)] overflow-y-auto p-0">
                        <CourseOutline 
                             course={course}
                             progress={progress}
@@ -297,10 +297,10 @@ export default function CoursePlayerPage() {
         
         <CoursePlayerHeader progress={lessonProgress} timeLeft={timeLeft} />
 
-        <div className="flex flex-grow overflow-hidden">
-          <div className="flex-grow flex flex-col md:flex-row overflow-hidden relative">
+        <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
+          <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:flex-row">
             {!isMobile && (
-              <aside className="w-full md:w-80 lg:w-96 bg-background border-r flex-shrink-0 overflow-y-auto">
+              <aside className="hidden w-72 shrink-0 overflow-y-auto overscroll-contain border-r bg-background lg:block xl:w-80">
                  <CourseOutline 
                     course={course}
                     progress={progress}
@@ -313,8 +313,8 @@ export default function CoursePlayerPage() {
               </aside>
             )}
 
-            <main className="flex-grow p-4 md:p-6 lg:p-8 overflow-y-auto bg-secondary relative flex flex-col items-center">
-              <div className="w-full max-w-3xl flex-grow flex flex-col">
+            <main className="relative flex min-h-0 min-w-0 flex-1 flex-col items-center overflow-x-hidden overflow-y-auto overscroll-y-contain bg-secondary px-3 pb-32 pt-4 sm:px-5 sm:pb-28 md:p-6 lg:p-8">
+              <div className="flex w-full max-w-4xl min-w-0 flex-1 flex-col">
                 <CoursePlayerTabs
                     course={course}
                     lesson={currentLesson}
