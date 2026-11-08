@@ -61,7 +61,9 @@ async function authRequest<T>(path: string, body?: unknown, accessToken?: string
 }
 
 export async function signUpWithSupabase(email: string, password: string, displayName: string) {
-  const result = await authRequest<{ user: SupabaseUser; access_token?: string; refresh_token?: string; expires_in?: number }>('signup', {
+  const redirectTo = typeof window !== 'undefined' ? window.location.origin + '/auth/confirm' : undefined;
+  const result = await authRequest<{ user: SupabaseUser; access_token?: string; refresh_token?: string; expires_in?: number }>(
+    redirectTo ? 'signup?redirect_to=' + encodeURIComponent(redirectTo) : 'signup', {
     email: email.trim().toLowerCase(),
     password,
     data: { display_name: displayName.trim() },
@@ -133,6 +135,32 @@ export async function updateSupabasePassword(password: string) {
     body: JSON.stringify({ password }),
   });
   if (!response.ok) throw new Error('Could not update the password. Please request a new reset email.');
+}
+
+
+/** Restore the short-lived access token delivered in Supabase email-link URL fragments. */
+export async function restoreSupabaseSessionFromUrl(): Promise<boolean> {
+  if (typeof window === 'undefined' || !window.location.hash) return false;
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const accessToken = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
+  if (!accessToken || !refreshToken) return false;
+  const { url, key } = config();
+  const response = await fetch(`${url}/auth/v1/user`, {
+    headers: { apikey: key, Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) return false;
+  const user = await response.json() as SupabaseUser;
+  saveSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+    token_type: params.get('token_type') || 'bearer',
+    expires_in: Number(params.get('expires_in') || 3600),
+    expires_at: Number(params.get('expires_at') || Math.floor(Date.now() / 1000) + Number(params.get('expires_in') || 3600)),
+    user,
+  });
+  window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+  return true;
 }
 
 export function subscribeToSupabaseAuth(callback: (session: SupabaseSession | null) => void) {
