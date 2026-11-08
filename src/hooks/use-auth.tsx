@@ -35,6 +35,7 @@ import { useToast } from './use-toast';
 import { add } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { slugify } from '@/lib/utils';
+import { ensureConfiguredAdmin } from '@/app/actions';
 
 const ADMIN_UID = 'YlyqSWedlPfEqI9LlGzjN7zlRtC2';
 const SUPER_ADMIN_ORG_NAME = "Manda Network";
@@ -139,6 +140,11 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
   }, []);
 
   const fetchUserData = useCallback(async (user: User) => {
+    // Grant the explicitly configured administrator only after the server verifies
+    // the signed-in Firebase identity and its verified email address.
+    if (user.email?.trim().toLowerCase() === 'nextrademarkets@gmail.com') {
+      await ensureConfiguredAdmin(await user.getIdToken());
+    }
     let userProfile = await getUserById(user.uid);
 
     // Retroactively add affiliateId if it's missing for an existing user
