@@ -1,15 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const migration = readFileSync(join(process.cwd(),
-  'supabase/migrations/20261108133000_varban_academy_primary_backend_schema.sql'), 'utf8');
+const migration = readFileSync(join(process.cwd(), 'supabase/migrations/20261108133000_varban_academy_primary_backend_schema.sql'), 'utf8');
 
 describe('Supabase schema security regression checks', () => {
-  const appTables = [
-    'profiles', 'courses', 'programs', 'bootcamps', 'organizations',
-    'enrollments', 'assignments', 'submissions', 'blog_posts',
-    'calendar_events', 'notifications', 'activity_logs',
-  ];
+  const appTables = ['profiles', 'courses', 'programs', 'bootcamps', 'organizations', 'enrollments', 'assignments', 'submissions', 'blog_posts', 'calendar_events', 'notifications', 'activity_logs'];
 
   it.each(appTables)('enables row-level security on %s', (table) => {
     expect(migration.toLowerCase()).toContain(`alter table public.${table} enable row level security`);
