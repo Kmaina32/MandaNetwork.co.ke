@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { notFound, useParams, usePathname, useRouter } from 'next/navigation';
-import { getUserById, getUserCourses, getAllCourses, getLeaderboard } from '@/lib/firebase-service';
+import { getUserById, getPublicProfileById, getUserCourses, getAllCourses, getLeaderboard } from '@/lib/firebase-service';
 import type { RegisteredUser, Course, UserCourse, LeaderboardEntry } from '@/lib/types';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -22,10 +22,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { ContactStudentDialog } from '@/components/ContactStudentDialog';
 import { Separator } from '@/components/ui/separator';
 import * as LucideIcons from 'lucide-react';
-import { achievementList } from '@/lib/achievements';
 import { OrganizationSidebar } from '@/components/OrganizationSidebar';
-
-const ADMIN_UID = 'YlyqSWedlPfEqI9LlGzjN7zlRtC2';
 
 type CourseWithDetails = UserCourse & Partial<Course>;
 
@@ -71,13 +68,13 @@ export default function PortfolioPage() {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const userData = await getUserById(params.userId as string);
-                
-                if (!userData) {
-                    notFound();
-                    return;
-                }
-                if (!userData.portfolio?.public && (!authUser || (!isEmployer && authUser.uid !== userData.uid))) {
+                const isOwner = authUser?.uid === params.userId;
+                const canReadPrivateProfile = Boolean(isOwner || isAdmin);
+                const userData = canReadPrivateProfile
+                    ? await getUserById(params.userId as string)
+                    : await getPublicProfileById(params.userId as string);
+
+                if (!userData || (!userData.portfolio?.public && !canReadPrivateProfile)) {
                     notFound();
                     return;
                 }
@@ -96,25 +93,12 @@ export default function PortfolioPage() {
 
                 let coursesToDisplay: CourseWithDetails[];
 
-                if (userData.uid === ADMIN_UID) {
-                    coursesToDisplay = allCourses.map(course => ({
-                        ...course,
-                        courseId: course.id,
-                        progress: 100,
-                        completed: true,
-                        certificateAvailable: true,
-                        certificateId: `admin-cert-${course.id}`,
-                        enrollmentDate: course.createdAt,
-                    }));
-                } else {
-                    const userCourses = await getUserCourses(params.userId as string);
-                    const courseMap = new Map(allCourses.map(c => [c.id, c]));
-                    
-                    coursesToDisplay = userCourses
-                        .filter(c => c.certificateAvailable)
-                        .map(uc => ({ ...uc, ...courseMap.get(uc.courseId) }))
-                        .filter(c => c.title);
-                }
+                const userCourses = await getUserCourses(params.userId as string);
+                const courseMap = new Map(allCourses.map(c => [c.id, c]));
+                coursesToDisplay = userCourses
+                    .filter(c => c.completed && c.progress >= 100 && c.certificateAvailable && Boolean(c.certificateId))
+                    .map(uc => ({ ...uc, ...courseMap.get(uc.courseId) }))
+                    .filter(c => Boolean(c.title));
 
                 setCompletedCourses(coursesToDisplay);
 
@@ -147,9 +131,8 @@ export default function PortfolioPage() {
         return notFound();
     }
     
-    const achievementsToDisplay = user.uid === ADMIN_UID
-        ? Object.values(achievementList)
-        : Object.values(user.achievements || {});
+    const achievementsToDisplay = Object.values(user.achievements || {});
+    const canViewPrivateContact = authUser?.uid === user.uid || isAdmin;
 
     const IconComponent = ({ name, ...props }: { name: string } & LucideIcons.LucideProps) => {
         const LucideIcon = (LucideIcons as any)[name];
@@ -179,9 +162,9 @@ export default function PortfolioPage() {
                                 <div className="flex-grow">
                                     <h1 className="text-3xl md:text-4xl font-bold font-headline">{user.displayName}</h1>
                                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-4 gap-y-1 text-muted-foreground mt-2 text-sm">
-                                        {user.email && <div className="flex items-center gap-2"><Mail className="h-4 w-4"/>{user.email}</div>}
-                                        {user.portfolio?.phone && <div className="flex items-center gap-2"><Phone className="h-4 w-4"/>{user.portfolio.phone}</div>}
-                                        {user.portfolio?.address?.country && <div className="flex items-center gap-2"><MapPin className="h-4 w-4"/>{user.portfolio.address.poBox}, {user.portfolio.address.country}</div>}
+                                        {canViewPrivateContact && user.email && <div className="flex items-center gap-2"><Mail className="h-4 w-4"/>{user.email}</div>}
+                                        {canViewPrivateContact && user.portfolio?.phone && <div className="flex items-center gap-2"><Phone className="h-4 w-4"/>{user.portfolio.phone}</div>}
+                                        {canViewPrivateContact && user.portfolio?.address?.country && <div className="flex items-center gap-2"><MapPin className="h-4 w-4"/>{user.portfolio.address.poBox}, {user.portfolio.address.country}</div>}
                                     </div>
                                     <div className="flex items-center justify-center md:justify-start gap-4 mt-4">
                                         <div className="flex gap-1">
