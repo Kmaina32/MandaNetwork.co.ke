@@ -5,6 +5,7 @@
  */
 
 import { ai } from '@/ai/genkit-instance';
+import { modelFor } from '@/ai/model-config';
 import { z } from 'zod';
 import { googleAI } from '@genkit-ai/googleai';
 
