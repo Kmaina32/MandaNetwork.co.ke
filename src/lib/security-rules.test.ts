@@ -63,4 +63,15 @@ describe('Firebase Realtime Database security rules', () => {
     expect(rules.publicCertificates.$certificateId['.validate']).toContain("newData.child('certificateId').val() === $certificateId");
   });
 
+  it('allows organization admins to query only their own organization members', () => {
+    expect(rules.users['.read']).toContain("query.orderByChild === 'organizationId'");
+    expect(rules.users['.read']).toContain("query.equalTo === root.child('users').child(auth.uid).child('organizationId').val()");
+  });
+
+  it('uses a minimal email directory for invitation lookup', () => {
+    expect(rules.userDirectory['.read']).toContain("query.orderByChild === 'email'");
+    expect(rules.userDirectory['.indexOn']).toContain('email');
+    expect(rules.userDirectory.$userId['.validate']).toContain("newData.child('email').val() === auth.token.email");
+  });
+
 });

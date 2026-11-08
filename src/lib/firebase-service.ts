@@ -101,11 +101,22 @@ export async function deleteCourse(courseId: string): Promise<void> {
 export async function saveUser(uid: string, dataToSave: Partial<Omit<RegisteredUser, 'uid'>>): Promise<void> {
     const userRef = ref(db, `users/${uid}`);
     await update(userRef, dataToSave);
+    const userSnapshot = await get(userRef);
+    const fullUser = userSnapshot.val() || {};
+
+    // Minimal email lookup index for organization invitations. Rules bind the
+    // email to the caller's verified Firebase Auth token.
+    if (fullUser.email) {
+        await set(ref(db, `userDirectory/${uid}`), {
+            uid,
+            email: String(fullUser.email).trim().toLowerCase(),
+            organizationId: fullUser.organizationId || null,
+        });
+    } else {
+        await remove(ref(db, `userDirectory/${uid}`));
+    }
 
     if (dataToSave.portfolio || dataToSave.displayName || dataToSave.photoURL) {
-        const userSnapshot = await get(userRef);
-        const fullUser = userSnapshot.val();
-        
         const publicProfileRef = ref(db, `publicProfiles/${uid}`);
         if (fullUser.portfolio?.public) {
             const portfolio = fullUser.portfolio;
@@ -149,12 +160,13 @@ export async function getPublicProfileById(uid: string): Promise<RegisteredUser 
 }
 
 export async function getUserByEmail(email: string): Promise<RegisteredUser | null> {
-    const usersRef = query(ref(db, 'users'), orderByChild('email'), equalTo(email));
-    const snapshot = await get(usersRef);
+    const directoryRef = query(ref(db, 'userDirectory'), orderByChild('email'), equalTo(email.trim().toLowerCase()));
+    const snapshot = await get(directoryRef);
     if (snapshot.exists()) {
-        const usersData = snapshot.val();
-        const uid = Object.keys(usersData)[0];
-        return { uid, ...usersData[uid] };
+        const records = snapshot.val();
+        const uid = Object.keys(records)[0];
+        const record = records[uid];
+        return { uid, email: record.email || null, displayName: null, organizationId: record.organizationId || undefined };
     }
     return null;
 }
