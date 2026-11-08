@@ -327,7 +327,7 @@ function NotificationsPopover() {
     )
 }
 
-function ThemeToggle() {
+export function ThemeToggle() {
     const [theme, setTheme] = useState('light');
 
     useEffect(() => {
@@ -388,64 +388,55 @@ export function Header({ children }: { children?: React.ReactNode }) {
   }
 
   return (
-    <header className="flex h-16 items-center border-b bg-background px-4 md:px-6 sticky top-0 z-30">
-        <div className="flex items-center gap-2">
-            <SidebarTrigger />
-             <div className='block md:hidden'>
-                 <Link href="/" className="flex items-center gap-2 font-bold text-lg font-headline">
-                    <GitBranch className="h-6 w-6 text-primary" />
-                    <span>Varban Academy</span>
-                </Link>
-            </div>
-        </div>
-      
-        <div className="flex w-full items-center justify-end gap-2">
-            <ThemeToggle />
-            {loading ? (
-            <Skeleton className="h-8 w-8 rounded-full" />
-            ) : user ? (
-            <>
-                <NotificationsPopover />
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-full">
-                        <Avatar className="h-8 w-8">
-                        <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || 'User'}/>
-                        <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
-                        </Avatar>
-                    </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>
-                            <p className="font-medium">{user.displayName || 'User'}</p>
-                            <p className="text-xs font-normal text-muted-foreground">{user.email}</p>
-                        </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem asChild>
-                            <Link href="/profile">
-                            <User className="mr-2 h-4 w-4" />
-                            <span>Profile</span>
-                            </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={logout}>
-                            <LogOut className="mr-2 h-4 w-4" />
-                            <span>Logout</span>
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </>
-            ) : (
-                <div className="flex items-center gap-2">
-                    <Button asChild variant="outline">
-                        <Link href="/login">Login</Link>
-                    </Button>
-                    <Button asChild>
-                        <Link href="/signup">Sign Up</Link>
-                    </Button>
-                </div>
-            )}
-        </div>
+    <header className="sticky top-0 z-40 flex h-16 items-center border-b border-border/80 bg-background/95 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/90 sm:px-5 md:px-6">
+      <div className="flex min-w-0 items-center gap-2">
+        <SidebarTrigger className="h-10 w-10 shrink-0 rounded-xl" aria-label="Open navigation menu" />
+        <Link href="/" className="flex min-w-0 items-center gap-2.5">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-black text-white">
+            <GitBranch className="h-5 w-5" />
+          </span>
+          <span className="truncate text-base font-semibold tracking-tight sm:text-lg">Varban Academy</span>
+        </Link>
+      </div>
+      <div className="ml-auto hidden items-center gap-2 md:flex">
+        <ThemeToggle />
+        {loading ? (
+          <Skeleton className="h-9 w-9 rounded-full" />
+        ) : user ? (
+          <>
+            <NotificationsPopover />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || 'User'} />
+                    <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>
+                  <p className="font-medium">{user.displayName || 'User'}</p>
+                  <p className="text-xs font-normal text-muted-foreground">{user.email}</p>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/profile"><User className="mr-2 h-4 w-4" />Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout}>
+                  <LogOut className="mr-2 h-4 w-4" />Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline"><Link href="/login">Log in</Link></Button>
+            <Button asChild><Link href="/signup">Create account</Link></Button>
+          </div>
+        )}
+      </div>
     </header>
   );
 }
