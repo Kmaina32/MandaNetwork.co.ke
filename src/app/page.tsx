@@ -105,7 +105,9 @@ export default function Home() {
       </header>
 
       <main>
-        <section className="mx-auto max-w-7xl px-5 pb-14 pt-10 sm:px-8 sm:pb-20 sm:pt-14 lg:pt-16">
+        <section className="relative isolate overflow-hidden bg-neutral-100 bg-cover bg-center px-5 pb-14 pt-10 sm:px-8 sm:pb-20 sm:pt-14 lg:pt-16" style={{ backgroundImage: `linear-gradient(90deg, rgba(255,255,255,0.94) 0%, rgba(255,255,255,0.88) 48%, rgba(255,255,255,0.76) 100%), url("${HERO_IMAGE}")` }}>
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-white/60" aria-hidden="true" />
+          <div className="relative mx-auto max-w-7xl">
           <div className="grid items-center gap-10 lg:grid-cols-[0.92fr_1.08fr] lg:gap-14">
             <div className="max-w-xl">
               <p className="mb-5 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Varban Academy · Financial education</p>
@@ -140,6 +142,7 @@ export default function Home() {
                 <p className="mt-2 text-[10px] font-semibold leading-4 text-neutral-700">Learn at your own pace</p>
               </div>
             </div>
+          </div>
           </div>
         </section>
 
