@@ -29,6 +29,32 @@ import { checkHackathonParticipantAchievement } from '@/lib/achievements';
 const SERVER_ACTION_WINDOW_MS = 10 * 60 * 1000;
 const SERVER_ACTION_LIMIT = 12;
 
+/**
+ * Bootstrap the single configured administrator from a verified Firebase identity.
+ * The client cannot choose a target UID or email; both are derived from the verified token.
+ */
+export async function ensureConfiguredAdmin(idToken: string): Promise<void> {
+  if (typeof idToken !== 'string' || idToken.length < 100 || idToken.length > 10000) {
+    throw new Error('A valid sign-in session is required.');
+  }
+  const decoded = await adminAuth.verifyIdToken(idToken, true);
+  const email = typeof decoded.email === 'string' ? decoded.email.trim().toLowerCase() : '';
+  if (email !== 'nextrademarkets@gmail.com' || decoded.email_verified !== true) {
+    throw new Error('This account is not authorized for administrator access.');
+  }
+
+  const firebaseUser = await adminAuth.getUser(decoded.uid);
+  const existingClaims = firebaseUser.customClaims || {};
+  await adminAuth.setCustomUserClaims(decoded.uid, { ...existingClaims, isAdmin: true });
+  await adminDb.ref(`users/${decoded.uid}`).update({
+    uid: decoded.uid,
+    email,
+    isAdmin: true,
+    adminExpiresAt: null,
+  });
+}
+
+
 async function enforceServerActionRateLimit(actionName: string, maxCalls = SERVER_ACTION_LIMIT): Promise<void> {
   const requestHeaders = await headers();
   const forwarded = requestHeaders.get('x-vercel-forwarded-for')
