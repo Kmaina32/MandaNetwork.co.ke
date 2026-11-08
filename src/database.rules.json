@@ -50,10 +50,13 @@
       ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)",
       "$bootcampId": {
         ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)",
-        "participants": {
-          "$userId": {
-            ".write": "auth != null && auth.uid === $userId && newData.val() === true"
-          }
+        }
+    },
+    "bootcampParticipants": {
+      "$bootcampId": {
+        "$userId": {
+          ".read": "auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('isAdmin').val() === true)",
+          ".write": false
         }
       }
     },

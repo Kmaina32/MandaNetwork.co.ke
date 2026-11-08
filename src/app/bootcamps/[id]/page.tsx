@@ -6,7 +6,8 @@ import { notFound, useParams } from "next/navigation";
 import Image from "next/image";
 import Link from 'next/link';
 import type { Bootcamp, Course, UserCourse } from "@/lib/types";
-import { getBootcampById, getAllCourses, getUserCourses, enrollUserInCourse, registerUserForBootcamp } from '@/lib/firebase-service';
+import { getBootcampById, getAllCourses, getUserCourses } from '@/lib/firebase-service';
+import { getBootcampRegistrationStatus, registerFreeBootcamp } from '@/app/actions';
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,7 @@ export default function BootcampDetailPage() {
   const [loading, setLoading] = useState(true);
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -52,6 +54,8 @@ export default function BootcampDetailPage() {
             setCourses(bootcampCourses);
 
             if(user) {
+                const idToken = await user.getIdToken();
+                setIsRegistered(await getBootcampRegistrationStatus(idToken, params.id));
                 const fetchedUserCourses = await getUserCourses(user.uid);
                 setUserCourses(fetchedUserCourses);
             }
@@ -66,13 +70,15 @@ export default function BootcampDetailPage() {
   }, [params.id, user]);
   
   const enrolledCourseIds = new Set(userCourses.map(c => c.courseId));
-  const isEnrolled = bootcamp?.participants && user?.uid && bootcamp.participants[user.uid];
+  const isEnrolled = isRegistered;
 
   const handleEnroll = async (paymentMethod: UserCourse['paymentMethod'] = 'free') => {
       if (!user || !bootcamp) return;
       setIsEnrolling(true);
       try {
-        await registerUserForBootcamp(bootcamp.id, user.uid);
+        const idToken = await user.getIdToken();
+        await registerFreeBootcamp(idToken, bootcamp.id);
+        setIsRegistered(true);
         
         toast({ title: 'Enrolled Successfully!', description: `You are now enrolled in the ${bootcamp.title}.`});
         
@@ -187,7 +193,7 @@ export default function BootcampDetailPage() {
                                         <Link href="/dashboard">Go to Dashboard</Link>
                                     </Button>
                                 ) : (
-                                    <Button size="lg" className="w-full" onClick={() => bootcamp.price > 0 ? setIsModalOpen(true) : handleEnroll('free')} disabled={isEnrolling}>
+                                    <Button size="lg" className="w-full" onClick={() => bootcamp.price > 0 ? toast({ title: 'Paid registration unavailable', description: 'Paid bootcamp enrolment will open when verified payment processing is enabled.', variant: 'destructive' }) : handleEnroll('free')} disabled={isEnrolling}>
                                         {isEnrolling ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Award className="mr-2 h-5 w-5" />}
                                         Enroll Now
                                     </Button>
@@ -198,16 +204,7 @@ export default function BootcampDetailPage() {
                 </div>
              </div>
         </main>
-        {bootcamp.price > 0 && (
-            <PaymentModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                itemId={bootcamp.id}
-                itemName={bootcamp.title}
-                price={bootcamp.price}
-                onPaymentSuccess={handleEnroll}
-            />
-        )}
+        
         <Footer />
       </SidebarInset>
     </SidebarProvider>

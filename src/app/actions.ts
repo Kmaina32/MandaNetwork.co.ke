@@ -141,6 +141,27 @@ export async function generateHackathonIdeas(input: GenerateHackathonIdeasInput)
     return result;
 }
 
+
+export async function getBootcampRegistrationStatus(idToken: string, bootcampId: string): Promise<boolean> {
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(bootcampId)) throw new Error('Invalid bootcamp identifier.');
+    const decoded = await adminAuth.verifyIdToken(idToken, true);
+    const snapshot = await adminDb.ref(`bootcampParticipants/${bootcampId}/${decoded.uid}`).get();
+    return snapshot.val() === true;
+}
+
+export async function registerFreeBootcamp(idToken: string, bootcampId: string): Promise<void> {
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(bootcampId)) throw new Error('Invalid bootcamp identifier.');
+    const decoded = await adminAuth.verifyIdToken(idToken, true);
+    const bootcampSnapshot = await adminDb.ref(`bootcamps/${bootcampId}`).get();
+    if (!bootcampSnapshot.exists()) throw new Error('This bootcamp is no longer available.');
+    const bootcamp = bootcampSnapshot.val();
+    const price = Number(bootcamp.price);
+    if (!Number.isFinite(price) || price > 0) {
+        throw new Error('Paid bootcamp registration is unavailable until verified bootcamp payment processing is enabled.');
+    }
+    await adminDb.ref(`bootcampParticipants/${bootcampId}/${decoded.uid}`).set(true);
+}
+
 export async function awardPoints(idToken: string, targetUserId: string, points: number): Promise<void> {
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(targetUserId)) throw new Error('Invalid learner identifier.');
     if (!Number.isInteger(points) || points < 1 || points > 1000) {
