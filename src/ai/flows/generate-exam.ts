@@ -9,6 +9,7 @@
  */
 
 import { ai } from '@/ai/genkit-instance';
+import { modelFor } from '@/ai/model-config';
 import {z} from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
 
@@ -50,6 +51,7 @@ export async function generateExam(
 
 const prompt = ai.definePrompt({
   name: 'generateExamPrompt',
+  model: modelFor('admin'),
   input: {schema: GenerateExamInputSchema},
   output: {schema: GenerateExamOutputSchema},
   prompt: `You are an expert curriculum developer. Your task is to generate a final exam for an online course based on its title and description.
