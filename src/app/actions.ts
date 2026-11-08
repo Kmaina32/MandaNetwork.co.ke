@@ -67,7 +67,8 @@ export async function runContentStrategy(): Promise<ContentStrategyOutput> {
 }
 
 export async function courseTutor(input: CourseTutorInput): Promise<CourseTutorOutput> {
-    await enforceServerActionRateLimit('courseTutor');
+    // Students on shared school/mobile networks should not exhaust a tiny global IP quota.
+    await enforceServerActionRateLimit('courseTutor', 60);
   const { courseTutor } = await import('@/ai/flows/course-tutor');
   return courseTutor(input);
 }
