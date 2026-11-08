@@ -58,6 +58,7 @@ export default function CoursePlayerPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [lessonProgress, setLessonProgress] = useState(0);
+  const [isCompletingLesson, setIsCompletingLesson] = useState(false);
   
   useEffect(() => {
      if (!authLoading && !user) {
@@ -98,6 +99,7 @@ export default function CoursePlayerPage() {
                 setCompletedLessons(new Set(currentUserCourse.completedLessons));
             }
             
+            let availableLessonCount = lessons.length;
             if (enrolledDate && fetchedCourse.dripFeed !== 'off') {
                 const enrollmentDate = new Date(enrolledDate);
                 const today = new Date();
@@ -108,14 +110,17 @@ export default function CoursePlayerPage() {
                 } else if (fetchedCourse.dripFeed === 'weekly') {
                     unlockedLessons = differenceInWeeks(today, enrollmentDate) + 1;
                 }
-                setUnlockedLessonsCount(Math.min(unlockedLessons, lessons.length));
+                availableLessonCount = Math.min(unlockedLessons, lessons.length);
+                setUnlockedLessonsCount(availableLessonCount);
             } else {
-                setUnlockedLessonsCount(lessons.length);
+                availableLessonCount = lessons.length;
+                setUnlockedLessonsCount(availableLessonCount);
             }
             
             if (lessons.length > 0) {
-                const firstIncompleteLessonIndex = lessons.findIndex(l => !currentUserCourse?.completedLessons?.includes(l.id));
-                const lessonToShow = firstIncompleteLessonIndex !== -1 ? lessons[firstIncompleteLessonIndex] : lessons[0];
+                const firstIncompleteLessonIndex = lessons.findIndex((lesson, index) => index < availableLessonCount && !currentUserCourse?.completedLessons?.includes(lesson.id));
+                const lastUnlockedLessonIndex = availableLessonCount - 1;
+                const lessonToShow = firstIncompleteLessonIndex !== -1 ? lessons[firstIncompleteLessonIndex] : (lastUnlockedLessonIndex >= 0 ? lessons[lastUnlockedLessonIndex] : null);
                 setCurrentLesson(lessonToShow);
             }
         } catch (error) {
@@ -157,18 +162,20 @@ export default function CoursePlayerPage() {
   const handleCompleteLesson = async () => {
     if (!currentLesson || !user || !course) return;
 
+    if (isCompletingLesson || completedLessons.has(currentLesson.id) || allLessons.length === 0) return;
+    setIsCompletingLesson(true);
     const newCompleted = new Set(completedLessons);
     newCompleted.add(currentLesson.id);
-    setCompletedLessons(newCompleted);
-
     const newProgress = (newCompleted.size / allLessons.length) * 100;
 
+    try {
     await updateUserCourseProgress(user.uid, course.id, {
         completedLessons: Array.from(newCompleted),
         progress: Math.round(newProgress),
         completed: newProgress === 100
     });
 
+    setCompletedLessons(newCompleted);
     if (newProgress === 100) {
         const achievement = await checkCourseCompletionAchievements(user.uid, course.id);
         if (achievement) {
@@ -198,36 +205,18 @@ export default function CoursePlayerPage() {
         });
         setCurrentLesson(null);
     }
+    } catch (error) {
+      console.error('Failed to save lesson completion', error);
+      toast({ title: 'Could not save progress', description: 'Please try again. Your lesson is not marked complete yet.', variant: 'destructive' });
+    } finally {
+      setIsCompletingLesson(false);
+    }
   };
 
   useEffect(() => {
-    if (!currentLesson) {
-      setLessonProgress(100);
-      setTimeLeft(0);
-      return;
-    }
-
-    const durationInMinutes = parseInt(currentLesson.duration.split(' ')[0], 10);
-    const durationInSeconds = isNaN(durationInMinutes) ? 300 : durationInMinutes * 60; // Default 5 mins if invalid
-    
-    setTimeLeft(durationInSeconds);
+    setTimeLeft(0);
     setLessonProgress(0);
-
-    const interval = setInterval(() => {
-        setTimeLeft(prev => {
-            if (prev <= 1) {
-                clearInterval(interval);
-                handleCompleteLesson();
-                return 0;
-            }
-            const newTimeLeft = prev - 1;
-            setLessonProgress(100 - (newTimeLeft / durationInSeconds) * 100);
-            return newTimeLeft;
-        });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [currentLesson]);
+  }, [currentLesson?.id]);
 
   const progress = allLessons.length > 0 ? (completedLessons.size / allLessons.length) * 100 : 0;
 
@@ -302,10 +291,14 @@ export default function CoursePlayerPage() {
 
             <main className="flex-grow p-4 md:p-6 lg:p-8 overflow-y-auto bg-secondary relative flex flex-col items-center">
               <div className="w-full max-w-3xl flex-grow flex flex-col">
-                <CoursePlayerTabs
-                    course={course}
-                    lesson={currentLesson}
-                />
+                <CoursePlayerTabs course={course} lesson={currentLesson} />
+                {currentLesson && !completedLessons.has(currentLesson.id) && (
+                  <div className="mt-6 flex justify-end">
+                    <Button onClick={handleCompleteLesson} disabled={isCompletingLesson}>
+                      {isCompletingLesson ? 'Saving progress…' : 'Mark lesson as complete'}
+                    </Button>
+                  </div>
+                )}
               </div>
               <AiTutor course={course} lesson={currentLesson} settings={tutorSettings} />
               <NotebookSheet courseId={course.id} courseTitle={course.title} />
