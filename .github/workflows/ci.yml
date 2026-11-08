@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: 20
       - name: Install dependencies
-        run: npm install --no-package-lock
+        run: npm ci
       - name: TypeScript validation
         run: npm run typecheck
       - name: Unit and security regression tests
