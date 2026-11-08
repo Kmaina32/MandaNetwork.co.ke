@@ -18,10 +18,6 @@ if (process.env.GEMINI_API_KEY) {
   }
 }
 
-if(plugins.length === 0 && process.env.NODE_ENV === 'production') {
-    throw new Error("No AI provider API keys are set in production. AI features will be disabled.");
-}
-
 export const ai = genkit({
   plugins,
 });
