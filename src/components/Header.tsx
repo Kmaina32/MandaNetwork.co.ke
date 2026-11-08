@@ -3,7 +3,7 @@
 'use client';
 
 import Link from 'next/link';
-import { User, LogOut, Bell, Calendar, Sparkles, PartyPopper, GitBranch, Moon, Sun, BellRing, Code, Trash2, Clapperboard } from 'lucide-react';
+import { User, LogOut, Bell, Calendar, Sparkles, PartyPopper, Moon, Sun, BellRing, Code, Trash2, Clapperboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from './ui/sidebar';
 import { useAuth } from '@/hooks/use-auth';
@@ -388,16 +388,11 @@ export function Header({ children }: { children?: React.ReactNode }) {
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center border-b border-border/80 bg-background/95 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/90 sm:px-5 md:px-6">
-      <div className="flex min-w-0 items-center gap-2">
-        <SidebarTrigger className="h-10 w-10 shrink-0 rounded-xl" aria-label="Open navigation menu" />
-        <Link href="/" className="flex min-w-0 items-center gap-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-black text-white">
-            <GitBranch className="h-5 w-5" />
-          </span>
-          <span className="truncate text-base font-semibold tracking-tight sm:text-lg">Varban Academy</span>
-        </Link>
-      </div>
-      <div className="ml-auto hidden items-center gap-2 md:flex">
+      <Link href="/" className="flex min-w-0 items-center">
+        <span className="truncate font-headline text-base font-bold tracking-tight sm:text-lg">Varban Academy</span>
+      </Link>
+      <div className="ml-auto flex items-center gap-2">
+        <div className="hidden items-center gap-2 md:flex">
         <ThemeToggle />
         {loading ? (
           <Skeleton className="h-9 w-9 rounded-full" />
@@ -435,6 +430,8 @@ export function Header({ children }: { children?: React.ReactNode }) {
             <Button asChild><Link href="/signup">Create account</Link></Button>
           </div>
         )}
+        </div>
+        <SidebarTrigger className="h-10 w-10 shrink-0 rounded-xl" aria-label="Open navigation menu" />
       </div>
     </header>
   );
