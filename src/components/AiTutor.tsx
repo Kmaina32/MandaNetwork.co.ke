@@ -22,6 +22,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TUTOR_MODELS, DEFAULT_TUTOR_MODEL, type TutorModelId } from '@/lib/tutor-models';
 import {
   Bot,
   BrainCircuit,
@@ -48,6 +50,7 @@ export function AiTutor({ course, lesson, settings }: AiTutorProps) {
     const [messages, setMessages] = useState<TutorMessage[]>([]);
     const [question, setQuestion] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [selectedModel, setSelectedModel] = useState<TutorModelId>(DEFAULT_TUTOR_MODEL);
     const audioRef = useRef<HTMLAudioElement>(null);
     const { isRecording, startRecording, stopRecording } = useRecorder();
 
@@ -57,6 +60,13 @@ export function AiTutor({ course, lesson, settings }: AiTutorProps) {
         { label: 'Tutor Me', icon: Pencil, action: 'tutor_me' as const },
     ];
     
+    useEffect(() => {
+        const savedModel = window.localStorage.getItem('varban-lesson-tutor-model');
+        if (savedModel && TUTOR_MODELS.some(model => model.id === savedModel)) {
+            setSelectedModel(savedModel as TutorModelId);
+        }
+    }, []);
+
     useEffect(() => {
         const loadHistory = async () => {
             if (user && course && lesson) {
@@ -93,7 +103,8 @@ export function AiTutor({ course, lesson, settings }: AiTutorProps) {
                 courseContext: lesson.content,
                 history: messages.map(({ audioUrl, suggestions, ...rest }) => ({ ...rest, role: rest.role === 'assistant' ? 'model' as const : 'user' as const })),
                 voice: settings?.voice,
-                speed: settings?.speed
+                speed: settings?.speed,
+                model: selectedModel
             });
             
             const tutorMessage: TutorMessage = { 
@@ -109,7 +120,8 @@ export function AiTutor({ course, lesson, settings }: AiTutorProps) {
 
         } catch (error) {
             console.error("AI Tutor failed:", error);
-            toast({ title: 'Error', description: 'The AI Tutor is currently unavailable. Please try again later.', variant: 'destructive'});
+            const missingKey = error instanceof Error && error.message.includes('GEMINI_API_KEY');
+            toast({ title: 'AI tutor unavailable', description: missingKey ? 'The AI tutor service is not configured. Please contact the academy team.' : 'The tutor could not connect to its AI provider. Please try again shortly.', variant: 'destructive'});
             setMessages(prev => prev.slice(0, -1));
         } finally {
             setIsLoading(false);
@@ -148,6 +160,25 @@ export function AiTutor({ course, lesson, settings }: AiTutorProps) {
                                 <SheetDescription>
                                     Your AI tutor for this lesson.
                                 </SheetDescription>
+                                <div className="mt-3 flex flex-wrap items-center gap-2">
+                                    <span className="text-xs font-medium text-muted-foreground">AI model</span>
+                                    <Select value={selectedModel} onValueChange={(value) => {
+                                        const nextModel = value as TutorModelId;
+                                        setSelectedModel(nextModel);
+                                        window.localStorage.setItem('varban-lesson-tutor-model', nextModel);
+                                    }}>
+                                        <SelectTrigger className="h-9 w-full max-w-[250px] text-xs">
+                                            <SelectValue placeholder="Choose an AI model" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {TUTOR_MODELS.map((model) => (
+                                                <SelectItem key={model.id} value={model.id}>
+                                                    {model.name}{model.recommended ? ' · Recommended' : ''}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                         </div>
                     </SheetHeader>
