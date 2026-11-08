@@ -106,6 +106,9 @@ export default function ProfilePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [dbUser, setDbUser] = useState<RegisteredUser | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileRetryKey, setProfileRetryKey] = useState(0);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [mdtBalance, setMdtBalance] = useState<string | null>(null);
@@ -155,43 +158,55 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
+    if (loading) return;
+    if (!user) {
+      router.replace('/login?next=%2Fprofile');
+      return;
     }
-    if (user) {
-      getUserById(user.uid).then(profile => {
-        if(profile) {
-          setDbUser(profile);
-          const { firstName, middleName, lastName } = splitDisplayName(profile.displayName);
-          form.reset({
-            firstName,
-            middleName,
-            lastName,
-            aboutMe: profile.portfolio?.aboutMe || '',
-            phone: profile.portfolio?.phone || '',
-            poBox: profile.portfolio?.address?.poBox || '',
-            country: profile.portfolio?.address?.country || '',
-            github: profile.portfolio?.socialLinks?.github || '',
-            gitlab: profile.portfolio?.socialLinks?.gitlab || '',
-            bitbucket: profile.portfolio?.socialLinks?.bitbucket || '',
-            public: profile.portfolio?.public || false,
-            projects: profile.portfolio?.projects || [],
-            workExperience: profile.portfolio?.workExperience || [],
-            education: profile.portfolio?.education || [],
-          });
 
-          // Also set wallet info if it exists
-          if (profile.portfolio?.walletAddress) {
-              setWalletAddress(profile.portfolio.walletAddress);
-              if (typeof window.ethereum !== 'undefined') {
-                  const provider = new ethers.BrowserProvider(window.ethereum);
-                  fetchBalance(provider, profile.portfolio.walletAddress);
-              }
-          }
-        }
+    let active = true;
+    setIsProfileLoading(true);
+    setProfileError(null);
+    getUserById(user.uid).then(profile => {
+      if (!active) return;
+      if (!profile) {
+        setProfileError('Your profile record could not be found. Please sign in again or contact support.');
+        return;
+      }
+      setDbUser(profile);
+      const { firstName, middleName, lastName } = splitDisplayName(profile.displayName);
+      form.reset({
+        firstName,
+        middleName,
+        lastName,
+        aboutMe: profile.portfolio?.aboutMe || '',
+        phone: profile.portfolio?.phone || '',
+        poBox: profile.portfolio?.address?.poBox || '',
+        country: profile.portfolio?.address?.country || '',
+        github: profile.portfolio?.socialLinks?.github || '',
+        gitlab: profile.portfolio?.socialLinks?.gitlab || '',
+        bitbucket: profile.portfolio?.socialLinks?.bitbucket || '',
+        public: profile.portfolio?.public || false,
+        projects: profile.portfolio?.projects || [],
+        workExperience: profile.portfolio?.workExperience || [],
+        education: profile.portfolio?.education || [],
       });
-    }
-  }, [user, loading, router, form]);
+      if (profile.portfolio?.walletAddress) {
+        setWalletAddress(profile.portfolio.walletAddress);
+        if (typeof window.ethereum !== 'undefined') {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          fetchBalance(provider, profile.portfolio.walletAddress);
+        }
+      }
+    }).catch(error => {
+      console.error('Failed to load learner profile:', error);
+      if (active) setProfileError('We could not load your profile. Check your connection and try again.');
+    }).finally(() => {
+      if (active) setIsProfileLoading(false);
+    });
+
+    return () => { active = false; };
+  }, [user, loading, router, form, profileRetryKey]);
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -368,7 +383,10 @@ export default function ProfilePage() {
   }
 
   const onSubmit = async (values: ProfileFormValues) => {
-    if (!user) return;
+    if (!user || !dbUser) {
+      toast({ title: 'Profile not ready', description: 'Wait for your profile to finish loading before saving changes.', variant: 'destructive' });
+      return;
+    }
     setIsLoading(true);
     try {
         const newDisplayName = [values.firstName, values.middleName, values.lastName].filter(Boolean).join(' ');
@@ -402,6 +420,17 @@ export default function ProfilePage() {
         
         await auth.currentUser?.reload();
         setUser(auth.currentUser);
+        setDbUser({ ...dbUser, displayName: newDisplayName, portfolio: {
+          ...dbUser.portfolio,
+          aboutMe: values.aboutMe,
+          phone: values.phone,
+          address: { poBox: values.poBox, country: values.country },
+          socialLinks: { github: values.github, gitlab: values.gitlab, bitbucket: values.bitbucket },
+          public: values.public,
+          projects: values.projects,
+          workExperience: values.workExperience,
+          education: values.education,
+        }});
         
         toast({ title: 'Success', description: 'Your profile has been updated.' });
     } catch(error) {
@@ -412,12 +441,16 @@ export default function ProfilePage() {
     }
   }
 
-  if (loading || !user) {
+  if (loading || !user || isProfileLoading) {
      return (
         <div className="flex justify-center items-center min-h-screen">
             <LoadingAnimation />
         </div>
     )
+  }
+
+  if (profileError || !dbUser) {
+    return <div className="flex min-h-screen items-center justify-center px-4"><Card className="w-full max-w-lg"><CardHeader><CardTitle>Profile unavailable</CardTitle><CardDescription>{profileError || 'Your profile is not ready yet.'}</CardDescription></CardHeader><CardFooter><Button onClick={() => setProfileRetryKey(value => value + 1)} disabled={isProfileLoading}>Try again</Button></CardFooter></Card></div>;
   }
 
   return (
