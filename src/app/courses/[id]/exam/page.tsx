@@ -8,7 +8,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '@/hooks/use-auth';
-import { getCourseById, createSubmission, getUserSubmissionsForCourse, getAllCourses } from '@/lib/firebase-service';
+import { getCourseById, createSubmission, getUserSubmissionsForCourse, getAllCourses, getUserCourses } from '@/lib/firebase-service';
 import type { Course, ExamQuestion, Submission } from '@/lib/mock-data';
 import { AppSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
@@ -104,6 +104,12 @@ export default function ExamPage() {
 
       if (!courseData) {
         notFound();
+        return;
+      }
+      const enrolledCourses = await getUserCourses(user.uid);
+      const enrollment = enrolledCourses.find(item => item.courseId === courseData.id);
+      if (!enrollment || enrollment.progress < 100) {
+        router.replace(`/courses/${params.id}/learn`);
         return;
       }
       setCourse(courseData);
