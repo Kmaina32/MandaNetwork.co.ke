@@ -73,6 +73,16 @@ export async function POST(request: NextRequest) {
     }
 
     const reference = newPaystackReference();
+    const now = Date.now();
+    const lockRef = adminDb.ref(`paymentCheckoutLocks/${decoded.uid}/${itemType}-${itemId}`);
+    const lock = await lockRef.transaction((current) => {
+      if (current && Number(current.expiresAt) > now) return;
+      return { reference, expiresAt: now + 20 * 60 * 1000 };
+    });
+    if (!lock.committed) {
+      return NextResponse.json({ error: 'A checkout for this item is already in progress. Complete it or wait 20 minutes before retrying.' }, { status: 409 });
+    }
+
     const transaction = {
       uid: decoded.uid,
       email: decoded.email.toLowerCase(),
@@ -84,8 +94,8 @@ export async function POST(request: NextRequest) {
       currency: 'KES',
       reference,
       status: 'initializing',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
     };
     await adminDb.ref(`paystackTransactions/${reference}`).set(transaction);
 
@@ -101,6 +111,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ authorizationUrl: checkout.authorizationUrl, reference });
     } catch (error) {
       await adminDb.ref(`paystackTransactions/${reference}`).update({ status: 'failed', updatedAt: Date.now() });
+      await lockRef.transaction((current) => current?.reference === reference ? null : current);
       throw error;
     }
   } catch (error) {
