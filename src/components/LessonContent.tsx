@@ -114,7 +114,6 @@ export function LessonContent({ lesson }: LessonContentProps) {
             </div>
           )}
         </div>
-      </ScrollArea>
     </div>
   );
 }
