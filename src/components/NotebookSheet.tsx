@@ -148,7 +148,7 @@ export function NotebookSheet({ courseId, courseTitle }: NotesSheetProps) {
                                     <DialogTrigger asChild>
                                         <Button variant="outline" size="sm">
                                             <GoogleDriveIcon className="mr-2 h-4 w-4" />
-                                            Save to Drive
+                                            Save to Google Drive
                                         </Button>
                                     </DialogTrigger>
                                     <DialogContent>
