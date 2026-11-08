@@ -27,7 +27,7 @@ import { Alert, AlertTitle, AlertDescription as AlertDescriptionComponent } from
 import { auth } from '@/lib/firebase';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import type { RegisteredUser } from '@/lib/mock-data';
+import type { RegisteredUser } from '@/lib/types';
 import { Icon } from '@iconify/react';
 
 const profileSchema = z.object({
