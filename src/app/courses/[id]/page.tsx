@@ -6,7 +6,8 @@ import { notFound, useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from 'next/link';
 import type { Course, UserCourse } from "@/lib/mock-data";
-import { getCourseBySlug, enrollUserInCourse, getUserCourses, getAllCourses } from '@/lib/firebase-service';
+import { auth } from '@/lib/firebase';
+import { getCourseBySlug, getUserCourses, getAllCourses } from '@/lib/firebase-service';
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -257,17 +258,30 @@ export default function CourseDetailPage() {
     }
     setIsEnrolling(true);
     try {
-      await enrollUserInCourse(user.uid, course.id, 'free');
-      const achievement = await checkFirstEnrollmentAchievement(user.uid);
-       if (achievement) {
-          toast({ title: "Achievement Unlocked!", description: `${achievement.name}: ${achievement.description}` });
-      } else {
-          toast({ title: 'Enrolled!', description: `You have successfully enrolled in ${course.title}.` });
+      const currentUser = auth.currentUser;
+      if (!currentUser || currentUser.uid !== user.uid) {
+        throw new Error('Your sign-in session has expired. Please sign in again and retry.');
       }
+      const idToken = await currentUser.getIdToken();
+      const response = await fetch('/api/courses/enroll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ courseId: course.id }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'We could not complete your enrolment. Please try again.');
       setIsEnrolled(true);
+      setIsEnrolling(false);
+      toast({ title: 'Enrolled!', description: `You have successfully enrolled in ${course.title}.` });
+      try {
+        const achievement = await checkFirstEnrollmentAchievement(user.uid);
+        if (achievement) toast({ title: 'Achievement Unlocked!', description: `${achievement.name}: ${achievement.description}` });
+      } catch (achievementError) {
+        console.warn('Enrollment succeeded but achievement update failed:', achievementError);
+      }
     } catch(error) {
       console.error("Free enrollment failed", error);
-      toast({ title: 'Error', description: 'Something went wrong during enrollment.', variant: 'destructive'});
+      toast({ title: 'Enrollment unsuccessful', description: error instanceof Error ? error.message : 'We could not complete your enrolment. Please try again.', variant: 'destructive'});
     } finally {
       setIsEnrolling(false);
     }
