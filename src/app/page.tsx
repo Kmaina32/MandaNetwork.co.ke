@@ -76,7 +76,7 @@ export default function Home() {
       <header className="sticky top-0 z-40 border-b border-neutral-200/80 bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 sm:px-8">
           <Link href="/" className="flex items-center gap-3" aria-label="Varban Academy home">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-black text-sm font-bold tracking-tight text-white">V</span>
+            
             <span className="text-base font-bold tracking-tight sm:text-lg">Varban Academy</span>
           </Link>
           <nav className="hidden items-center gap-8 md:flex" aria-label="Main navigation">
@@ -132,12 +132,12 @@ export default function Home() {
                 <Image src={HERO_IMAGE} alt="Financial market charts displayed on a trading workstation" fill priority sizes="(max-width: 1024px) 100vw, 55vw" className="object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-tr from-black/35 via-transparent to-transparent" />
               </div>
-              <div className="absolute -bottom-5 left-4 max-w-[230px] rounded-xl border border-neutral-200 bg-white p-4 shadow-xl sm:-left-6 sm:bottom-7">
+              <div className="absolute -bottom-5 left-4 max-w-[230px] border-l-2 border-black bg-white/95 py-2 pl-4 pr-2 shadow-sm sm:-left-6 sm:bottom-7">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">Your learning journey</p>
                 <p className="mt-1 text-sm font-semibold text-neutral-950">Start with the foundations.</p>
                 <Link href="/programs" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-neutral-800">Find your starting point <ArrowRight className="h-3.5 w-3.5" /></Link>
               </div>
-              <div className="absolute -right-2 top-5 hidden h-20 w-20 rounded-xl border border-white/60 bg-white/90 p-3 shadow-lg backdrop-blur sm:block">
+              <div className="absolute -right-2 top-5 hidden w-36 border-l-2 border-black bg-white/95 p-3 shadow-sm backdrop-blur sm:block">
                 <ChartNoAxesCombined className="h-5 w-5 text-black" />
                 <p className="mt-2 text-[10px] font-semibold leading-4 text-neutral-700">Learn at your own pace</p>
               </div>
@@ -260,10 +260,18 @@ export default function Home() {
       </main>
 
       <footer className="border-t border-neutral-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-8 sm:px-8 md:flex-row md:items-center md:justify-between">
-          <Link href="/" className="flex items-center gap-3"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-black text-xs font-bold text-white">V</span><span className="font-bold tracking-tight">Varban Academy</span></Link>
-          <nav className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-neutral-500"><Link href="/programs" className="hover:text-black">Courses & programs</Link><Link href="/blog" className="hover:text-black">Insights</Link><Link href="/terms" className="hover:text-black">Terms</Link><Link href="/privacy" className="hover:text-black">Privacy</Link><Link href="/developer" className="hover:text-black">Developer</Link></nav>
-          <p className="text-xs text-neutral-400">© {new Date().getFullYear()} Varban Academy</p>
+        <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:py-16">
+          <div className="grid gap-10 border-b border-neutral-200 pb-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+            <div className="max-w-sm">
+              <Link href="/" className="inline-flex text-xl font-bold tracking-tight text-neutral-950">Varban Academy</Link>
+              <p className="mt-4 text-sm leading-6 text-neutral-600">Practical education for people who want to understand markets, technology and the decisions shaping their financial future.</p>
+              <Link href="/programs" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-neutral-950 hover:gap-3">Explore learning <ArrowRight className="h-4 w-4" /></Link>
+            </div>
+            <div><h3 className="text-sm font-semibold text-neutral-950">Learn</h3><ul className="mt-4 space-y-3 text-sm text-neutral-600"><li><Link href="/programs" className="hover:text-black">Courses and programs</Link></li><li><Link href="/bootcamps" className="hover:text-black">Bootcamps</Link></li><li><Link href="/blog" className="hover:text-black">Insights and guides</Link></li><li><Link href="/live" className="hover:text-black">Live learning</Link></li></ul></div>
+            <div><h3 className="text-sm font-semibold text-neutral-950">Varban Academy</h3><ul className="mt-4 space-y-3 text-sm text-neutral-600"><li><Link href="/about" className="hover:text-black">About us</Link></li><li><Link href="/for-business" className="hover:text-black">For organisations</Link></li><li><Link href="/contact" className="hover:text-black">Contact</Link></li><li><Link href="/help" className="hover:text-black">Help centre</Link></li></ul></div>
+            <div><h3 className="text-sm font-semibold text-neutral-950">Legal and privacy</h3><ul className="mt-4 space-y-3 text-sm text-neutral-600"><li><Link href="/legal/terms" className="hover:text-black">Terms and agreements</Link></li><li><Link href="/legal/privacy" className="hover:text-black">Privacy notice</Link></li><li><Link href="/legal/data-use" className="hover:text-black">How we use your data</Link></li><li><Link href="/legal/data-safety" className="hover:text-black">Data safety</Link></li><li><Link href="/account-deletion" className="hover:text-black">Account deletion</Link></li><li><Link href="/legal/legal" className="hover:text-black">Legal information</Link></li></ul></div>
+          </div>
+          <div className="flex flex-col gap-3 pt-6 text-xs text-neutral-500 sm:flex-row sm:items-center sm:justify-between"><p>© {new Date().getFullYear()} Varban Academy. All rights reserved.</p><p>Educational content only. Learning outcomes are not guaranteed.</p></div>
         </div>
       </footer>
     </div>
