@@ -326,12 +326,11 @@ export default function DashboardPage() {
         setDbUser(userProfile);
 
         const courseMap = new Map(allCoursesData.map(course => [course.id, course]));
-        const detailedCourses = userCoursesData
-          .map(userCourse => {
-            const course = courseMap.get(userCourse.courseId);
-            return course ? { ...userCourse, ...course } : null;
-          })
-          .filter((course): course is PurchasedCourseDetail => Boolean(course?.title));
+        const detailedCourses: PurchasedCourseDetail[] = [];
+        for (const userCourse of userCoursesData) {
+          const course = courseMap.get(userCourse.courseId);
+          if (course?.title) detailedCourses.push({ ...userCourse, ...course });
+        }
         setPurchasedCourses(detailedCourses);
       } catch (error) {
         console.error('Failed to load learner dashboard:', error);
