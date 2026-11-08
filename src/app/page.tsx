@@ -25,7 +25,7 @@ export default function Home() {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [heroData, setHeroData] = useState({ title: '', subtitle: '', imageUrl: '' });
+  const [heroData, setHeroData] = useState({ title: 'Build practical skills. Create your future.', subtitle: 'Learn in-demand digital skills with practical courses, guided programmes and hands-on bootcamps.', imageUrl: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,10 +38,14 @@ export default function Home() {
         setLoading(true);
         const [coursesData, hero] = await Promise.all([getAllCourses(), getHeroData()]);
         setCourses(coursesData);
-        setHeroData(hero);
+        setHeroData({
+          title: hero.title?.trim() || 'Build practical skills. Create your future.',
+          subtitle: hero.subtitle?.trim() || 'Learn in-demand digital skills with practical courses, guided programmes and hands-on bootcamps.',
+          imageUrl: hero.imageUrl || '',
+        });
       } catch (err) {
         console.error(err);
-        setError("Failed to load page content. Please try again later.");
+        setError("We couldn't load the course catalogue. Please refresh to try again.");
       } finally {
         setLoading(false);
       }
