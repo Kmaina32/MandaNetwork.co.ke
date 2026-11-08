@@ -166,12 +166,15 @@
       }
     },
     "notifications": {
-      ".read": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || (query.orderByChild === 'userId' && query.equalTo === auth.uid))",
+      ".read": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || (query.orderByChild === 'userId' && query.equalTo === auth.uid) || (query.orderByChild === 'cohort' && query.equalTo === root.child('users').child(auth.uid).child('cohort').val()))",
       "$notificationId": {
         ".write": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || (root.child('users').child(auth.uid).child('isOrganizationAdmin').val() === true) || (data.child('userId').val() === auth.uid && newData.child('userId').val() === auth.uid))",
         ".read": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)) || data.child('userId').val() === auth.uid)"
       },
-      ".indexOn": "userId"
+      ".indexOn": [
+        "userId",
+        "cohort"
+      ]
     },
     "contactMessages": {
       ".read": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now))",

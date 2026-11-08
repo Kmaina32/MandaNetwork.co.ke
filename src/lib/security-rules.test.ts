@@ -37,6 +37,8 @@ describe('Firebase Realtime Database security rules', () => {
     const notificationRules = rules.notifications;
     expect(notificationRules['.read']).toContain("query.orderByChild === 'userId'");
     expect(notificationRules['.read']).toContain("query.equalTo === auth.uid");
+    expect(notificationRules['.read']).toContain("query.orderByChild === 'cohort'");
+    expect(notificationRules['.indexOn']).toContain('cohort');
     expect(notificationRules.$notificationId['.read']).toContain("data.child('userId').val() === auth.uid");
     expect(notificationRules['.indexOn']).toContain('userId');
   });

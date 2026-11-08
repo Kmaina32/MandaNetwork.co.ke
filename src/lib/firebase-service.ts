@@ -478,19 +478,25 @@ export async function createNotification(notificationData: Partial<Omit<Notifica
     return newNotificationRef.key!;
 }
 
-export async function getAllNotifications(userId: string): Promise<Notification[]> {
+export async function getAllNotifications(userId: string, cohort?: string): Promise<Notification[]> {
     if (!userId) throw new Error('A signed-in user is required to load notifications.');
-    const notificationsRef = query(ref(db, 'notifications'), orderByChild('userId'), equalTo(userId));
-    const snapshot = await get(notificationsRef);
-    if (snapshot.exists()) {
-        const notificationsData = snapshot.val();
-        const notifications = Object.keys(notificationsData).map(key => ({
-            id: key,
-            ...notificationsData[key]
-        }));
-        return notifications.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const userQuery = query(ref(db, 'notifications'), orderByChild('userId'), equalTo(userId));
+    const requests = [get(userQuery)];
+    if (cohort) {
+        const cohortQuery = query(ref(db, 'notifications'), orderByChild('cohort'), equalTo(cohort));
+        requests.push(get(cohortQuery));
     }
-    return [];
+    const snapshots = await Promise.all(requests);
+    const notificationsById = new Map<string, Notification>();
+    for (const snapshot of snapshots) {
+        if (!snapshot.exists()) continue;
+        const data = snapshot.val();
+        for (const key of Object.keys(data)) {
+            notificationsById.set(key, { id: key, ...data[key] });
+        }
+    }
+    return Array.from(notificationsById.values())
+        .sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 // User Notes Functions
