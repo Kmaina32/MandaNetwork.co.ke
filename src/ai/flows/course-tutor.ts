@@ -10,6 +10,7 @@
  */
 
 import { ai } from '@/ai/genkit-instance';
+import { modelFor } from '@/ai/model-config';
 import {z} from 'genkit';
 import { textToSpeech } from './text-to-speech';
 
@@ -43,7 +44,7 @@ export async function courseTutor(
 
 const prompt = ai.definePrompt({
   name: 'courseTutorPrompt',
-  model: 'nvidia/meta/llama-3.1-70b-instruct',
+  model: modelFor('student'),
   input: {schema: CourseTutorInputSchema},
   output: {schema: CourseTutorOutputSchema},
   prompt: `You are Gina, an expert AI Tutor for the Varban Academy online learning platform. Your tone is encouraging, friendly, and very helpful. You are having a continuous conversation with a student.
