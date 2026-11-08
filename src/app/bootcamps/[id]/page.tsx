@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { notFound, useParams } from "next/navigation";
 import Image from "next/image";
 import Link from 'next/link';
-import type { Bootcamp, Course } from "@/lib/types";
+import type { Bootcamp, Course, UserCourse } from "@/lib/types";
 import { getBootcampById, getAllCourses, getUserCourses } from '@/lib/firebase-service';
 import { getBootcampRegistrationStatus, registerFreeBootcamp } from '@/app/actions';
 import { Footer } from "@/components/Footer";
