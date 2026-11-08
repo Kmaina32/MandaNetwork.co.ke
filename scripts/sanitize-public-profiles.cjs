@@ -11,7 +11,8 @@ async function main() {
   const databaseURL = process.env.FIREBASE_DATABASE_URL;
   if (!raw || !databaseURL) throw new Error('Set FIREBASE_SERVICE_ACCOUNT_JSON and FIREBASE_DATABASE_URL.');
   admin.initializeApp({ credential: admin.credential.cert(JSON.parse(raw)), databaseURL });
-  const profilesRef = admin.database().ref('publicProfiles');
+  const db = admin.database();
+  const profilesRef = db.ref('publicProfiles');
   const snapshot = await profilesRef.once('value');
   const profiles = snapshot.val() || {};
   const updates = {};
@@ -40,8 +41,8 @@ async function main() {
 
   for (const [uid, profile] of Object.entries(profiles)) {
     const portfolio = profile && profile.portfolio;
-    if (!portfolio || portfolio.public !== true) { updates[uid] = null; removed++; continue; }
-    updates[uid] = {
+    if (!portfolio || portfolio.public !== true) { updates[`publicProfiles/${uid}`] = null; removed++; continue; }
+    updates[`publicProfiles/${uid}`] = {
       uid,
       displayName: typeof profile.displayName === 'string' ? profile.displayName : '',
       photoURL: typeof profile.photoURL === 'string' ? profile.photoURL : '',
