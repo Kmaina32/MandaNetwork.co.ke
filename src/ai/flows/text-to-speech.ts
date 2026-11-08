@@ -60,7 +60,7 @@ const speechToTextFlow = ai.defineFlow(
     const form = new FormData();
     form.set('language', SPEECH_LANGUAGE);
     form.set('response_format', 'json');
-    form.set('file', new Blob([bytes], { type: mimeType }), filename);
+    form.set('file', new Blob([Uint8Array.from(bytes)], { type: mimeType }), filename);
     const response = await fetch(
       `https://${ASR_FUNCTION_ID}.invocation.api.nvcf.nvidia.com/v1/audio/transcriptions`,
       { method: 'POST', headers: { Authorization: `Bearer ${process.env.NVIDIA_API_KEY?.trim()}` }, body: form, cache: 'no-store' },

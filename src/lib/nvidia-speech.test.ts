@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { audioDataUriToFile, pcmToWav } from './nvidia-speech';
 
 describe('NVIDIA speech audio helpers', () => {

@@ -1,3 +1,5 @@
+import { Buffer } from 'node:buffer';
+
 const MAX_AUDIO_BYTES = 20 * 1024 * 1024;
 
 export function audioDataUriToFile(dataUri: string): { bytes: Buffer; mimeType: string; filename: string } {
