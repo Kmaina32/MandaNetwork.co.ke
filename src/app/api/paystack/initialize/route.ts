@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
 
     const profileSnapshot = await adminDb.ref(`users/${decoded.uid}`).get();
     const profile = profileSnapshot.val() || {};
-    let itemType: 'course' | 'organization_plan';
+    let itemType: 'course' | 'hackathon' | 'organization_plan';
     let itemName: string;
     let amount: number;
     let organizationId: string | undefined;
