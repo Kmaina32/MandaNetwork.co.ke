@@ -55,41 +55,49 @@ async function enforceServerActionRateLimit(actionName: string, maxCalls = SERVE
 // is only loaded on the server when the action is executed.
 
 export async function getLearningPath(input: LearningPathInput): Promise<LearningPathOutput> {
+    await enforceServerActionRateLimit('getLearningPath');
   const { getLearningPath } = await import('@/ai/flows/career-coach');
   return getLearningPath(input);
 }
 
 export async function runContentStrategy(): Promise<ContentStrategyOutput> {
+    await enforceServerActionRateLimit('runContentStrategy');
   const { runContentStrategy } = await import('@/ai/flows/content-strategy');
   return runContentStrategy();
 }
 
 export async function courseTutor(input: CourseTutorInput): Promise<CourseTutorOutput> {
+    await enforceServerActionRateLimit('courseTutor');
   const { courseTutor } = await import('@/ai/flows/course-tutor');
   return courseTutor(input);
 }
 
 export async function generateApiKey(input: GenerateApiKeyInput): Promise<ApiKey> {
+    await enforceServerActionRateLimit('generateApiKey');
   const { generateApiKey } = await import('@/ai/flows/generate-api-key');
   return generateApiKey(input);
 }
 
 export async function generateCourseContent(input: GenerateCourseContentInput): Promise<GenerateCourseContentOutput> {
+    await enforceServerActionRateLimit('generateCourseContent');
   const { generateCourseContent } = await import('@/ai/flows/generate-course-content');
   return generateCourseContent(input);
 }
 
 export async function generateExam(input: GenerateExamInput): Promise<GenerateExamOutput> {
+    await enforceServerActionRateLimit('generateExam');
   const { generateExam } = await import('@/ai/flows/generate-exam');
   return generateExam(input);
 }
 
 export async function generateProject(input: GenerateProjectInput): Promise<GenerateProjectOutput> {
+    await enforceServerActionRateLimit('generateProject');
     const { generateProject } = await import('@/ai/flows/generate-project');
     return generateProject(input);
 }
 
 export async function gradeShortAnswerExam(input: GradeShortAnswerExamInput): Promise<GradeShortAnswerExamOutput> {
+    await enforceServerActionRateLimit('gradeShortAnswerExam');
   const { gradeShortAnswerExam } = await import('@/ai/flows/grade-short-answer-exam');
   return gradeShortAnswerExam(input);
 }
@@ -128,31 +136,37 @@ export async function processPayPalPayment(_input: PayPalPaymentInput): Promise<
 
 
 export async function siteHelp(input: SiteHelpInput): Promise<SiteHelpOutput> {
+    await enforceServerActionRateLimit('siteHelp');
   const { siteHelp } = await import('@/ai/flows/site-help');
   return siteHelp(input);
 }
 
 export async function studentHelp(input: StudentHelpInput): Promise<StudentHelpOutput> {
+    await enforceServerActionRateLimit('studentHelp');
   const { studentHelp } = await import('@/ai/flows/student-help');
   return studentHelp(input);
 }
 
 export async function textToSpeech(input: TextToSpeechInput): Promise<TextToSpeechOutput> {
+    await enforceServerActionRateLimit('textToSpeech');
     const { textToSpeech } = await import('@/ai/flows/text-to-speech');
     return textToSpeech(input);
 }
 
 export async function speechToText(input: SpeechToTextInput): Promise<SpeechToTextOutput> {
+    await enforceServerActionRateLimit('speechToText');
     const { speechToText } = await import('@/ai/flows/text-to-speech');
     return speechToText(input);
 }
 
 export async function sendOrganizationInvite(input: SendOrgInviteInput): Promise<SendOrgInviteOutput> {
+    await enforceServerActionRateLimit('sendOrganizationInvite');
     const { createOrganizationInvite } = await import('@/ai/flows/send-org-invite');
     return createOrganizationInvite(input);
 }
 
 export async function generateFormalDocument(input: { docType: string; content: string; }): Promise<GenerateFormalDocumentOutput> {
+    await enforceServerActionRateLimit('generateFormalDocument');
     const { generateFormalDocument } = await import('@/ai/flows/generate-document');
     const result = await generateFormalDocument({ docType: input.docType as any, content: input.content });
     // The result is returned to the client, which will then call saveDocumentContent.
@@ -160,6 +174,7 @@ export async function generateFormalDocument(input: { docType: string; content: 
 }
 
 export async function generateHackathonIdeas(input: GenerateHackathonIdeasInput): Promise<GenerateHackathonIdeasOutput> {
+    await enforceServerActionRateLimit('generateHackathonIdeas');
     const { generateHackathonIdeas } = await import('@/ai/flows/generate-hackathon-ideas');
     const result = await generateHackathonIdeas(input);
     if(result.ideas.length > 0) {
@@ -202,6 +217,7 @@ export async function awardPoints(idToken: string, targetUserId: string, points:
 }
 
 export async function getPortfolioFeedback(input: GetPortfolioFeedbackInput): Promise<GetPortfolioFeedbackOutput> {
+    await enforceServerActionRateLimit('getPortfolioFeedback');
     const { getPortfolioFeedback } = await import('@/ai/flows/portfolio-advisor');
     return getPortfolioFeedback(input);
 }
