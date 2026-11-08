@@ -62,8 +62,9 @@ export function AppSidebar() {
     }, [calendarEvents, readEventIds, loadingEvents, user]);
 
     const isActive = (path: string) => {
-        if (path === '/') return pathname === '/';
-        return pathname.startsWith(path);
+        const currentPath = pathname || '/';
+        if (path === '/') return currentPath === '/';
+        return currentPath === path || currentPath.startsWith(`${path}/`);
     }
     
     const onLinkClick = (path?: string) => {
