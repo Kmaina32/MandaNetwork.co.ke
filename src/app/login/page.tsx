@@ -17,6 +17,12 @@ import { Loader2, GitBranch, ArrowLeft, AlertTriangle, Eye, EyeOff } from 'lucid
 import { getHeroData } from '@/lib/firebase-service';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
 
+function getSafeReturnPath() {
+  if (typeof window === 'undefined') return '/dashboard';
+  const requested = new URLSearchParams(window.location.search).get('next') || new URLSearchParams(window.location.search).get('redirect');
+  return requested && requested.startsWith('/') && !requested.startsWith('//') ? requested : '/dashboard';
+}
+
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
   password: z.string().min(1, { message: 'Password is required.' }),
@@ -43,15 +49,19 @@ export default function LoginPage() {
 
   useEffect(() => {
     const fetchImage = async () => {
-      const data = await getHeroData();
-      setImageUrl(data.loginImageUrl);
+      try {
+        const data = await getHeroData();
+        setImageUrl(data.loginImageUrl || '');
+      } catch (error) {
+        console.error('Failed to load login presentation:', error);
+      }
     }
     fetchImage();
   }, []);
 
   useEffect(() => {
     if (!authLoading && user) {
-      router.push('/dashboard');
+      router.replace(getSafeReturnPath());
     }
   }, [user, authLoading, router]);
 
@@ -84,7 +94,7 @@ export default function LoginPage() {
     setError(null);
     try {
         await signInWithGoogle();
-        router.push('/dashboard');
+        router.replace(getSafeReturnPath());
     } catch(e: any) {
         setError(e.message || 'Failed to sign in with Google.');
     } finally {
