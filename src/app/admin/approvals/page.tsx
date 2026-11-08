@@ -7,7 +7,7 @@ import { Footer } from "@/components/shared/Footer";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getPermissionRequests, updatePermissionRequestStatus, deleteCourse, deleteProgram, deleteBundle, deleteBootcamp, createBootcamp } from '@/lib/firebase-service';
+import { getPermissionRequests, updatePermissionRequestStatus, deleteCourse, deleteProgram, deleteBundle, createBootcamp } from '@/lib/firebase-service';
 import type { PermissionRequest } from '@/lib/types';
 import { ArrowLeft, Loader2, CheckCircle, XCircle, ShieldCheck, Clock, Check, Ban } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
+import { deleteBootcampAndRegistrations } from '@/app/actions';
 
 export default function AdminApprovalsPage() {
   const { user, isSuperAdmin, loading: authLoading } = useAuth();
@@ -63,7 +64,9 @@ export default function AdminApprovalsPage() {
             await deleteBundle(request.itemId);
             actionCompleted = true;
         } else if (request.action === 'delete_bootcamp') {
-            await deleteBootcamp(request.itemId);
+            if (!user) throw new Error('Your session has expired. Please sign in again.');
+            await deleteBootcampAndRegistrations(await user.getIdToken(), request.itemId);
+            actionCompleted = true;
         } else if (request.action === 'create_bootcamp') {
             await createBootcamp(request.itemData);
             actionCompleted = true;

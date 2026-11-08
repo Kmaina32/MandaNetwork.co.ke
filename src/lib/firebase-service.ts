@@ -1325,8 +1325,11 @@ export async function deleteAdvertisement(id: string): Promise<void> {
 export async function getTeamMembers(): Promise<TeamMember[]> {
     const teamRef = ref(db, 'teamMembers');
     const snapshot = await get(teamRef);
-    if (snapshot.exists()) {
-        return snapshot.val() || [];
+    if (!snapshot.exists()) return [];
+    const value = snapshot.val();
+    if (Array.isArray(value)) return value.filter(Boolean);
+    if (value && typeof value === 'object') {
+        return Object.entries(value).map(([id, member]) => ({ id, ...(member as Omit<TeamMember, 'id'>) }));
     }
     return [];
 }

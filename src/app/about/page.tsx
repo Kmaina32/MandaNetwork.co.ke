@@ -15,23 +15,44 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { getTeamMembers } from '@/lib/firebase-service';
 import type { TeamMember } from '@/lib/types';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
+import Head from 'next/head';
 
 export default function AboutPage() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const [teamError, setTeamError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTeam = async () => {
       setLoading(true);
-      const members = await getTeamMembers();
-      setTeamMembers(members);
-      setLoading(false);
+      setTeamError(null);
+      try {
+        const members = await getTeamMembers();
+        setTeamMembers(members);
+      } catch (error) {
+        console.error('Failed to load team members:', error);
+        setTeamError('Team information is temporarily unavailable. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
     };
     fetchTeam();
   }, []);
 
+  const pageTitle = "About Varban Academy | Empowering Digital Africa";
+  const pageDescription = "Learn about Varban Academy's mission to bridge the digital skills gap in Kenya and East Africa through high-quality, accessible online education in AI, technology, and business.";
+
   return (
-    <SidebarProvider>
+    <>
+      <Head>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+      </Head>
+      <SidebarProvider>
           <AppSidebar />
           <SidebarInset>
               <Header />
@@ -103,7 +124,9 @@ export default function AboutPage() {
                           <CardContent>
                             {loading ? (
                               <div className="flex justify-center items-center py-10"><LoadingAnimation /></div>
-                            ) : (
+                            ) : teamError ? (
+                              <p role="status" className="text-sm text-muted-foreground">{teamError}</p>
+                            ) : teamMembers.length > 0 ? (
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                   {teamMembers.map(member => (
                                       <div key={member.id} className="flex flex-col items-center">
@@ -117,6 +140,8 @@ export default function AboutPage() {
                                       </div>
                                   ))}
                               </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">Our team profiles will be available soon.</p>
                             )}
                           </CardContent>
                       </Card>
@@ -127,5 +152,6 @@ export default function AboutPage() {
               </div>
           </SidebarInset>
       </SidebarProvider>
+    </>
   );
 }
