@@ -47,10 +47,7 @@
     },
     "bootcamps": {
       ".read": true,
-      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)",
-      "$bootcampId": {
-        ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)",
-        }
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true && (root.child('users').child(auth.uid).child('adminExpiresAt').val() == null || root.child('users').child(auth.uid).child('adminExpiresAt').val() > now)"
     },
     "bootcampParticipants": {
       "$bootcampId": {
