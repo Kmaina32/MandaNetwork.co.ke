@@ -126,7 +126,14 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      setLoading(false);
+      // Keep protected routes in their loading state until the matching profile
+      // and organization context has been hydrated.
+      setLoading(Boolean(user));
+      if (!user) {
+        setDbUser(null);
+        setOrganization(null);
+        setMembers([]);
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -180,7 +187,19 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
     if (process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true' && process.env.NODE_ENV !== 'production') return;
 
     if (user) {
-      fetchUserData(user);
+      let active = true;
+      fetchUserData(user)
+        .catch((error) => {
+          console.error('Failed to hydrate authenticated user profile:', error);
+          if (active && auth.currentUser?.uid === user.uid) {
+            setDbUser(null);
+            setOrganization(null);
+            setMembers([]);
+          }
+        })
+        .finally(() => {
+          if (active && auth.currentUser?.uid === user.uid) setLoading(false);
+        });
 
       // Setup presence management
       const userStatusRef = ref(db, `/users/${user.uid}`);
@@ -197,12 +216,14 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
       });
 
       return () => {
+        active = false;
         presenceUnsubscribe();
       };
     } else {
       setDbUser(null);
       setOrganization(null);
       setMembers([]);
+      setLoading(false);
     }
   }, [user, fetchUserData]);
 
