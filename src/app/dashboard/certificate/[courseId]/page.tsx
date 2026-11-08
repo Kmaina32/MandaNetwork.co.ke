@@ -4,7 +4,8 @@
 import { useState, useEffect } from 'react';
 import { notFound, useParams, useRouter } from "next/navigation";
 import { getCourseById, getAllCourses, getUserCourses, getCertificateSettings } from "@/lib/firebase-service";
-import type { Course, UserCourse } from "@/lib/mock-data";
+import type { Course } from "@/lib/mock-data";
+import type { UserCourse } from "@/lib/types";
 import { Footer } from "@/components/Footer";
 import { Certificate } from "@/components/Certificate";
 import { useAuth } from "@/hooks/use-auth";
