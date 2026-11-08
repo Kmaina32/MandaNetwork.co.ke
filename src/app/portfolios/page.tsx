@@ -75,16 +75,15 @@ export default function PortfoliosPage() {
                 <section className="relative bg-secondary/50 py-12 md:py-16">
                     <div className="container mx-auto px-4 md:px-6">
                     <div className="relative rounded-xl overflow-hidden min-h-[400px] flex items-center justify-center text-center p-4">
-                        {heroData.portfoliosImageUrl && (
-                            <Image
-                                src={heroData.portfoliosImageUrl}
-                                alt="Hiring Center"
-                                fill
-                                className="object-cover"
-                                data-ai-hint="professionals meeting"
-                            />
-                        )}
-                        <div className="absolute inset-0 bg-black/60"></div>
+                        <Image
+                            src={heroData.portfoliosImageUrl || 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1800&q=85'}
+                            alt="Professionals collaborating in a modern workplace"
+                            fill
+                            priority
+                            sizes="100vw"
+                            className="object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/55 to-black/65"></div>
                         <div className="relative z-10 text-white">
                             <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit mb-4">
                                 <Users className="h-10 w-10 text-primary" />
