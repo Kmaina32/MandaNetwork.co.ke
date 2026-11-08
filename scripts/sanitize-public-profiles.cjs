@@ -15,7 +15,7 @@ async function main() {
   const snapshot = await profilesRef.once('value');
   const profiles = snapshot.val() || {};
   const updates = {};
-  let sanitized = 0, removed = 0;
+  let sanitized = 0, removed = 0, directoryEntries = 0;
 
   const pick = (value, keys) => {
     if (!value || typeof value !== 'object') return undefined;
@@ -24,6 +24,19 @@ async function main() {
     return result;
   };
   const list = (value, keys) => Array.isArray(value) ? value.map(item => pick(item, keys)).filter(Boolean) : [];
+
+  const usersSnapshot = await db.ref('users').once('value');
+  const users = usersSnapshot.val() || {};
+  for (const [uid, user] of Object.entries(users)) {
+    let email = user && user.email;
+    if (!email) {
+      try { email = (await admin.auth().getUser(uid)).email; } catch (_) { email = null; }
+    }
+    if (email) {
+      updates[`userDirectory/${uid}`] = { uid, email: String(email).trim(), organizationId: user.organizationId || null };
+      directoryEntries++;
+    }
+  }
 
   for (const [uid, profile] of Object.entries(profiles)) {
     const portfolio = profile && profile.portfolio;
@@ -43,8 +56,8 @@ async function main() {
     };
     sanitized++;
   }
-  if (Object.keys(updates).length) await profilesRef.update(updates);
-  console.log(JSON.stringify({ scanned:Object.keys(profiles).length, sanitized, removed }, null, 2));
+  if (Object.keys(updates).length) await db.ref().update(updates);
+  console.log(JSON.stringify({ scannedProfiles:Object.keys(profiles).length, sanitized, removed, directoryEntries }, null, 2));
   await admin.app().delete();
 }
 main().catch(error => { console.error('Migration failed:', error); process.exitCode = 1; });
