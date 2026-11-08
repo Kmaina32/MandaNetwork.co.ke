@@ -1,61 +1,22 @@
-
 'use client';
 
 import Link from 'next/link';
-import { GitBranch, Twitter, Facebook, Linkedin, Instagram } from 'lucide-react';
-import { Button } from './ui/button';
 
 export function Footer() {
   return (
-    <footer className="border-t">
-      <div className="container mx-auto py-6 px-4 md:px-6">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          {/* Brand Section */}
-          <div className="flex items-center gap-2">
-            <GitBranch className="h-6 w-6 text-yellow-500" />
-            <span className="font-bold font-headline">Varban Academy</span>
-          </div>
-
-          {/* Links */}
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <Link href="/terms" className="text-sm hover:text-primary">Terms of Service</Link>
-            <Link href="/privacy" className="text-sm hover:text-primary">Privacy Policy</Link>
-            <Link href="/developer" className="text-sm hover:text-primary">Developer</Link>
-          </div>
-
-          {/* Social Icons */}
-          <div className="flex items-center gap-2">
-            <Button asChild variant="ghost" size="icon">
-              <Link href="https://twitter.com/mandanetwork" target="_blank" rel="noopener noreferrer">
-                <Twitter className="h-4 w-4" />
-                <span className="sr-only">Twitter</span>
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" size="icon">
-              <Link href="https://facebook.com/mandanetwork" target="_blank" rel="noopener noreferrer">
-                <Facebook className="h-4 w-4" />
-                <span className="sr-only">Facebook</span>
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" size="icon">
-              <Link href="https://linkedin.com/company/mandanetwork" target="_blank" rel="noopener noreferrer">
-                <Linkedin className="h-4 w-4" />
-                <span className="sr-only">LinkedIn</span>
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" size="icon">
-              <Link href="https://www.instagram.com/mandanetwork" target="_blank" rel="noopener noreferrer">
-                <Instagram className="h-4 w-4" />
-                <span className="sr-only">Instagram</span>
-              </Link>
-            </Button>
-          </div>
+    <footer className="border-t border-neutral-200 bg-white text-neutral-950">
+      <div className="mx-auto max-w-7xl px-5 py-12 sm:px-8">
+        <div className="flex flex-col gap-5 border-b border-neutral-200 pb-8 sm:flex-row sm:items-center sm:justify-between">
+          <Link href="/" className="text-lg font-bold tracking-tight">Varban Academy</Link>
+          <nav aria-label="Footer navigation" className="flex flex-wrap gap-x-5 gap-y-3 text-sm text-neutral-600">
+            <Link href="/legal/terms" className="hover:text-black">Terms and agreements</Link>
+            <Link href="/legal/privacy" className="hover:text-black">Privacy notice</Link>
+            <Link href="/legal/data-use" className="hover:text-black">How we use your data</Link>
+            <Link href="/legal/data-safety" className="hover:text-black">Data safety</Link>
+            <Link href="/account-deletion" className="hover:text-black">Account deletion</Link>
+          </nav>
         </div>
-
-        {/* Footer Text */}
-        <p className="text-center text-xs text-muted-foreground mt-4">
-          © {new Date().getFullYear()} Varban Academy. All rights reserved. | ISO 9001 Certified
-        </p>
+        <p className="pt-6 text-xs text-neutral-500">© {new Date().getFullYear()} Varban Academy. All rights reserved.</p>
       </div>
     </footer>
   );
