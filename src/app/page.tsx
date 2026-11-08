@@ -2,20 +2,20 @@
 
 'use client'
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Footer } from "@/components/Footer";
 import { CourseCard } from "@/components/CourseCard";
-import type { Course, UserCourse } from "@/lib/mock-data";
-import { getAllCourses, getHeroData, getUserCourses } from '@/lib/firebase-service';
-import { Loader2, Search, ArrowLeft, ArrowRight } from 'lucide-react';
+import type { Course } from "@/lib/mock-data";
+import { getAllCourses, getHeroData } from '@/lib/firebase-service';
+import { Search, ArrowLeft, ArrowRight } from 'lucide-react';
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/use-auth';
-import { Separator } from '@/components/ui/separator';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
 
@@ -23,8 +23,8 @@ const COURSES_PER_PAGE = 6;
 
 export default function Home() {
   const { user, isAdmin, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [userCourses, setUserCourses] = useState<UserCourse[]>([]);
   const [heroData, setHeroData] = useState({ title: '', subtitle: '', imageUrl: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,56 +49,16 @@ export default function Home() {
     fetchPublicData();
   }, []);
 
-  // Effect for fetching user-specific data, runs only when user changes
+  // The root route is the public marketing and course-discovery landing page.
+  // Authenticated learners and administrators have dedicated workspaces.
   useEffect(() => {
-    const fetchUserSpecificData = async () => {
-        if (user) {
-            try {
-                let fetchedUserCourses = await getUserCourses(user.uid);
-                
-                // If the user is an admin, treat all courses as enrolled and completed.
-                if (isAdmin) {
-                    fetchedUserCourses = courses.map(course => ({
-                        courseId: course.id,
-                        progress: 100,
-                        completed: true,
-                        certificateAvailable: true,
-                        enrollmentDate: new Date().toISOString(),
-                    }));
-                }
-                setUserCourses(fetchedUserCourses);
-            } catch(err) {
-                console.error("Failed to fetch user courses", err);
-                setError("Could not load your course data.");
-            }
-        } else {
-            // Clear user data on logout
-            setUserCourses([]);
-        }
-    };
-    
-    // Run if user is logged in or initial load is finished and we have courses to check against for admin
-    if (!authLoading) { 
-        fetchUserSpecificData();
-    }
-  }, [user, isAdmin, courses, authLoading]);
-  
-  const enrolledCourseIds = useMemo(() => new Set(userCourses.map(c => c.courseId)), [userCourses]);
+    if (authLoading || !user) return;
+    router.replace(isAdmin ? '/admin' : '/dashboard');
+  }, [authLoading, user, isAdmin, router]);
 
   const filteredCourses = useMemo(() => {
-    return courses.filter(course => 
-      !enrolledCourseIds.has(course.id) &&
-      course.title.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [courses, enrolledCourseIds, searchQuery]);
-  
-  const ongoingCourses = useMemo(() => {
-     const ongoing = courses.filter(course => enrolledCourseIds.has(course.id));
-     if (searchQuery) {
-        return ongoing.filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase()));
-     }
-     return ongoing;
-  }, [courses, enrolledCourseIds, searchQuery]);
+    return courses.filter(course => course.title.toLowerCase().includes(searchQuery.toLowerCase()));
+  }, [courses, searchQuery]);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredCourses.length / COURSES_PER_PAGE);
@@ -120,6 +80,10 @@ export default function Home() {
       setCurrentPage(1); // Reset to first page on search
   }, [searchQuery]);
 
+
+  if (authLoading || user) {
+    return <div className="flex min-h-screen items-center justify-center bg-background"><LoadingAnimation /></div>;
+  }
 
   return (
     <SidebarProvider>
@@ -150,6 +114,14 @@ export default function Home() {
                     <p className="text-lg md:text-xl max-w-3xl mx-auto break-words">
                     {heroData.subtitle}
                     </p>
+                    <div className="mt-7 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row">
+                      <Button asChild size="lg" className="min-w-44 bg-white text-black hover:bg-white/90">
+                        <Link href="/signup">Get started</Link>
+                      </Button>
+                      <Button asChild size="lg" variant="outline" className="min-w-44 border-white/80 bg-transparent text-white hover:bg-white/10 hover:text-white">
+                        <Link href="/programs">Explore programs</Link>
+                      </Button>
+                    </div>
                 </div>
               </div>
             </div>
@@ -179,24 +151,8 @@ export default function Home() {
                 </div>
               ) : (
                 <>
-                  {user && ongoingCourses.length > 0 && (
-                     <div className="mb-16">
-                        <h3 className="text-2xl font-bold font-headline text-center mb-8">My Ongoing Courses</h3>
-                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                           {ongoingCourses.map((course) => (
-                                <CourseCard 
-                                    key={course.id} 
-                                    course={course} 
-                                    isEnrolled={true}
-                                />
-                            ))}
-                         </div>
-                     </div>
-                  )}
-
                   {paginatedFeaturedCourses.length > 0 && (
                      <div>
-                        {user && ongoingCourses.length > 0 && <Separator className="my-12"/>}
                         <h3 className="text-2xl font-bold font-headline text-center mb-8">Featured Courses</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                             {paginatedFeaturedCourses.map((course) => (
@@ -225,7 +181,7 @@ export default function Home() {
                      </div>
                   )}
 
-                  {ongoingCourses.length === 0 && filteredCourses.length === 0 && (
+                  {filteredCourses.length === 0 && (
                     <div className="text-center text-muted-foreground py-10">
                       <p>No courses found{searchQuery ? ` that match "${searchQuery}"` : ''}.</p>
                     </div>

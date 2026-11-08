@@ -14,8 +14,10 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { GitBranch, Home, LayoutDashboard, ListTodo, Calendar, User, HelpCircle, Mail, Info, UserPlus, Book, Shield, Notebook as NotebookIcon, Clapperboard, Library, Briefcase, Tag, Building, Users as PortfoliosIcon, Rocket, Trophy, Rss, CreditCard, Handshake } from 'lucide-react';
+import { GitBranch, Home, LogIn, LogOut, LayoutDashboard, ListTodo, Calendar, User, HelpCircle, Mail, Info, UserPlus, Book, Shield, Notebook as NotebookIcon, Clapperboard, Library, Briefcase, Tag, Building, Users as PortfoliosIcon, Rocket, Trophy, Rss, CreditCard, Handshake } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/Header';
 import { Separator } from './ui/separator';
 import pkg from '../../package.json';
 import { useEffect, useMemo, useState } from 'react';
@@ -25,7 +27,7 @@ import Image from 'next/image';
 
 export function AppSidebar() {
     const pathname = usePathname() || '/';
-    const { user, isAdmin, isOrganizationAdmin, organization } = useAuth();
+    const { user, isAdmin, isOrganizationAdmin, organization, logout } = useAuth();
     const { setOpenMobile } = useSidebar();
     const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
     const [readEventIds, setReadEventIds] = useState<Set<string>>(new Set());
@@ -297,11 +299,35 @@ export function AppSidebar() {
                 )}
             </SidebarMenu>
         </SidebarContent>
-        <SidebarFooter>
-             <div className="flex items-center gap-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-                <Tag className="h-3 w-3" />
-                <span>v{pkg.version}</span>
+        <SidebarFooter className="gap-3">
+          <div className="space-y-2 px-1 md:hidden">
+            <div className="flex items-center justify-between rounded-xl border border-border p-3">
+              <div>
+                <p className="text-sm font-medium">Appearance</p>
+                <p className="text-xs text-muted-foreground">Choose light or dark mode</p>
+              </div>
+              <ThemeToggle />
             </div>
+            {user ? (
+              <>
+                <Button asChild variant="outline" className="w-full justify-start">
+                  <Link href="/profile" onClick={() => onLinkClick('/profile')}><User className="mr-2 h-4 w-4" />My account</Link>
+                </Button>
+                <Button variant="ghost" className="w-full justify-start" onClick={() => { setOpenMobile(false); void logout(); }}>
+                  <LogOut className="mr-2 h-4 w-4" />Log out
+                </Button>
+              </>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <Button asChild variant="outline"><Link href="/login" onClick={() => onLinkClick('/login')}><LogIn className="mr-2 h-4 w-4" />Log in</Link></Button>
+                <Button asChild><Link href="/signup" onClick={() => onLinkClick('/signup')}>Create account</Link></Button>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 px-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+            <Tag className="h-3 w-3" />
+            <span>Varban Academy · v{pkg.version}</span>
+          </div>
         </SidebarFooter>
     </Sidebar>
   );

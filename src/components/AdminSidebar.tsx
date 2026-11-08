@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/sidebar';
 import {
   GitBranch,
+  LogOut,
   LayoutDashboard,
   Calendar,
   Users2,
@@ -48,13 +49,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/use-auth';
+import { ThemeToggle } from '@/components/Header';
 import { cn } from '@/lib/utils';
 import pkg from '../../package.json';
 import { Icon } from '@iconify/react';
 
 export function AdminSidebar() {
   const pathname = usePathname();
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, user, logout } = useAuth();
 
   const isActive = (path: string) => {
     if (path === '/admin' && pathname === '/admin') return true;
@@ -68,7 +70,7 @@ export function AdminSidebar() {
         <div className="flex items-center gap-2">
           <GitBranch className="h-6 w-6 text-yellow-500" />
           <span className="font-bold text-lg font-headline group-data-[collapsible=icon]:hidden">
-            Manda Network
+            Varban Academy
           </span>
         </div>
       </SidebarHeader>
@@ -411,10 +413,24 @@ export function AdminSidebar() {
         </div>
       </SidebarContent>
 
-      <SidebarFooter>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+      <SidebarFooter className="gap-3">
+        <div className="space-y-2 px-1 md:hidden">
+          <div className="flex items-center justify-between rounded-xl border border-border p-3">
+            <div>
+              <p className="text-sm font-medium">Appearance</p>
+              <p className="text-xs text-muted-foreground">Light or dark mode</p>
+            </div>
+            <ThemeToggle />
+          </div>
+          {user && (
+            <Button variant="ghost" className="w-full justify-start" onClick={() => { void logout(); }}>
+              <LogOut className="mr-2 h-4 w-4" />Log out
+            </Button>
+          )}
+        </div>
+        <div className="flex items-center gap-2 px-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
           <Tag className="h-3 w-3" />
-          <span>v{pkg.version}</span>
+          <span>Varban Academy · v{pkg.version}</span>
         </div>
       </SidebarFooter>
     </Sidebar>
