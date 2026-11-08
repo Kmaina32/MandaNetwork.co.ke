@@ -1,129 +1,108 @@
-
-'use client';
-
-import { useState, useEffect } from 'react';
-import { useParams, notFound, useRouter } from 'next/navigation';
+import Image from "next/image";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Footer } from "@/components/Footer";
 import { AppSidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import { Loader2, ArrowLeft, Calendar, User } from 'lucide-react';
-import Image from 'next/image';
-import { format } from 'date-fns';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LoadingAnimation } from '@/components/LoadingAnimation';
-import { getBlogPostBySlug, getActiveAdvertisements, getUserByDisplayName } from '@/lib/firebase-service';
-import type { BlogPost, Advertisement, RegisteredUser } from '@/lib/types';
-import { BlogPostContent } from '@/components/BlogPostContent';
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { ArrowLeft, Calendar, User } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { format } from "date-fns";
+import { adminDb } from "@/lib/firebase-admin";
+import type { BlogPost, Advertisement } from "@/lib/types";
+import { BlogPostContent } from "@/components/BlogPostContent";
+import type { Metadata } from "next";
 
-const getInitials = (name: string) => {
-    const names = name.split(' ');
-    if (names.length > 1) {
-        return `${names[0][0]}${names[names.length - 1][0]}`;
-    }
-    return name[0] || '';
+export const dynamic = "force-dynamic";
+
+type PageProps = { params: Promise<{ slug: string }> };
+
+async function getPublishedPost(slug: string): Promise<BlogPost | null> {
+  try {
+    const snapshot = await adminDb.ref("blog").orderByChild("slug").equalTo(slug).get();
+    if (!snapshot.exists()) return null;
+    const [id, value] = Object.entries(snapshot.val())[0] as [string, Omit<BlogPost, "id">];
+    const post = { id, ...value };
+    return post.isPublished ? post : null;
+  } catch (error) {
+    console.error("Failed to load blog post:", error);
+    return null;
+  }
 }
 
-export default function BlogPostPage() {
-    const params = useParams<{ slug: string }>();
-    const router = useRouter();
-    const [post, setPost] = useState<BlogPost | null>(null);
-    const [author, setAuthor] = useState<RegisteredUser | null>(null);
-    const [promoItems, setPromoItems] = useState<Advertisement[]>([]);
-    const [loading, setLoading] = useState(true);
+async function getActivePromotions(): Promise<Advertisement[]> {
+  try {
+    const snapshot = await adminDb.ref("advertisements").get();
+    if (!snapshot.exists()) return [];
+    return Object.entries(snapshot.val())
+      .map(([id, value]) => ({ id, ...(value as Omit<Advertisement, "id">) }))
+      .filter((item) => item.isActive);
+  } catch (error) {
+    console.error("Failed to load blog promotions:", error);
+    return [];
+  }
+}
 
-    useEffect(() => {
-        const fetchPostAndPromos = async () => {
-            if (!params.slug) return;
-            setLoading(true);
-            try {
-                const foundPost = await getBlogPostBySlug(params.slug as string);
+function formatDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Recently published" : format(date, "PPP");
+}
 
-                if (!foundPost) {
-                    notFound();
-                    return;
-                }
-                setPost(foundPost);
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await getPublishedPost(slug);
+  if (!post) return { title: "Article not found | Varban Academy" };
+  return {
+    title: `${post.title} | Varban Academy`,
+    description: post.description,
+    openGraph: { title: post.title, description: post.description, images: post.imageUrl ? [post.imageUrl] : [] },
+  };
+}
 
-                const [activeAds, postAuthor] = await Promise.all([
-                    getActiveAdvertisements(),
-                    getUserByDisplayName(foundPost.author)
-                ]);
-                
-                setPromoItems(activeAds);
-                setAuthor(postAuthor);
+export default async function BlogPostPage({ params }: PageProps) {
+  const { slug } = await params;
+  const post = await getPublishedPost(slug);
+  if (!post) notFound();
+  const promotions = await getActivePromotions();
+  const initials = post.author.split(" ").filter(Boolean).map((part) => part[0]).slice(0, 2).join("").toUpperCase();
 
-            } catch(error) {
-                console.error("Failed to fetch data:", error);
-                // Handle error appropriately
-            } finally {
-                setLoading(false);
-            }
-        }
-        fetchPostAndPromos();
-    }, [params.slug]);
-
-    if (loading) {
-        return (
-            <div className="flex h-screen items-center justify-center">
-                <LoadingAnimation />
-            </div>
-        )
-    }
-
-    if (!post) {
-        return notFound();
-    }
-    
-    return (
+  return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
         <Header />
         <main className="flex-grow">
-            <article>
-                <header className="relative py-20 md:py-32">
-                    <div className="absolute inset-0">
-                        <Image
-                            src={post.imageUrl}
-                            alt={post.title}
-                            fill
-                            priority
-                            className="object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-                    </div>
-                     <div className="container mx-auto px-4 md:px-6 relative text-white">
-                        <button onClick={() => router.back()} className="inline-flex items-center gap-2 text-sm mb-4 bg-white/10 p-2 rounded-md hover:bg-white/20">
-                            <ArrowLeft className="h-4 w-4" />
-                            Back to Blog
-                        </button>
-                        <h1 className="text-3xl md:text-5xl font-bold font-headline leading-tight max-w-4xl">{post.title}</h1>
-                         <div className="flex items-center gap-4 mt-6">
-                            <div className="flex items-center gap-2">
-                                <Avatar className="h-10 w-10 border-2 border-primary">
-                                    <AvatarImage src={author?.photoURL || ''} alt={post.author} />
-                                    <AvatarFallback>{getInitials(post.author)}</AvatarFallback>
-                                </Avatar>
-                                <span className="font-semibold">{post.author}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm">
-                                <Calendar className="h-4 w-4"/>
-                                <span>{format(new Date(post.createdAt), 'PPP')}</span>
-                            </div>
-                        </div>
-                    </div>
-                </header>
-
-                <div className="container mx-auto px-4 md:px-6 py-12">
-                    <div className="prose prose-lg dark:prose-invert max-w-3xl mx-auto">
-                       <BlogPostContent content={post.content} promoItems={promoItems} />
-                    </div>
+          <article>
+            <header className="relative py-20 md:py-32">
+              {post.imageUrl ? (
+                <div className="absolute inset-0">
+                  <Image src={post.imageUrl} alt={post.title} fill priority className="object-cover" />
+                  <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
                 </div>
-            </article>
+              ) : <div className="absolute inset-0 bg-neutral-900" />}
+              <div className="container relative mx-auto px-4 text-white md:px-6">
+                <Link href="/blog" className="mb-4 inline-flex items-center gap-2 rounded-md bg-white/10 p-2 text-sm hover:bg-white/20">
+                  <ArrowLeft className="h-4 w-4" /> Back to Blog
+                </Link>
+                <h1 className="max-w-4xl font-headline text-3xl font-bold leading-tight md:text-5xl">{post.title}</h1>
+                <div className="mt-6 flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-10 w-10 border-2 border-primary"><AvatarFallback>{initials || <User className="h-4 w-4" />}</AvatarFallback></Avatar>
+                    <span className="font-semibold">{post.author}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm"><Calendar className="h-4 w-4" /><span>{formatDate(post.createdAt)}</span></div>
+                </div>
+              </div>
+            </header>
+            <div className="container mx-auto px-4 py-12 md:px-6">
+              <div className="prose prose-lg mx-auto max-w-3xl dark:prose-invert">
+                <BlogPostContent content={post.content} promoItems={promotions} />
+              </div>
+            </div>
+          </article>
         </main>
         <Footer />
       </SidebarInset>
     </SidebarProvider>
-    );
+  );
 }
