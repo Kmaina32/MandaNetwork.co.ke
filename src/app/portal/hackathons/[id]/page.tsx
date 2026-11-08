@@ -100,7 +100,7 @@ export default function HackathonDetailPage() {
         <section className="relative py-12 md:py-20">
           <div className="absolute inset-0">
             <Image
-              src={hackathon.imageUrl}
+              src={hackathon.imageUrl || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1800&q=85'}
               alt={hackathon.title}
               fill
               className="object-cover"
