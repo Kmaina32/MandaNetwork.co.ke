@@ -1,23 +1,15 @@
-# Varban Academy Supabase integration status
+# Varban Academy Supabase integration
 
-Supabase is provisioned as the new Postgres and Storage platform. This work intentionally does not transfer Firebase records or change the existing sign-in provider.
+Supabase is connected as the new Postgres and Storage platform. This integration deliberately does not copy Firebase users, records, or files.
 
-## Connected foundation
-- Supabase project is active.
-- The additive database schema and RLS policies are already provisioned.
-- Private buckets exist for course materials and user files; the avatars bucket is public for reads.
-- The application has a pinned Supabase JavaScript client, browser and server public clients, public catalog query helpers, and a no-store database health endpoint.
-- Vercel uses the public project URL and publishable key. A publishable key is safe for browser use when RLS is correctly configured.
+## Active
+- Supabase project and application schema are provisioned with row-level security.
+- The application has browser/server Supabase clients and published catalog query helpers.
+- Vercel has the Supabase project URL and publishable key in development, preview, and production.
+- GET /api/health/supabase verifies Data API connectivity without returning data or credentials.
 
-## Explicitly unchanged
-- Firebase Auth remains the identity provider. Existing user accounts and sessions are not changed.
-- Firebase Realtime Database remains the source for existing courses, programs, user records, enrollments, activity, and admin settings.
-- Firebase Storage remains the source for existing uploaded assets.
-- No Firebase data, users, or files have been imported, copied, deleted, or rewritten.
-- No production cutover has been performed.
+## Kept on Firebase
+Firebase Auth, Realtime Database, and Storage remain active for existing accounts, courses, enrollments, profiles, admin settings, and uploaded files. No production cutover or data transfer has happened.
 
-## How to verify
-- GET /api/health/supabase checks that the application can reach the Supabase Data API without exposing keys or data.
-- src/lib/supabase/catalog.ts provides RLS-protected reads for newly created published courses, programs, bootcamps, and blog posts.
-
-## Remaining work before SupaֻǱ˞
+## Next integration stage
+Build Firebase-token-verified server routes for Supabase writes and private storage, connect admin publishing screens, and test user/role access. Do not expose a Supabase secret key in browser code or bypass RLS. Existing Firebase records will not appear in Supabase until separately entered or transferred.
