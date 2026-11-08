@@ -23,6 +23,7 @@ export default function NotebooksListPage() {
   const [courses, setCourses] = useState<EnrolledCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -60,7 +61,7 @@ export default function NotebooksListPage() {
       }
     }
     return () => { active = false; };
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, retryKey]);
   
   if (authLoading || loading) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -88,7 +89,7 @@ export default function NotebooksListPage() {
                     </CardHeader>
                     <CardContent>
                       {error ? (
-                        <div role="alert" className="py-8 text-center"><p className="text-sm text-destructive">{error}</p><Button className="mt-4" onClick={() => router.refresh()} variant="outline">Try again</Button></div>
+                        <div role="alert" className="py-8 text-center"><p className="text-sm text-destructive">{error}</p><Button className="mt-4" onClick={() => setRetryKey(value => value + 1)} variant="outline">Try again</Button></div>
                       ) : courses.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {courses.map((course) => (
