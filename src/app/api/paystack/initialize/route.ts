@@ -13,6 +13,9 @@ export async function POST(request: NextRequest) {
     const decoded = await adminAuth.verifyIdToken(authorization.slice(7), true);
     const body = await request.json().catch(() => ({}));
     const itemId = typeof body.itemId === 'string' ? body.itemId.trim() : '';
+    const requestedType = body.purchaseType === 'organization_plan' || itemId.startsWith('org-upgrade-')
+      ? 'organization_plan'
+      : body.purchaseType === 'hackathon' ? 'hackathon' : 'course';
     if (!/^[A-Za-z0-9_-]{1,160}$/.test(itemId)) {
       return NextResponse.json({ error: 'Select a valid item to purchase.' }, { status: 400 });
     }
@@ -27,7 +30,7 @@ export async function POST(request: NextRequest) {
     let amount: number;
     let organizationId: string | undefined;
 
-    if (itemId.startsWith('org-upgrade-')) {
+    if (requestedType === 'organization_plan') {
       itemType = 'organization_plan';
       const planId = itemId.slice('org-upgrade-'.length);
       if (!/^[A-Za-z0-9_-]{1,128}$/.test(planId) || !profile.organizationId) {
@@ -48,6 +51,15 @@ export async function POST(request: NextRequest) {
       if (!['basic', 'pro'].includes(itemName.toLowerCase())) {
         return NextResponse.json({ error: 'This organization plan is not available for online activation.' }, { status: 409 });
       }
+    } else if (requestedType === 'hackathon') {
+      itemType = 'hackathon';
+      const hackathonSnapshot = await adminDb.ref(`hackathons/${itemId}`).get();
+      if (!hackathonSnapshot.exists()) return NextResponse.json({ error: 'This hackathon is no longer available.' }, { status: 404 });
+      const hackathon = hackathonSnapshot.val();
+      itemName = String(hackathon.title || 'Hackathon').slice(0, 120);
+      amount = Number(hackathon.entryFee);
+      const existing = await adminDb.ref(`hackathons/${itemId}/participants/${decoded.uid}`).get();
+      if (existing.exists() && existing.val() === true) return NextResponse.json({ error: 'You are already registered for this hackathon.' }, { status: 409 });
     } else {
       itemType = 'course';
       const courseSnapshot = await adminDb.ref(`courses/${itemId}`).get();
