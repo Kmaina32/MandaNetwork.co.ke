@@ -4,7 +4,6 @@
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import rehypeSanitize from 'rehype-sanitize';
 import type { Lesson } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -70,7 +69,6 @@ export function LessonContent({ lesson }: LessonContentProps) {
           <div className="prose text-foreground/90 mb-6" style={{ whiteSpace: 'pre-wrap' }}>
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeSanitize]}
                 components={{
                     pre: ({node, ...props}) => {
                         const codeChild = node?.children[0];
