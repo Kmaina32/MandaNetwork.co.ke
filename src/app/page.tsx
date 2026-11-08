@@ -108,9 +108,7 @@ export default function Home() {
         <section className="mx-auto max-w-7xl px-5 pb-14 pt-10 sm:px-8 sm:pb-20 sm:pt-14 lg:pt-16">
           <div className="grid items-center gap-10 lg:grid-cols-[0.92fr_1.08fr] lg:gap-14">
             <div className="max-w-xl">
-              <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-neutral-200 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-600">
-                <span className="h-1.5 w-1.5 rounded-full bg-black" /> Learn · Practise · Grow
-              </p>
+              <p className="mb-5 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Varban Academy · Financial education</p>
               <h1 className="text-[2.7rem] font-semibold leading-[1.06] tracking-[-0.055em] text-black sm:text-6xl lg:text-[4.25rem]">
                 Know more.<br />Trade better.
               </h1>
