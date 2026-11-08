@@ -57,7 +57,7 @@ const courseTutorFlow = ai.defineFlow(
 
     const historyText = (input.history || [])
       .map((message) => `${message.role}: ${message.content}`)
-      .join('\\n');
+      .join('\n');
     const requestedAction = input.action === 'summarize'
       ? 'Summarize this lesson in concise bullet points.'
       : input.action === 'quiz'
