@@ -94,12 +94,21 @@ async function applyVerifiedPayment(reference: string, providerData: Awaited<Ret
   const payment = snapshot.val() as PaystackTransaction;
 
   if (providerData.reference !== reference
-    || providerData.status !== 'success'
     || Number(providerData.amount) !== payment.amount * 100
     || providerData.currency !== payment.currency
     || (providerData.customer?.email && providerData.customer.email.toLowerCase() !== payment.email.toLowerCase())) {
     await transactionRef.update({ status: 'review_required', updatedAt: Date.now() });
     throw new Error('Payment details did not match the expected order.');
+  }
+
+  if (providerData.status !== 'success') {
+    const failed = ['failed', 'abandoned', 'reversed'].includes(providerData.status);
+    await transactionRef.update({ status: failed ? 'failed' : 'pending', updatedAt: Date.now() });
+    if (failed) {
+      await adminDb.ref(`paymentCheckoutLocks/${payment.uid}/${payment.itemType}-${payment.itemId}`)
+        .transaction((current) => current?.reference === reference ? null : current);
+    }
+    throw new Error(failed ? 'Paystack reports that this payment was not completed.' : 'Payment has not been confirmed yet.');
   }
 
   if (payment.status === 'completed') return payment;
