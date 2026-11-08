@@ -92,8 +92,8 @@ export function AppSidebar() {
                     <>
                         <p className="text-xs font-semibold text-muted-foreground px-2 mb-2 group-data-[collapsible=icon]:hidden">Main Navigation</p>
                         <SidebarMenuItem>
-                           <SidebarMenuButton asChild size="sm" isActive={isActive('/') && pathname==='/'} tooltip="Browse Courses" onClick={() => onLinkClick('/')}>
-                                <Link href="/"><Book className="mr-2"/>Browse Courses</Link>
+                           <SidebarMenuButton asChild size="sm" isActive={isActive('/courses')} tooltip="Browse Courses" onClick={() => onLinkClick('/courses')}>
+                                <Link href="/courses"><Book className="mr-2"/>Browse Courses</Link>
                            </SidebarMenuButton>
                         </SidebarMenuItem>
                          <SidebarMenuItem>
