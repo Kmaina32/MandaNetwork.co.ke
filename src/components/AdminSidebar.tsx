@@ -24,6 +24,7 @@ import {
   HelpCircle,
   ExternalLink,
   Bot,
+  BrainCircuit,
   Bell,
   Clapperboard,
   Library,
@@ -363,6 +364,15 @@ export function AdminSidebar() {
               <Link href="/admin/hero">
                 <ImageIcon className="h-4 w-4 mr-2" />
                 Site Settings
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild size="sm" isActive={isActive('/admin/ai-settings')} tooltip="AI Models">
+              <Link href="/admin/ai-settings">
+                <BrainCircuit className="h-4 w-4 mr-2" />
+                AI Models
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
