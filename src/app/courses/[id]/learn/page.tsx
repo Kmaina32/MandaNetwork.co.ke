@@ -98,6 +98,7 @@ export default function CoursePlayerPage() {
                 setCompletedLessons(new Set(currentUserCourse.completedLessons));
             }
             
+            let availableLessonCount = lessons.length;
             if (enrolledDate && fetchedCourse.dripFeed !== 'off') {
                 const enrollmentDate = new Date(enrolledDate);
                 const today = new Date();
@@ -108,14 +109,17 @@ export default function CoursePlayerPage() {
                 } else if (fetchedCourse.dripFeed === 'weekly') {
                     unlockedLessons = differenceInWeeks(today, enrollmentDate) + 1;
                 }
-                setUnlockedLessonsCount(Math.min(unlockedLessons, lessons.length));
+                availableLessonCount = Math.min(unlockedLessons, lessons.length);
+                setUnlockedLessonsCount(availableLessonCount);
             } else {
-                setUnlockedLessonsCount(lessons.length);
+                availableLessonCount = lessons.length;
+                setUnlockedLessonsCount(availableLessonCount);
             }
             
             if (lessons.length > 0) {
-                const firstIncompleteLessonIndex = lessons.findIndex(l => !currentUserCourse?.completedLessons?.includes(l.id));
-                const lessonToShow = firstIncompleteLessonIndex !== -1 ? lessons[firstIncompleteLessonIndex] : lessons[0];
+                const firstIncompleteLessonIndex = lessons.findIndex((lesson, index) => index < availableLessonCount && !currentUserCourse?.completedLessons?.includes(lesson.id));
+                const lastUnlockedLessonIndex = availableLessonCount - 1;
+                const lessonToShow = firstIncompleteLessonIndex !== -1 ? lessons[firstIncompleteLessonIndex] : (lastUnlockedLessonIndex >= 0 ? lessons[lastUnlockedLessonIndex] : null);
                 setCurrentLesson(lessonToShow);
             }
         } catch (error) {
