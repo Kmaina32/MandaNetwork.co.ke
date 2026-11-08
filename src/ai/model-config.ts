@@ -12,5 +12,5 @@ export const AI_MODELS = {
 export type AIProfile = 'student' | 'support' | 'admin';
 export function modelFor(profile: AIProfile): string {
   const id = profile === 'student' ? AI_MODELS.student : profile === 'support' ? AI_MODELS.support : AI_MODELS.admin;
-  return `nvidia/${id}`;
+  return id.startsWith('nvidia/') ? id : `nvidia/${id}`;
 }
