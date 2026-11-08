@@ -6,7 +6,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
-import { getSubmissionById, getCourseById, updateSubmission, updateUserCourseProgress, awardLeaderboardPoints, publishCertificateRecord } from '@/lib/firebase-service';
+import { getSubmissionById, getCourseById, awardLeaderboardPoints } from '@/lib/firebase-service';
+import { saveExamGradeAndCertificate } from '@/app/actions';
 import type { Submission, Course, ExamQuestion, ShortAnswerQuestion } from '@/lib/types';
 import { gradeShortAnswerExam } from '@/app/actions';
 import type { GradeShortAnswerExamOutput } from '@/ai/flows/grade-short-answer-exam';
@@ -20,7 +21,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, ArrowLeft, Sparkles, CheckCircle, MessageSquare, Star, XCircle, Check } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { v4 as uuidv4 } from 'uuid';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 const CERTIFICATE_THRESHOLD_PERCENTAGE = 80;
@@ -125,7 +125,22 @@ export default function GradeSubmissionPage() {
             pointsAwarded: totalPointsAwarded,
             feedback: feedbackString, // Store detailed breakdown
         };
-        await updateSubmission(submission.id, submissionUpdate);
+        const certificateId = finalPercentage >= CERTIFICATE_THRESHOLD_PERCENTAGE
+            ? `${submission.userId.slice(0, 5)}-${course.id.slice(0, 5)}-${submission.id.slice(0, 8)}`
+            : undefined;
+        await saveExamGradeAndCertificate({
+            idToken: await user!.getIdToken(),
+            submissionId: submission.id,
+            pointsAwarded: totalPointsAwarded,
+            feedback: feedbackString,
+            ...(certificateId ? { certificate: {
+                certificateId,
+                studentName: submission.userName || 'Student',
+                courseId: course.id,
+                courseTitle: course.title,
+                issuedAt: new Date().toISOString(),
+            }} : {}),
+        });
 
         // Check for Top Performer achievement
         const achievement = await checkTopPerformerAchievement(submission.userId, { ...submission, ...submissionUpdate }, totalMaxPoints);
@@ -144,19 +159,6 @@ export default function GradeSubmissionPage() {
         }
 
         if (finalPercentage >= CERTIFICATE_THRESHOLD_PERCENTAGE) {
-            const certificateId = `${submission.userId.slice(0, 5)}-${course.id.slice(0, 5)}-${uuidv4().slice(0, 8)}`;
-            await updateUserCourseProgress(submission.userId, submission.courseId, {
-                certificateAvailable: true,
-                certificateId: certificateId,
-            });
-            await publishCertificateRecord({
-                certificateId,
-                studentName: submission.userName || 'Student',
-                courseId: course.id,
-                courseTitle: course.title,
-                issuedAt: new Date().toISOString(),
-                status: 'valid',
-            });
             toast({ title: 'Grade Saved! Certificate Awarded.', description: `Final score: ${totalPointsAwarded}/${totalMaxPoints} (${Math.round(finalPercentage)}%)` });
         } else {
              toast({ title: 'Grade Saved!', description: `Final score: ${totalPointsAwarded}/${totalMaxPoints} (${Math.round(finalPercentage)}%)` });

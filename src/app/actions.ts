@@ -260,3 +260,49 @@ export async function sendGeneralContactMessage(payload: { name: string; email: 
         },
     });
 }
+
+
+/** Atomically persist an approved exam grade, course certificate entitlement and public verification record. */
+export async function saveExamGradeAndCertificate(input: {
+  idToken: string;
+  submissionId: string;
+  pointsAwarded: number;
+  feedback: string;
+  certificate?: {
+    certificateId: string;
+    studentName: string;
+    courseId: string;
+    courseTitle: string;
+    issuedAt: string;
+  };
+}): Promise<void> {
+  const decoded = await adminAuth.verifyIdToken(input.idToken, true);
+  const adminSnapshot = await adminDb.ref(`users/${decoded.uid}`).get();
+  const adminProfile = adminSnapshot.val();
+  if (!adminProfile?.isAdmin) throw new Error('Administrator access is required.');
+  if (adminProfile.adminExpiresAt != null) {
+    const expiresAt = typeof adminProfile.adminExpiresAt === 'number' ? adminProfile.adminExpiresAt : Date.parse(adminProfile.adminExpiresAt);
+    if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) throw new Error('Administrator access has expired.');
+  }
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(input.submissionId) || !Number.isFinite(input.pointsAwarded) || input.pointsAwarded < 0 || input.feedback.length > 50000) {
+    throw new Error('Invalid grade payload.');
+  }
+  const submissionRef = adminDb.ref(`submissions/${input.submissionId}`);
+  const snapshot = await submissionRef.get();
+  if (!snapshot.exists()) throw new Error('Submission not found.');
+  const submission = snapshot.val();
+  if (submission.graded) throw new Error('This submission has already been graded.');
+  const updates: Record<string, unknown> = {
+    [`submissions/${input.submissionId}/graded`]: true,
+    [`submissions/${input.submissionId}/pointsAwarded`]: input.pointsAwarded,
+    [`submissions/${input.submissionId}/feedback`]: input.feedback,
+  };
+  if (input.certificate) {
+    const certificate = input.certificate;
+    if (certificate.courseId !== submission.courseId || !/^[A-Za-z0-9_-]{1,128}$/.test(certificate.certificateId)) throw new Error('Certificate does not match this submission.');
+    updates[`users/${submission.userId}/purchasedCourses/${submission.courseId}/certificateAvailable`] = true;
+    updates[`users/${submission.userId}/purchasedCourses/${submission.courseId}/certificateId`] = certificate.certificateId;
+    updates[`publicCertificates/${certificate.certificateId}`] = { ...certificate, status: 'valid' };
+  }
+  await adminDb.ref().update(updates);
+}
