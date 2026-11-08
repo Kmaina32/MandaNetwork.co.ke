@@ -88,7 +88,6 @@ export default function BootcampDetailPage() {
            toast({ title: 'Enrollment Failed', description: "Could not enroll you in the bootcamp.", variant: 'destructive'});
       } finally {
           setIsEnrolling(false);
-          setIsModalOpen(false);
       }
   }
 
