@@ -214,7 +214,7 @@ export function AppSidebar() {
                     <>
                          <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/')} tooltip="Courses" onClick={() => onLinkClick()}>
-                                <Link href="/">
+                                <Link href="/courses">
                                     <Home />
                                     <span>Courses</span>
                                 </Link>

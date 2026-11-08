@@ -1,0 +1,35 @@
+'use client';
+import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ArrowRight, BookOpen, GraduationCap, Search, SlidersHorizontal } from 'lucide-react';
+import { AppSidebar } from '@/components/Sidebar';
+import { Header } from '@/components/Header';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
+import { useAuth } from '@/hooks/use-auth';
+import { getAllCourses } from '@/lib/firebase-service';
+import type { Course } from '@/lib/mock-data';
+import { slugify } from '@/lib/utils';
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1642790106117-e829e14a795f?auto=format&fit=crop&w=1100&q=85';
+export default function BrowseCoursesPage() {
+ const { user, loading: authLoading } = useAuth(); const router = useRouter();
+ const [courses,setCourses]=useState<Course[]>([]); const [loadingCourses,setLoadingCourses]=useState(true);
+ const [query,setQuery]=useState(''); const [category,setCategory]=useState('All courses');
+ useEffect(()=>{if(!authLoading&&!user)router.replace('/login?redirect=%2Fcourses');},[authLoading,user,router]);
+ useEffect(()=>{let active=true;getAllCourses().then(result=>{if(active)setCourses(Array.isArray(result)?result:[]);}).catch(error=>console.error('Unable to load course catalogue',error)).finally(()=>{if(active)setLoadingCourses(false);});return()=>{active=false;};},[]);
+ const categories=useMemo(()=>['All courses',...Array.from(new Set(courses.map(course=>course.category).filter(Boolean)))],[courses]);
+ const filtered=useMemo(()=>{const term=query.trim().toLowerCase();return courses.filter(course=>(category==='All courses'||course.category===category)&&(!term||[course.title,course.category,course.description,course.instructor].some(value=>String(value||'').toLowerCase().includes(term))));},[courses,query,category]);
+ if(authLoading||!user)return <div className="flex min-h-screen items-center justify-center"><LoadingAnimation/></div>;
+ return <SidebarProvider><AppSidebar/><SidebarInset><Header/><main className="min-h-[calc(100vh-4rem)] bg-white text-neutral-950">
+ <section className="border-b border-neutral-200 bg-neutral-50"><div className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
+ <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Varban Academy · Learning library</p>
+ <div className="mt-3 flex flex-col justify-between gap-5 md:flex-row md:items-end"><div className="max-w-2xl"><h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Browse courses</h1><p className="mt-3 text-sm leading-6 text-neutral-600 sm:text-base">Explore the course catalogue, find a subject that interests you and continue building your skills at your own pace.</p></div><div className="rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-600"><span className="font-semibold text-neutral-950">{courses.length}</span> {courses.length===1?'course':'courses'} available</div></div>
+ <div className="mt-8 flex flex-col gap-3 sm:flex-row"><div className="relative flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"/><input value={query} onChange={event=>setQuery(event.target.value)} type="search" placeholder="Search by course, topic or instructor" aria-label="Search courses" className="h-12 w-full rounded-lg border border-neutral-200 bg-white pl-10 pr-4 text-sm outline-none focus:border-neutral-500"/></div><div className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 sm:min-w-52"><SlidersHorizontal className="h-4 w-4 text-neutral-500"/><select value={category} onChange={event=>setCategory(event.target.value)} aria-label="Filter by category" className="h-12 w-full bg-transparent text-sm outline-none">{categories.map(item=><option key={item} value={item}>{item}</option>)}</select></div></div>
+ </div></section>
+ <section className="mx-auto max-w-7xl px-5 py-9 sm:px-8 sm:py-12"><div className="mb-6 flex items-center justify-between gap-3"><h2 className="text-lg font-semibold">{query||category!=='All courses'?'Matching courses':'All courses'}</h2><span className="text-xs text-neutral-500">{filtered.length} found</span></div>
+ {loadingCourses?<div className="flex justify-center py-20"><LoadingAnimation/></div>:filtered.length?<div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{filtered.map(course=><Link key={course.id} href={`/courses/${slugify(course.title)}`} className="group overflow-hidden rounded-xl border border-neutral-200 bg-white transition hover:-translate-y-1 hover:border-neutral-300 hover:shadow-lg"><div className="relative aspect-[1.7/1] overflow-hidden bg-neutral-100"><Image src={course.imageUrl||FALLBACK_IMAGE} alt={course.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw" className="object-cover transition duration-500 group-hover:scale-[1.04]"/><span className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-800">{course.category||'Course'}</span></div><div className="p-5"><h3 className="text-lg font-semibold tracking-tight">{course.title}</h3><p className="mt-2 line-clamp-2 min-h-12 text-sm leading-6 text-neutral-600">{course.description}</p><div className="mt-5 flex items-center justify-between border-t border-neutral-100 pt-4"><span className="text-sm font-semibold">{course.price>0?`Ksh ${course.price.toLocaleString()}`:'Free'}</span><span className="inline-flex items-center gap-2 text-xs font-semibold">View course <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1"/></span></div></div></Link>)}</div>:<div className="rounded-xl border border-dashed border-neutral-300 px-6 py-16 text-center"><GraduationCap className="mx-auto h-9 w-9 text-neutral-400"/><h3 className="mt-4 text-base font-semibold">{query?'No courses match your search':'No courses available yet'}</h3><p className="mt-2 text-sm text-neutral-500">{query?'Try another keyword or change the category filter.':'Please check back soon for new learning opportunities.'}</p>{(query||category!=='All courses')&&<button onClick={()=>{setQuery('');setCategory('All courses');}} className="mt-4 text-sm font-semibold underline underline-offset-4">Clear filters</button>}</div>}
+ <div className="mt-12 rounded-xl bg-neutral-950 px-6 py-7 text-white sm:flex sm:items-center sm:justify-between sm:px-8"><div><BookOpen className="mb-3 h-5 w-5"/><h2 className="text-lg font-semibold">Your learning journey</h2><p className="mt-1 text-sm text-neutral-300">Track enrolled courses, progress and certificates from your dashboard.</p></div><Link href="/dashboard" className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-white px-5 text-sm font-semibold text-black sm:mt-0">Go to dashboard <ArrowRight className="h-4 w-4"/></Link></div>
+ </section></main></SidebarInset></SidebarProvider>;
+}
