@@ -10,7 +10,8 @@ import {
   SetStateAction,
   useCallback,
 } from 'react';
-import type { User } from 'firebase/auth';
+import { signInWithCustomToken, signOut as signOutFirebase, type User as FirebaseUser, type User } from 'firebase/auth';
+import { auth as firebaseAuth } from '@/lib/firebase';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   saveUser,
@@ -20,6 +21,8 @@ import {
   getOrganizationMembers,
   logActivity,
   createReferral,
+  getInvitation,
+  updateInvitationStatus,
 } from '@/lib/firebase-service';
 import type { RegisteredUser, Organization } from '@/lib/types';
 import { ref, onValue, onDisconnect, update, get, increment, serverTimestamp } from 'firebase/database';
@@ -65,19 +68,35 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const supabase = getSupabaseBrowserClient();
 
-function toCompatUser(authUser: SupabaseAuthUser): User {
+async function syncFirebaseSession(): Promise<FirebaseUser> {
+  const response = await fetch('/api/auth/firebase-token', {
+    method: 'POST',
+    credentials: 'same-origin',
+    cache: 'no-store',
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || typeof payload.token !== 'string') {
+    throw new Error(payload.error || 'Could not connect your learner data session.');
+  }
+  const credential = await signInWithCustomToken(firebaseAuth, payload.token);
+  return credential.user;
+}
+
+function toCompatUser(authUser: SupabaseAuthUser, firebaseUser: FirebaseUser): User {
   const metadata = authUser.user_metadata || {};
   const user = {
-    uid: authUser.id,
-    email: authUser.email ?? null,
-    displayName: String(metadata.display_name || metadata.full_name || metadata.name || ''),
+    uid: firebaseUser.uid,
+    supabaseId: authUser.id,
+    email: authUser.email ?? firebaseUser.email,
+    displayName: String(metadata.display_name || metadata.full_name || metadata.name || firebaseUser.displayName || ''),
     emailVerified: Boolean(authUser.email_confirmed_at),
-    photoURL: String(metadata.avatar_url || metadata.picture || ''),
+    photoURL: String(metadata.avatar_url || metadata.picture || firebaseUser.photoURL || ''),
     metadata: {
       creationTime: authUser.created_at,
       lastSignInTime: authUser.last_sign_in_at,
     },
     appMetadata: authUser.app_metadata || {},
+    supabaseMetadata: metadata,
     getIdToken: async () => {
       const { data, error } = await supabase.auth.getSession();
       if (error || !data.session?.access_token) {
@@ -88,7 +107,8 @@ function toCompatUser(authUser: SupabaseAuthUser): User {
     reload: async () => {
       const { data, error } = await supabase.auth.getUser();
       if (error || !data.user) throw new Error('Your sign-in session has expired. Please sign in again.');
-      return toCompatUser(data.user as SupabaseAuthUser);
+      const refreshedFirebaseUser = await syncFirebaseSession();
+      return toCompatUser(data.user as SupabaseAuthUser, refreshedFirebaseUser);
     },
   };
   return user as unknown as User;
@@ -161,32 +181,43 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
     }
 
     let active = true;
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!active) return;
-      setUser(session?.user ? toCompatUser(session.user as SupabaseAuthUser) : null);
-      setLoading(Boolean(session?.user));
+    let sequence = 0;
+    const applySession = async (session: import('@supabase/supabase-js').Session | null) => {
+      const currentSequence = ++sequence;
       if (!session?.user) {
         setDbUser(null);
         setOrganization(null);
         setMembers([]);
-      }
-    });
-
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (!active) return;
-      if (error) {
-        console.error('Could not restore Supabase session:', error.message);
-        setUser(null);
-        setLoading(false);
+        await signOutFirebase(firebaseAuth).catch(() => undefined);
+        if (active && currentSequence === sequence) {
+          setUser(null);
+          setLoading(false);
+        }
         return;
       }
-      setUser(data.session?.user ? toCompatUser(data.session.user as SupabaseAuthUser) : null);
-      if (!data.session) setLoading(false);
-    }).catch((error) => {
-      if (active) {
-        console.error('Could not restore Supabase session:', error);
-        setLoading(false);
+
+      setLoading(true);
+      try {
+        const firebaseUser = await syncFirebaseSession();
+        if (active && currentSequence === sequence) {
+          setUser(toCompatUser(session.user as SupabaseAuthUser, firebaseUser));
+        }
+      } catch (error) {
+        console.error('Could not establish the linked learner data session:', error);
+        if (active && currentSequence === sequence) {
+          setUser(null);
+          setLoading(false);
+          toast({
+            title: 'Could not connect your account',
+            description: 'Your sign-in succeeded, but we could not connect your learner data. Please try again.',
+            variant: 'destructive',
+          });
+        }
       }
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      void applySession(session);
     });
 
     return () => {
@@ -198,13 +229,61 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
   const fetchUserData = useCallback(async (authUser: User) => {
     let userProfile = await getUserById(authUser.uid);
     if (!userProfile) {
-      userProfile = {
+      const signupMetadata = (authUser as User & { supabaseMetadata?: Record<string, unknown> }).supabaseMetadata || {};
+      const displayName = authUser.displayName || authUser.email?.split('@')[0] || 'Learner';
+      const newProfile: Partial<RegisteredUser> = {
         uid: authUser.uid,
         email: authUser.email ?? null,
-        displayName: authUser.displayName ?? null,
-        slug: slugify(authUser.displayName || authUser.email?.split('@')[0] || 'learner'),
+        displayName,
+        slug: slugify(displayName),
       };
-      await saveUser(authUser.uid, userProfile);
+
+      const affiliateRef = typeof signupMetadata.affiliate_ref === 'string' ? signupMetadata.affiliate_ref : '';
+      if (affiliateRef) {
+        newProfile.referredBy = affiliateRef;
+        await createReferral({
+          affiliateId: affiliateRef,
+          referredUserId: authUser.uid,
+          referredUserName: displayName,
+          purchaseAmount: 0,
+          commissionAmount: 0,
+          createdAt: new Date().toISOString(),
+        });
+        const affiliateSnapshot = await get(ref(db, `users/${affiliateRef}`));
+        if (affiliateSnapshot.exists()) {
+          await update(ref(db, `users/${affiliateRef}/affiliateStats`), {
+            clicks: increment(1),
+            referrals: increment(1),
+          });
+        }
+      }
+
+      const organizationName = typeof signupMetadata.organization_name === 'string' ? signupMetadata.organization_name.trim() : '';
+      const inviteId = typeof signupMetadata.invite_org_id === 'string' ? signupMetadata.invite_org_id : '';
+      if (inviteId) {
+        const invitation = await getInvitation(inviteId);
+        if (invitation && invitation.email?.toLowerCase() === authUser.email?.toLowerCase()) {
+          newProfile.organizationId = invitation.organizationId;
+          newProfile.isOrganizationAdmin = false;
+          await updateInvitationStatus(inviteId, 'accepted');
+        }
+      } else if (organizationName) {
+        const trialExpiry = add(new Date(), { days: 30 }).toISOString();
+        const orgId = await createOrganization({
+          name: organizationName,
+          ownerId: authUser.uid,
+          createdAt: new Date().toISOString(),
+          subscriptionTier: 'trial',
+          subscriptionExpiresAt: trialExpiry,
+          memberLimit: 5,
+        });
+        newProfile.organizationId = orgId;
+        newProfile.isOrganizationAdmin = true;
+      }
+
+      await saveUser(authUser.uid, newProfile);
+      await logActivity(authUser.uid, { type: 'signup', details: { authProvider: 'supabase' } });
+      userProfile = { ...newProfile, uid: authUser.uid } as RegisteredUser;
     }
 
     if (!userProfile.affiliateId) {
@@ -225,6 +304,7 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
     setOrganization(orgData);
     if (orgData?.id) setMembers(await getOrganizationMembers(orgData.id));
     else setMembers([]);
+
   }, []);
 
   useEffect(() => {
@@ -275,7 +355,6 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
       password: pass,
     });
     if (error) throw error;
-    if (data.user) setUser(toCompatUser(data.user as SupabaseAuthUser));
     return data;
   };
 
@@ -292,7 +371,12 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
       email: normalizedEmail,
       password: pass,
       options: {
-        data: { display_name: displayName.trim() },
+        data: {
+          display_name: displayName.trim(),
+          organization_name: organizationName || '',
+          invite_org_id: inviteOrgId || '',
+          affiliate_ref: affiliateRef || '',
+        },
         emailRedirectTo: typeof window !== 'undefined'
           ? `${window.location.origin}/auth/callback?next=/dashboard`
           : undefined,
@@ -300,49 +384,6 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
     });
     if (error) throw error;
     if (!data.user) throw new Error('Your account could not be created. Please try again.');
-
-    const uid = data.user.id;
-    const userSlug = slugify(displayName);
-    const userData: Partial<RegisteredUser> = { slug: userSlug, email: normalizedEmail, displayName: displayName.trim() };
-
-    if (affiliateRef) {
-      userData.referredBy = affiliateRef;
-      await createReferral({
-        affiliateId: affiliateRef,
-        referredUserId: uid,
-        referredUserName: displayName,
-        purchaseAmount: 0,
-        commissionAmount: 0,
-        createdAt: new Date().toISOString(),
-      });
-      const affiliateSnapshot = await get(ref(db, `users/${affiliateRef}`));
-      if (affiliateSnapshot.exists()) {
-        await update(ref(db, `users/${affiliateRef}/affiliateStats`), {
-          clicks: increment(1),
-          referrals: increment(1),
-        });
-      }
-    }
-
-    await saveUser(uid, userData);
-    await logActivity(uid, { type: 'signup', details: { authProvider: 'supabase' } });
-
-    if (organizationName && !inviteOrgId) {
-      const trialExpiry = add(new Date(), { days: 30 }).toISOString();
-      const orgId = await createOrganization({
-        name: organizationName,
-        ownerId: uid,
-        createdAt: new Date().toISOString(),
-        subscriptionTier: 'trial',
-        subscriptionExpiresAt: trialExpiry,
-        memberLimit: 5,
-      });
-      await saveUser(uid, { isOrganizationAdmin: true, organizationId: orgId });
-    } else if (inviteOrgId) {
-      await saveUser(uid, { organizationId: inviteOrgId, isOrganizationAdmin: false });
-    }
-
-    if (data.session?.user) setUser(toCompatUser(data.session.user as SupabaseAuthUser));
     return data;
   };
 
