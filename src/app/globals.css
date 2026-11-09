@@ -67,3 +67,35 @@
     @apply bg-background text-foreground;
   }
 }
+
+
+/* Admin screens must stay within the available viewport on phones and tablets. */
+[data-admin-content] {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+[data-admin-content] > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 767px) {
+  [data-admin-content] .grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  [data-admin-content] pre,
+  [data-admin-content] code {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  [data-admin-content] table {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}
