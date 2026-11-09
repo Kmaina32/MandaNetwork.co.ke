@@ -158,6 +158,14 @@ export default function ProfilePage() {
       const newDisplayName = [values.firstName, values.middleName, values.lastName].filter(Boolean).join(' ');
       const { error: profileError } = await getSupabaseBrowserClient().auth.updateUser({ data: { display_name: newDisplayName } });
       if (profileError) throw profileError;
+      const supabaseId = (user as typeof user & { supabaseId?: string }).supabaseId;
+      if (supabaseId) {
+        const { error: profileRowError } = await getSupabaseBrowserClient()
+          .from('profiles')
+          .update({ display_name: newDisplayName, updated_at: new Date().toISOString() })
+          .eq('id', supabaseId);
+        if (profileRowError) throw profileRowError;
+      }
       setUser({ ...user, displayName: newDisplayName });
       await saveUser(user.uid, {
         email: user.email,
