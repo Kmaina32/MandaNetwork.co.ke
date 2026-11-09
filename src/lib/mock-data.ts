@@ -131,7 +131,7 @@ export interface UserCourse {
     enrollmentDate: string; // ISO String
     completedLessons?: string[];
     feedbackSubmitted?: boolean;
-    paymentMethod?: 'mpesa' | 'card' | 'paypal' | 'free' | 'crypto';
+    paymentMethod?: 'mpesa' | 'paystack' | 'card' | 'paypal' | 'free' | 'crypto';
 }
 
 export type TutorMessage = {
