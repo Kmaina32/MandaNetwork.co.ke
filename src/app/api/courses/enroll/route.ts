@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { adminDb } from '@/lib/firebase-admin';
+import { verifySupabaseAccessToken } from '@/lib/supabase/verify-access-token';
 
 export const runtime = 'nodejs';
 
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'This course requires payment. Use the purchase option to enrol.' }, { status: 409 });
     }
 
-    const userId = decoded.uid;
+    const userId = decoded.id;
     const enrollmentRef = adminDb.ref(`users/${userId}/purchasedCourses/${courseId}`);
     const existing = await enrollmentRef.get();
     if (existing.exists()) {
