@@ -58,7 +58,7 @@ interface AuthContextType {
   logout: () => Promise<any>;
   sendPasswordReset: (email: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  sendVerificationEmail: () => Promise<void>;
+  sendVerificationEmail: (email?: string) => Promise<void>;
   changePassword: (currentPass: string, newPass: string) => Promise<void>;
   fetchUserData: (user: User) => Promise<void>;
 }
@@ -420,10 +420,13 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
     }
   };
 
-  const sendVerificationEmail = async () => {
-    const { data } = await supabase.auth.getUser();
-    const email = data.user?.email;
-    if (!email) throw new Error('Please return to sign up and enter your email address.');
+  const sendVerificationEmail = async (requestedEmail?: string) => {
+    let email = requestedEmail?.trim().toLowerCase();
+    if (!email) {
+      const { data } = await supabase.auth.getUser();
+      email = data.user?.email || undefined;
+    }
+    if (!email) throw new Error('Enter the email address you used to sign up.');
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email,
