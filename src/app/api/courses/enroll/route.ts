@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Please sign in to enrol in this course.' }, { status: 401 });
     }
 
-    const decoded = await adminAuth.verifyIdToken(authorization.slice(7));
+    const decoded = await verifySupabaseAccessToken(authorization.slice(7));
     const body = await request.json().catch(() => ({}));
     const courseId = typeof body.courseId === 'string' ? body.courseId.trim() : '';
     if (!courseId || !/^[A-Za-z0-9_-]{1,128}$/.test(courseId)) {
