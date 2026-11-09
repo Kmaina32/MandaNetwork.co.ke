@@ -419,8 +419,7 @@ export default function ProfilePage() {
             }
         });
         
-        await auth.currentUser?.reload();
-        setUser(auth.currentUser);
+        setUser({ ...user, displayName: newDisplayName });
         setDbUser({ ...dbUser, displayName: newDisplayName, portfolio: {
           ...dbUser.portfolio,
           aboutMe: values.aboutMe,
