@@ -22,7 +22,8 @@ Varban Academy is an AI-powered online learning platform designed to provide hig
 - **Framework**: [Next.js](https://nextjs.org/) (App Router)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/) with [ShadCN/UI](https://ui.shadcn.com/) components.
-- **Backend & Database**: [Firebase](https://firebase.google.com/) (Authentication, Realtime Database, Storage, Remote Config) during the in-progress Supabase migration.
+- **Authentication**: [Supabase Auth](https://supabase.com/auth) with cookie-based Next.js SSR sessions; Firebase custom tokens temporarily preserve access to legacy Realtime Database records.
+- **Backend & Database**: [Supabase](https://supabase.com/) PostgreSQL and Storage as the primary backend, with Firebase Realtime Database, Storage and Remote Config retained during the data migration.
 - **Generative AI**: [Genkit](https://genkit.dev/) routed through [NVIDIA NIM](https://build.nvidia.com/) for text generation.
 - **Speech**: NVIDIA Nemotron Speech / Magpie for text-to-speech and NVIDIA Parakeet ASR for speech-to-text.
 - **Payments**: [Safaricom Daraja API](https://developer.safaricom.co.ke/) for M-Pesa payments.
@@ -34,7 +35,8 @@ Follow these instructions to get a copy of the project up and running for develo
 ### Prerequisites
 
 - Node.js (v20 recommended)
-- An active Firebase project for the currently retained Firebase services.
+- An active Supabase project with Auth email confirmation and Google OAuth configured.
+- An active Firebase project for the currently retained Realtime Database and Storage services.
 - An NVIDIA API Catalog API key with access to the selected text and speech NIM endpoints.
 - A Safaricom Daraja developer account with sandbox credentials.
 
@@ -100,6 +102,12 @@ Follow these instructions to get a copy of the project up and running for develo
    ```
 
 3. Open `http://localhost:9002` in your browser. The Genkit inspection UI is available at `http://localhost:4000`.
+
+## Supabase Auth notes
+
+- Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` for the browser and server clients.
+- Configure the Supabase Auth Site URL and `/auth/callback` redirect allowlist for production, local development and any preview hostnames you test.
+- See [the Supabase Auth rollout guide](docs/supabase-auth-rollout.md) for the Firebase data-session bridge, administrator provisioning and pre-cutover verification checklist.
 
 ## Speech API notes
 

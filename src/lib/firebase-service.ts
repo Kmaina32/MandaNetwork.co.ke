@@ -1,6 +1,6 @@
 'use client';
 
-import { auth, db, storage } from './firebase';
+import { db, storage } from './firebase';
 import { ref, get, set, push, update, remove, query, orderByChild, equalTo, increment, limitToLast } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { Assignment, TutorSettings, Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, TeamMember, ContactMessage, Form as FormType, FormSubmission, Referral, Bootcamp, BlogPost, HeroData } from './types';
@@ -106,7 +106,7 @@ export async function saveUser(uid: string, dataToSave: Partial<Omit<RegisteredU
 
     // Minimal email lookup index for organization invitations. Rules bind the
     // email to the caller's verified Firebase Auth token.
-    const directoryEmail = fullUser.email || (auth.currentUser?.uid === uid ? auth.currentUser.email : null);
+    const directoryEmail = fullUser.email || null;
     if (directoryEmail) {
         await set(ref(db, `userDirectory/${uid}`), {
             uid,

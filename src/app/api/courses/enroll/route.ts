@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { adminDb } from '@/lib/firebase-admin';
+import { verifySupabaseAccessToken } from '@/lib/supabase/verify-access-token';
 
 export const runtime = 'nodejs';
 
@@ -10,7 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Please sign in to enrol in this course.' }, { status: 401 });
     }
 
-    const decoded = await adminAuth.verifyIdToken(authorization.slice(7));
+    const decoded = await verifySupabaseAccessToken(authorization.slice(7));
     const body = await request.json().catch(() => ({}));
     const courseId = typeof body.courseId === 'string' ? body.courseId.trim() : '';
     if (!courseId || !/^[A-Za-z0-9_-]{1,128}$/.test(courseId)) {
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'This course requires payment. Use the purchase option to enrol.' }, { status: 409 });
     }
 
-    const userId = decoded.uid;
+    const userId = decoded.legacyUid;
     const enrollmentRef = adminDb.ref(`users/${userId}/purchasedCourses/${courseId}`);
     const existing = await enrollmentRef.get();
     if (existing.exists()) {

@@ -16,11 +16,10 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { updateProfile } from 'firebase/auth';
 import { uploadImage, saveUser } from '@/lib/firebase-service';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { auth } from '@/lib/firebase';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 const profileFormSchema = z.object({
   firstName: z.string().min(1, 'First name is required.'),
@@ -120,9 +119,9 @@ export default function ProfilePage() {
     setIsUploading(true);
     try {
       const downloadURL = await uploadImage(user.uid, file);
-      await updateProfile(user, { photoURL: downloadURL });
-      await auth.currentUser?.reload();
-      setUser(auth.currentUser);
+      const { error: profileError } = await getSupabaseBrowserClient().auth.updateUser({ data: { avatar_url: downloadURL } });
+      if (profileError) throw profileError;
+      setUser({ ...user, photoURL: downloadURL });
       toast({ title: 'Success', description: 'Your profile picture has been updated.' });
     } catch (error) {
       console.error(error);
@@ -157,14 +156,23 @@ export default function ProfilePage() {
     setIsLoading(true);
     try {
       const newDisplayName = [values.firstName, values.middleName, values.lastName].filter(Boolean).join(' ');
-      await updateProfile(user, { displayName: newDisplayName });
+      const { error: profileError } = await getSupabaseBrowserClient().auth.updateUser({ data: { display_name: newDisplayName } });
+      if (profileError) throw profileError;
+      const supabaseId = (user as typeof user & { supabaseId?: string }).supabaseId;
+      if (supabaseId) {
+        const { error: profileRowError } = await getSupabaseBrowserClient()
+          .from('profiles')
+          .update({ display_name: newDisplayName, updated_at: new Date().toISOString() })
+          .eq('id', supabaseId);
+        if (profileRowError) throw profileRowError;
+      }
+      setUser({ ...user, displayName: newDisplayName });
       await saveUser(user.uid, {
         email: user.email,
         displayName: newDisplayName,
         createdAt: user.metadata.creationTime,
       });
-      await auth.currentUser?.reload();
-      setUser(auth.currentUser);
+      setUser({ ...user, displayName: newDisplayName });
       toast({ title: 'Success', description: 'Your profile has been updated.' });
     } catch (error) {
       console.error(error);

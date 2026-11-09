@@ -14,7 +14,8 @@ export async function GET() {
   }
 
   try {
-    const { error } = await getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient();
+    const { error } = await supabase
       .from('courses')
       .select('id', { head: true, count: 'exact' });
 

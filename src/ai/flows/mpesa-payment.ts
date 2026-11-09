@@ -2,7 +2,8 @@
 
 import axios from 'axios';
 import { z } from 'zod';
-import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { adminDb } from '@/lib/firebase-admin';
+import { verifySupabaseAccessToken } from '@/lib/supabase/verify-access-token';
 
 const MpesaPaymentInputSchema = z.object({
   idToken: z.string().min(20),
@@ -51,8 +52,8 @@ async function getMpesaAccessToken(): Promise<string> {
 export async function processMpesaPayment(input: MpesaPaymentInput): Promise<MpesaPaymentOutput> {
   try {
     const parsed = MpesaPaymentInputSchema.parse(input);
-    const decoded = await adminAuth.verifyIdToken(parsed.idToken, true);
-    const userId = decoded.uid;
+    const decoded = await verifySupabaseAccessToken(parsed.idToken);
+    const userId = decoded.legacyUid;
 
     const courseSnapshot = await adminDb.ref(`courses/${parsed.courseId}`).get();
     if (!courseSnapshot.exists()) return { success: false, message: 'This course is no longer available.' };
@@ -130,11 +131,11 @@ export async function processMpesaPayment(input: MpesaPaymentInput): Promise<Mpe
 }
 
 export async function getMpesaPaymentStatus(idToken: string, checkoutRequestId: string): Promise<'pending' | 'processing' | 'completed' | 'failed' | 'unknown'> {
-  const decoded = await adminAuth.verifyIdToken(idToken, true);
+  const decoded = await verifySupabaseAccessToken(idToken);
   if (!/^[A-Za-z0-9_-]{8,160}$/.test(checkoutRequestId)) throw new Error('Invalid checkout request.');
   const snapshot = await adminDb.ref(`mpesaTransactions/${checkoutRequestId}`).get();
   if (!snapshot.exists()) return 'unknown';
   const transaction = snapshot.val();
-  if (transaction.uid !== decoded.uid) throw new Error('Not authorized to view this payment.');
+  if (transaction.uid !== decoded.legacyUid) throw new Error('Not authorized to view this payment.');
   return transaction.status;
 }

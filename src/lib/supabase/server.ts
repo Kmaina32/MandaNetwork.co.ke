@@ -1,20 +1,27 @@
 import 'server-only';
 
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { getSupabaseConfig } from './config';
 
-/**
- * Server-side public client. Privileged writes must use a separately
- * authenticated server route and must never expose a Supabase secret key.
- */
-export function getSupabaseServerClient(): SupabaseClient {
+/** Request-scoped Supabase client backed by the user's secure cookie session. */
+export async function getSupabaseServerClient() {
+  const cookieStore = await cookies();
   const { url, publishableKey } = getSupabaseConfig();
 
-  return createClient(url, publishableKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
+  return createServerClient(url, publishableKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
+        } catch {
+          // Server Components cannot write cookies. Middleware refreshes sessions
+          // before rendering; Server Actions and Route Handlers can write them.
+        }
+      },
     },
   });
 }

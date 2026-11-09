@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -19,9 +19,6 @@ import { Loader2, GitBranch, ArrowLeft, Shield, AlertTriangle, Eye, EyeOff } fro
 import { getHeroData, getInvitation, deleteInvitation } from '@/lib/firebase-service';
 import type { HeroData } from '@/lib/firebase-service';
 import { Separator } from '@/components/ui/separator';
-import ReCAPTCHA from 'react-google-recaptcha';
-import { auth } from '@/lib/firebase';
-import { RecaptchaVerifier } from 'firebase/auth';
 import type { Invitation } from '@/lib/types';
 
 const formSchema = z.object({
@@ -56,7 +53,6 @@ function SignupFormComponent() {
   const [error, setError] = useState<string | null>(null);
   const [siteSettings, setSiteSettings] = useState<HeroData | null>(null);
   const [invitation, setInvitation] = useState<Invitation | null>(null);
-  const recaptchaRef = useRef<ReCAPTCHA>(null);
   const [showPassword, setShowPassword] = useState(false);
 
   
@@ -95,15 +91,6 @@ function SignupFormComponent() {
     fetchSettings();
   }, []);
 
-  useEffect(() => {
-    if (recaptchaRef.current && siteSettings?.recaptchaEnabled) {
-        // @ts-ignore
-        auth.recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaRef.current, {
-            'size': 'invisible'
-        });
-    }
-  }, [siteSettings]);
-
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     setError(null);
@@ -113,15 +100,15 @@ function SignupFormComponent() {
       const orgId = invitation ? invitation.organizationId : undefined;
       const affiliateRef = searchParams.get('ref') || undefined;
       
-      await signup(values.email, values.password, displayName, undefined, orgId, affiliateRef);
+      const result = await signup(values.email, values.password, displayName, undefined, orgId, affiliateRef);
       
       toast({
         title: 'Account Created!',
         description: "A verification email has been sent. Please check your inbox.",
       });
-      router.push('/unverified');
+      router.push(result.session ? '/dashboard' : '/login?verify=email');
     } catch (e: any) {
-        if (e.code === 'auth/email-already-in-use' || e.message.includes('already exists')) {
+        if (e.code === 'user_already_exists' || e.code === 'email_exists' || e.code === 'auth/email-already-in-use' || e.message?.includes('already exists')) {
             setError('An account with this email already exists. Please try another one or log in.');
         } else {
             setError(e.message || 'An error occurred. Please try again.');
@@ -256,13 +243,6 @@ function SignupFormComponent() {
                           </FormItem>
                       )}
                       />
-                       {siteSettings?.recaptchaEnabled && (
-                            <ReCAPTCHA
-                                ref={recaptchaRef}
-                                sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
-                                size="invisible"
-                            />
-                       )}
                       <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
                       {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Create Account'}
                       </Button>
