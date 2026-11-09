@@ -203,13 +203,13 @@ export async function awardPoints(idToken: string, targetUserId: string, points:
         throw new Error('Points must be an integer between 1 and 1,000.');
     }
     const decoded = await verifySupabaseAccessToken(idToken);
-    const adminSnapshot = await adminDb.ref(`users/${decoded.id}`).get();
-    const adminProfile = adminSnapshot.val();
-    if (!adminProfile?.isAdmin) throw new Error('Administrator access is required.');
-    if (adminProfile.adminExpiresAt != null) {
-        const expiresAt = typeof adminProfile.adminExpiresAt === 'number'
-            ? adminProfile.adminExpiresAt
-            : Date.parse(adminProfile.adminExpiresAt);
+    const trustedRole = decoded.app_metadata?.role;
+    if (trustedRole !== 'admin' && trustedRole !== 'super_admin') {
+        throw new Error('Administrator access is required.');
+    }
+    const adminExpiresAt = decoded.app_metadata?.admin_expires_at;
+    if (adminExpiresAt != null) {
+        const expiresAt = typeof adminExpiresAt === 'number' ? adminExpiresAt : Date.parse(String(adminExpiresAt));
         if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
             throw new Error('Administrator access has expired.');
         }
