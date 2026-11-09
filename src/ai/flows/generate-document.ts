@@ -5,6 +5,7 @@
  */
 
 import { ai } from '@/ai/genkit-instance';
+import { modelFor } from '@/ai/model-config';
 import { z } from 'zod';
 
 export const GenerateFormalDocumentInputSchema = z.object({
