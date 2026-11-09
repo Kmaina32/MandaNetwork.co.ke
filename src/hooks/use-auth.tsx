@@ -249,13 +249,6 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
           commissionAmount: 0,
           createdAt: new Date().toISOString(),
         });
-        const affiliateSnapshot = await get(ref(db, `users/${affiliateRef}`));
-        if (affiliateSnapshot.exists()) {
-          await update(ref(db, `users/${affiliateRef}/affiliateStats`), {
-            clicks: increment(1),
-            referrals: increment(1),
-          });
-        }
       }
 
       const organizationName = typeof signupMetadata.organization_name === 'string' ? signupMetadata.organization_name.trim() : '';
