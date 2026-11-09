@@ -30,7 +30,11 @@ export async function verifySupabaseAccessToken(accessToken: string) {
   let legacyUid = data.user.id;
   if (data.user.email) {
     try {
-      const firebaseUser = await adminAuth.getUserByEmail(data.user.email);
+      let firebaseUser = await adminAuth.getUserByEmail(data.user.email);
+      if (firebaseUser.disabled) throw new Error('This account is disabled. Contact support.');
+      if (!firebaseUser.emailVerified) {
+        firebaseUser = await adminAuth.updateUser(firebaseUser.uid, { emailVerified: true });
+      }
       legacyUid = firebaseUser.uid;
     } catch (lookupError) {
       const code = (lookupError as { code?: string })?.code;
