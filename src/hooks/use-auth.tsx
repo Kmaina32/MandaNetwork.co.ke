@@ -161,10 +161,12 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
   const router = useRouter();
 
   const role = getTrustedRole(user);
-  const isSuperAdmin = role === 'super_admin';
+  const isSuperAdmin = role === 'super_admin' || Boolean(dbUser?.isSuperAdmin);
   const expiresAt = (user as (User & { appMetadata?: AppMetadata }) | null)?.appMetadata?.admin_expires_at;
-  const isAdmin = (role === 'admin' || isSuperAdmin)
-    && (!expiresAt || new Date(expiresAt).getTime() > Date.now());
+  const legacyAdminExpiry = dbUser?.adminExpiresAt;
+  const effectiveExpiry = expiresAt || legacyAdminExpiry;
+  const isAdmin = (role === 'admin' || isSuperAdmin || Boolean(dbUser?.isAdmin))
+    && (!effectiveExpiry || new Date(effectiveExpiry).getTime() > Date.now());
   const isOrganizationAdmin = Boolean(dbUser?.isOrganizationAdmin)
     || Boolean((user as (User & { appMetadata?: AppMetadata }) | null)?.appMetadata?.organization_admin);
 
@@ -284,6 +286,16 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
       await saveUser(authUser.uid, newProfile);
       await logActivity(authUser.uid, { type: 'signup', details: { authProvider: 'supabase' } });
       userProfile = { ...newProfile, uid: authUser.uid } as RegisteredUser;
+    }
+
+    if (userProfile && (!userProfile.email || !userProfile.displayName)) {
+      const profileUpdates: Partial<RegisteredUser> = {};
+      if (!userProfile.email && authUser.email) profileUpdates.email = authUser.email;
+      if (!userProfile.displayName && authUser.displayName) profileUpdates.displayName = authUser.displayName;
+      if (Object.keys(profileUpdates).length) {
+        await saveUser(authUser.uid, profileUpdates);
+        userProfile = { ...userProfile, ...profileUpdates };
+      }
     }
 
     if (!userProfile.affiliateId) {
