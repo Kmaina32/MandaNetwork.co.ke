@@ -106,7 +106,7 @@ export async function saveUser(uid: string, dataToSave: Partial<Omit<RegisteredU
 
     // Minimal email lookup index for organization invitations. Rules bind the
     // email to the caller's verified Firebase Auth token.
-    const directoryEmail = fullUser.email || (auth.currentUser?.uid === uid ? auth.currentUser.email : null);
+    const directoryEmail = fullUser.email || null;
     if (directoryEmail) {
         await set(ref(db, `userDirectory/${uid}`), {
             uid,
