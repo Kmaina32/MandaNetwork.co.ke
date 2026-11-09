@@ -65,8 +65,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const supabase = getSupabaseBrowserClient();
+let firebaseLinkedSupabaseUserId: string | null = null;
 
-async function syncFirebaseSession(): Promise<FirebaseUser> {
+async function syncFirebaseSession(supabaseUserId: string): Promise<FirebaseUser> {
+  if (firebaseLinkedSupabaseUserId === supabaseUserId && firebaseAuth.currentUser) {
+    return firebaseAuth.currentUser;
+  }
   const response = await fetch('/api/auth/firebase-token', {
     method: 'POST',
     credentials: 'same-origin',
@@ -77,6 +81,7 @@ async function syncFirebaseSession(): Promise<FirebaseUser> {
     throw new Error(payload.error || 'Could not connect your learner data session.');
   }
   const credential = await signInWithCustomToken(firebaseAuth, payload.token);
+  firebaseLinkedSupabaseUserId = supabaseUserId;
   return credential.user;
 }
 
@@ -105,7 +110,7 @@ function toCompatUser(authUser: SupabaseAuthUser, firebaseUser: FirebaseUser): U
     reload: async () => {
       const { data, error } = await supabase.auth.getUser();
       if (error || !data.user) throw new Error('Your sign-in session has expired. Please sign in again.');
-      const refreshedFirebaseUser = await syncFirebaseSession();
+      const refreshedFirebaseUser = await syncFirebaseSession(data.user.id);
       return toCompatUser(data.user as SupabaseAuthUser, refreshedFirebaseUser);
     },
   };
@@ -189,6 +194,7 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
         setOrganization(null);
         setMembers([]);
         await signOutFirebase(firebaseAuth).catch(() => undefined);
+        firebaseLinkedSupabaseUserId = null;
         if (active && currentSequence === sequence) {
           setUser(null);
           setLoading(false);
@@ -198,7 +204,7 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
 
       setLoading(true);
       try {
-        const firebaseUser = await syncFirebaseSession();
+        const firebaseUser = await syncFirebaseSession(session.user.id);
         if (active && currentSequence === sequence) {
           setUser(toCompatUser(session.user as SupabaseAuthUser, firebaseUser));
         }
