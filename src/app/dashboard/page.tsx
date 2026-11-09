@@ -31,8 +31,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { updateProfile } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
 import { formatDistanceToNowStrict } from 'date-fns';
@@ -355,9 +353,7 @@ export default function DashboardPage() {
       if (dbUser) {
           setDbUser({ ...dbUser, displayName: newDisplayName });
       }
-      if (auth.currentUser) {
-          setAuthUser(auth.currentUser);
-      }
+      if (user) setAuthUser(user);
   }
 
 
