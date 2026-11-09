@@ -243,12 +243,6 @@ function SignupFormComponent() {
                           </FormItem>
                       )}
                       />
-                       {siteSettings?.recaptchaEnabled && (
-                            <ReCAPTCHA
-                                                sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
-                                size="invisible"
-                            />
-                       )}
                       <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
                       {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Create Account'}
                       </Button>
