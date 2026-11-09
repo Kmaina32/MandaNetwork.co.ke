@@ -39,13 +39,15 @@ const GoogleIcon = () => (
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, login, loading: authLoading, signInWithGoogle } = useAuth();
+  const { user, login, loading: authLoading, signInWithGoogle, sendVerificationEmail } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [verificationNotice, setVerificationNotice] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -74,6 +76,25 @@ export default function LoginPage() {
     resolver: zodResolver(formSchema),
     defaultValues: { email: '', password: '' },
   });
+
+  const handleResendConfirmation = async () => {
+    const email = form.getValues('email').trim();
+    if (!email) {
+      setError('Enter your email address above, then request a new confirmation link.');
+      return;
+    }
+    setIsResending(true);
+    setError(null);
+    setResendMessage(null);
+    try {
+      await sendVerificationEmail(email);
+      setResendMessage('A new confirmation link has been sent. Check your inbox.');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Could not resend the confirmation email.');
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
@@ -141,7 +162,7 @@ export default function LoginPage() {
             <CardContent>
                <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                      {verificationNotice && <Alert><AlertTitle>Check your email</AlertTitle><AlertDescription>We sent you a confirmation link. Open it to activate your account, then sign in here.</AlertDescription></Alert>}
+                      {verificationNotice && <Alert><AlertTitle>Check your email</AlertTitle><AlertDescription><span>Open the confirmation link we sent to activate your account, then sign in here.</span><div className="mt-2"><Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={handleResendConfirmation} disabled={isResending}>{isResending ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : null}Resend confirmation email</Button></div>{resendMessage && <p className="mt-2 text-sm">{resendMessage}</p>}</AlertDescription></Alert>}
                       {error && (
                       <Alert variant="destructive">
                           <AlertTriangle className="h-4 w-4" />
