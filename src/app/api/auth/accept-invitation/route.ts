@@ -33,10 +33,16 @@ export async function POST(request: NextRequest) {
     if (String(invitation.email || '').trim().toLowerCase() !== user.email.trim().toLowerCase()) {
       return NextResponse.json({ error: 'This invitation was sent to a different email address.' }, { status: 403 });
     }
+    let firebaseUid = user.id;
+    try {
+      firebaseUid = (await adminAuth.getUserByEmail(user.email)).uid;
+    } catch (lookupError) {
+      if ((lookupError as { code?: string })?.code !== 'auth/user-not-found') throw lookupError;
+    }
+
     if (invitation.status === 'accepted') {
-      if (invitation.userId) {
-        const existingUser = await adminAuth.getUserByEmail(user.email);
-        if (existingUser.uid === invitation.userId) return NextResponse.json({ success: true, organizationId: invitation.organizationId });
+      if (invitation.userId && invitation.userId === firebaseUid) {
+        return NextResponse.json({ success: true, organizationId: invitation.organizationId });
       }
       return NextResponse.json({ error: 'This invitation has already been used.' }, { status: 409 });
     }
@@ -50,13 +56,6 @@ export async function POST(request: NextRequest) {
     const organizationId = typeof invitation.organizationId === 'string' ? invitation.organizationId : '';
     if (!organizationId || !(await adminDb.ref(`organizations/${organizationId}`).get()).exists()) {
       return NextResponse.json({ error: 'The organization linked to this invitation could not be found.' }, { status: 404 });
-    }
-
-    let firebaseUid = user.id;
-    try {
-      firebaseUid = (await adminAuth.getUserByEmail(user.email)).uid;
-    } catch (lookupError) {
-      if ((lookupError as { code?: string })?.code !== 'auth/user-not-found') throw lookupError;
     }
 
     const userRef = adminDb.ref(`users/${firebaseUid}`);
