@@ -247,7 +247,7 @@ export async function sendContactMessage(payload: {
   if (!/^[A-Za-z0-9_-]{1,128}$/.test(payload.studentId)) throw new Error('Invalid learner identifier.');
   if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(payload.email) || payload.phone.trim().length < 10 || payload.phone.length > 30) throw new Error('Please provide valid contact details.');
   const decoded = await verifySupabaseAccessToken(payload.idToken);
-  const employerSnapshot = await adminDb.ref(`users/${decoded.id}`).get();
+  const employerSnapshot = await adminDb.ref(`users/${decoded.legacyUid}`).get();
   const employer = employerSnapshot.val();
   if (!employer?.isOrganizationAdmin || !employer.organizationId) {
     throw new Error('An active organization account is required to contact learners.');
@@ -262,12 +262,12 @@ export async function sendContactMessage(payload: {
   const committed = await existingRef.transaction((existing) => {
     if (existing?.organizationId && existing.organizationId !== employer.organizationId) return;
     const messages = Array.isArray(existing?.messages) ? [...existing.messages] : Object.values(existing?.messages || {});
-    messages.push({ senderId: 'employer', authorUid: decoded.id, text: message, timestamp: new Date().toISOString() });
+    messages.push({ senderId: 'employer', authorUid: decoded.legacyUid, text: message, timestamp: new Date().toISOString() });
     return {
       ...(existing || {}),
       studentId: payload.studentId,
       studentName: studentSnapshot.val().displayName || 'Learner',
-      employerId: decoded.id,
+      employerId: decoded.legacyUid,
       employerName: employer.displayName || payload.employerName.trim(),
       employerPhotoUrl: employer.photoURL || '',
       organizationId: employer.organizationId,
@@ -334,7 +334,7 @@ export async function saveExamGradeAndCertificate(input: {
   };
 }): Promise<void> {
   const decoded = await verifySupabaseAccessToken(input.idToken);
-  const adminSnapshot = await adminDb.ref(`users/${decoded.id}`).get();
+  const adminSnapshot = await adminDb.ref(`users/${decoded.legacyUid}`).get();
   const adminProfile = adminSnapshot.val();
   if (!adminProfile?.isAdmin) throw new Error('Administrator access is required.');
   if (adminProfile.adminExpiresAt != null) {
@@ -367,7 +367,7 @@ export async function saveExamGradeAndCertificate(input: {
 
 async function requireActiveAdmin(idToken: string, requireSuperAdmin = false) {
     const decoded = await verifySupabaseAccessToken(idToken);
-    const snapshot = await adminDb.ref(`users/${decoded.id}`).get();
+    const snapshot = await adminDb.ref(`users/${decoded.legacyUid}`).get();
     const profile = snapshot.val();
     const allowed = requireSuperAdmin ? profile?.isSuperAdmin === true : profile?.isAdmin === true;
     if (!allowed) throw new Error('Administrator access is required.');
@@ -401,7 +401,7 @@ export async function deleteBootcampAndRegistrations(idToken: string, bootcampId
 export async function getBootcampRegistrationStatus(idToken: string, bootcampId: string): Promise<boolean> {
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(bootcampId)) throw new Error('Invalid bootcamp identifier.');
     const decoded = await verifySupabaseAccessToken(idToken);
-    const snapshot = await adminDb.ref(`bootcampParticipants/${bootcampId}/${decoded.id}`).get();
+    const snapshot = await adminDb.ref(`bootcampParticipants/${bootcampId}/${decoded.legacyUid}`).get();
     return snapshot.val() === true;
 }
 
@@ -414,16 +414,16 @@ export async function registerFreeBootcamp(idToken: string, bootcampId: string):
     const price = Number(bootcamp.price);
     if (!Number.isFinite(price) || price > 0) throw new Error('Paid bootcamp registration is unavailable until verified bootcamp payment processing is enabled.');
     const courseIds = Array.isArray(bootcamp.courseIds) ? bootcamp.courseIds : [];
-    const purchasedRef = adminDb.ref(`users/${decoded.id}/purchasedCourses`);
+    const purchasedRef = adminDb.ref(`users/${decoded.legacyUid}/purchasedCourses`);
     const purchasedSnapshot = await purchasedRef.get();
     const purchased = purchasedSnapshot.val() || {};
     const enrolledAt = new Date().toISOString();
-    const updates: Record<string, unknown> = { [`bootcampParticipants/${bootcampId}/${decoded.id}`]: true };
+    const updates: Record<string, unknown> = { [`bootcampParticipants/${bootcampId}/${decoded.legacyUid}`]: true };
     for (const courseId of courseIds) {
         if (typeof courseId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(courseId) || purchased[courseId]) continue;
         const courseSnapshot = await adminDb.ref(`courses/${courseId}`).get();
         if (!courseSnapshot.exists()) continue;
-        updates[`users/${decoded.id}/purchasedCourses/${courseId}`] = {
+        updates[`users/${decoded.legacyUid}/purchasedCourses/${courseId}`] = {
             progress: 0, completed: false, certificateAvailable: false, completedLessons: [],
             enrollmentDate: enrolledAt, paymentMethod: 'free',
         };
