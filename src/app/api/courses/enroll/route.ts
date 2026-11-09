@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'This course requires payment. Use the purchase option to enrol.' }, { status: 409 });
     }
 
-    const userId = decoded.id;
+    const userId = decoded.legacyUid;
     const enrollmentRef = adminDb.ref(`users/${userId}/purchasedCourses/${courseId}`);
     const existing = await enrollmentRef.get();
     if (existing.exists()) {
