@@ -21,8 +21,6 @@ import {
   getOrganizationMembers,
   logActivity,
   createReferral,
-  getInvitation,
-  updateInvitationStatus,
 } from '@/lib/firebase-service';
 import type { RegisteredUser, Organization } from '@/lib/types';
 import { ref, onValue, onDisconnect, update, get, increment, serverTimestamp } from 'firebase/database';
@@ -263,12 +261,18 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
       const organizationName = typeof signupMetadata.organization_name === 'string' ? signupMetadata.organization_name.trim() : '';
       const inviteId = typeof signupMetadata.invite_org_id === 'string' ? signupMetadata.invite_org_id : '';
       if (inviteId) {
-        const invitation = await getInvitation(inviteId);
-        if (invitation && invitation.email?.toLowerCase() === authUser.email?.toLowerCase()) {
-          newProfile.organizationId = invitation.organizationId;
-          newProfile.isOrganizationAdmin = false;
-          await updateInvitationStatus(inviteId, 'accepted');
+        const response = await fetch('/api/auth/accept-invitation', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store',
+          body: JSON.stringify({ inviteId }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || typeof result.organizationId !== 'string') {
+          throw new Error(result.error || 'This organization invitation could not be accepted.');
         }
+        newProfile.organizationId = result.organizationId;
       } else if (organizationName) {
         const trialExpiry = add(new Date(), { days: 30 }).toISOString();
         const orgId = await createOrganization({
