@@ -38,7 +38,9 @@ create table if not exists public.legacy_identity_links (
 );
 
 create index if not exists user_roles_user_id_idx on public.user_roles(user_id);
+create index if not exists user_roles_assigned_by_idx on public.user_roles(assigned_by);
 create index if not exists organization_members_user_id_idx on public.organization_members(user_id);
+create index if not exists organization_members_invited_by_idx on public.organization_members(invited_by);
 create index if not exists organization_members_org_role_idx on public.organization_members(organization_id, role);
 
 alter table public.user_roles enable row level security;
