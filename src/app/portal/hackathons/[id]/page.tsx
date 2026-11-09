@@ -6,7 +6,8 @@ import { useState, useEffect } from 'react';
 import { notFound, useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from 'next/link';
-import type { Hackathon, RegisteredUser } from "@/lib/mock-data";
+import type { Hackathon } from "@/lib/mock-data";
+import type { RegisteredUser } from "@/lib/types";
 import { getHackathonById, getHackathonParticipants, registerForHackathon } from '@/lib/firebase-service';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -187,6 +188,7 @@ export default function HackathonDetailPage() {
           itemId={hackathon.id}
           itemName={hackathon.title}
           price={hackathon.entryFee}
+          purchaseType="hackathon"
           onPaymentSuccess={handleRegister}
         />
       )}
