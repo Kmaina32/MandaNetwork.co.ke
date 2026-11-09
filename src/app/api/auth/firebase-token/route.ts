@@ -40,9 +40,7 @@ export async function POST(request: NextRequest) {
         email: user.email || null,
         displayName: String(user.user_metadata?.display_name || user.user_metadata?.full_name || ''),
       };
-      if (user.app_metadata?.admin_expires_at) {
-        adminProfile.adminExpiresAt = user.app_metadata.admin_expires_at;
-      }
+      adminProfile.adminExpiresAt = user.app_metadata?.admin_expires_at ?? null;
       await adminDb.ref(`users/${firebaseUid}`).update(adminProfile);
     }
 
