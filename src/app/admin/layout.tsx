@@ -59,9 +59,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <SidebarProvider>
       <AdminSidebar />
-      <SidebarInset>
+      <SidebarInset className="min-w-0 w-full max-w-full overflow-x-clip">
         <Header />
-        {children}
+        <div data-admin-content className="min-w-0 w-full max-w-full overflow-x-clip [&>*]:min-w-0 [&>*]:max-w-full">
+          {children}
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

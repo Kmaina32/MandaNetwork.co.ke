@@ -10,12 +10,28 @@ function getFirebaseAdminApp(): admin.app.App {
   }
 
   let serviceAccountJson: Record<string, string> = {};
-  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  const rawServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT?.trim();
+  const base64ServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64?.trim();
+
+  // Accept a JSON object, a JSON-encoded JSON string, or a base64-encoded
+  // service-account file. A malformed combined variable must not prevent the
+  // documented split FIREBASE_PROJECT_ID / CLIENT_EMAIL / PRIVATE_KEY setup.
+  for (const candidate of [rawServiceAccount, base64ServiceAccount, rawServiceAccount ? Buffer.from(rawServiceAccount, 'base64').toString('utf8').trim() : undefined]) {
+    if (!candidate) continue;
     try {
-      serviceAccountJson = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      const parsed: unknown = JSON.parse(candidate.replace(/^\\uFEFF/, ''));
+      const normalized = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
+      if (normalized && typeof normalized === 'object' && !Array.isArray(normalized)) {
+        serviceAccountJson = normalized as Record<string, string>;
+        break;
+      }
     } catch {
-      throw new Error('FIREBASE_SERVICE_ACCOUNT must contain valid service-account JSON.');
+      // Try the next supported representation or the split environment variables.
     }
+  }
+
+  if (rawServiceAccount && Object.keys(serviceAccountJson).length === 0) {
+    console.warn('FIREBASE_SERVICE_ACCOUNT is not valid JSON; falling back to split Firebase Admin credentials when available.');
   }
 
   const privateKey = (process.env.FIREBASE_PRIVATE_KEY || serviceAccountJson.private_key || '').replace(/\\n/g, '\n');
