@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -108,7 +108,7 @@ function SignupFormComponent() {
       });
       router.push(result.session ? '/dashboard' : '/login?verify=email');
     } catch (e: any) {
-        if (e.code === 'auth/email-already-in-use' || e.message.includes('already exists')) {
+        if (e.code === 'user_already_exists' || e.code === 'email_exists' || e.code === 'auth/email-already-in-use' || e.message?.includes('already exists')) {
             setError('An account with this email already exists. Please try another one or log in.');
         } else {
             setError(e.message || 'An error occurred. Please try again.');
