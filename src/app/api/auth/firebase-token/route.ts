@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { adminAuth } from '@/lib/firebase-admin';
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -30,6 +30,20 @@ export async function POST(request: NextRequest) {
         const code = (lookupError as { code?: string })?.code;
         if (code !== 'auth/user-not-found') throw lookupError;
       }
+    }
+
+    const trustedRole = user.app_metadata?.role;
+    if (trustedRole === 'admin' || trustedRole === 'super_admin') {
+      const adminProfile: Record<string, unknown> = {
+        isAdmin: true,
+        isSuperAdmin: trustedRole === 'super_admin',
+        email: user.email || null,
+        displayName: String(user.user_metadata?.display_name || user.user_metadata?.full_name || ''),
+      };
+      if (user.app_metadata?.admin_expires_at) {
+        adminProfile.adminExpiresAt = user.app_metadata.admin_expires_at;
+      }
+      await adminDb.ref(`users/${firebaseUid}`).update(adminProfile);
     }
 
     const customToken = await adminAuth.createCustomToken(firebaseUid, {
