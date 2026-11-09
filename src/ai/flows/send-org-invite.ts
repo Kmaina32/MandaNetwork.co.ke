@@ -35,7 +35,7 @@ const createOrganizationInviteFlow = ai.defineFlow(
   async ({ idToken, email, organizationId }) => {
     try {
       const decoded = await verifySupabaseAccessToken(idToken);
-      const userSnapshot = await adminDb.ref(`users/${decoded.id}`).get();
+      const userSnapshot = await adminDb.ref(`users/${decoded.legacyUid}`).get();
       const user = userSnapshot.val();
       if (!user?.isOrganizationAdmin || user.organizationId !== organizationId) {
         throw new Error('You are not authorized to invite members to this organization.');
@@ -44,7 +44,7 @@ const createOrganizationInviteFlow = ai.defineFlow(
       const organizationSnapshot = await adminDb.ref(`organizations/${organizationId}`).get();
       if (!organizationSnapshot.exists()) throw new Error('Organization not found.');
       const organization = organizationSnapshot.val();
-      if (organization.ownerId !== decoded.id && user.isOrganizationAdmin !== true) {
+      if (organization.ownerId !== decoded.legacyUid && user.isOrganizationAdmin !== true) {
         throw new Error('Organization administrator permission is required.');
       }
 
@@ -65,7 +65,7 @@ const createOrganizationInviteFlow = ai.defineFlow(
         email,
         organizationId,
         organizationName: organization.name,
-        createdBy: decoded.id,
+        createdBy: decoded.legacyUid,
         createdAt: new Date().toISOString(),
         expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
         status: 'pending',
