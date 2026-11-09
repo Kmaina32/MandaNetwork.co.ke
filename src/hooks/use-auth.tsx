@@ -23,7 +23,7 @@ import {
   createReferral,
 } from '@/lib/firebase-service';
 import type { RegisteredUser, Organization } from '@/lib/types';
-import { ref, onValue, onDisconnect, update, get, increment, serverTimestamp } from 'firebase/database';
+import { ref, onValue, onDisconnect, update, get, serverTimestamp } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { useToast } from './use-toast';
 import { add } from 'date-fns';
