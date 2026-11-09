@@ -23,11 +23,10 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { updateProfile } from 'firebase/auth';
 import { uploadImage, saveUser, getUserById } from '@/lib/firebase-service';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Alert, AlertTitle, AlertDescription as AlertDescriptionComponent } from '@/components/ui/alert';
-import { auth } from '@/lib/firebase';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import type { RegisteredUser, PortfolioProject as Project } from '@/lib/types';
@@ -260,11 +259,11 @@ export default function ProfilePage() {
     setIsUploading(true);
     try {
         const downloadURL = await uploadImage(user.uid, file);
-        await updateProfile(user, { photoURL: downloadURL });
+        const { error: profileError } = await getSupabaseBrowserClient().auth.updateUser({ data: { avatar_url: downloadURL } });
+        if (profileError) throw profileError;
         await saveUser(user.uid, { photoURL: downloadURL });
         // Force a reload of the user to get the new photoURL
-        await auth.currentUser?.reload();
-        setUser(auth.currentUser);
+        setUser({ ...user, photoURL: downloadURL });
 
         toast({ title: 'Success', description: 'Your profile picture has been updated.' });
     } catch(error) {
@@ -392,7 +391,9 @@ export default function ProfilePage() {
         const newDisplayName = [values.firstName, values.middleName, values.lastName].filter(Boolean).join(' ');
         
         if (newDisplayName !== user.displayName) {
-          await updateProfile(user, { displayName: newDisplayName });
+          const { error: profileError } = await getSupabaseBrowserClient().auth.updateUser({ data: { display_name: newDisplayName } });
+        if (profileError) throw profileError;
+        setUser({ ...user, displayName: newDisplayName });
         }
 
         await saveUser(user.uid, {
