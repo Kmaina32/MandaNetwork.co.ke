@@ -53,7 +53,7 @@ export async function processMpesaPayment(input: MpesaPaymentInput): Promise<Mpe
   try {
     const parsed = MpesaPaymentInputSchema.parse(input);
     const decoded = await verifySupabaseAccessToken(parsed.idToken);
-    const userId = decoded.id;
+    const userId = decoded.legacyUid;
 
     const courseSnapshot = await adminDb.ref(`courses/${parsed.courseId}`).get();
     if (!courseSnapshot.exists()) return { success: false, message: 'This course is no longer available.' };
@@ -136,6 +136,6 @@ export async function getMpesaPaymentStatus(idToken: string, checkoutRequestId: 
   const snapshot = await adminDb.ref(`mpesaTransactions/${checkoutRequestId}`).get();
   if (!snapshot.exists()) return 'unknown';
   const transaction = snapshot.val();
-  if (transaction.uid !== decoded.id) throw new Error('Not authorized to view this payment.');
+  if (transaction.uid !== decoded.legacyUid) throw new Error('Not authorized to view this payment.');
   return transaction.status;
 }
