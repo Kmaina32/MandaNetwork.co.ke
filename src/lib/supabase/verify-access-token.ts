@@ -1,9 +1,14 @@
 import 'server-only';
 
 import { createClient } from '@supabase/supabase-js';
+import { adminAuth } from '@/lib/firebase-admin';
 import { getSupabaseConfig } from './config';
 
-/** Verify a Supabase access token with the Auth server before authorizing it. */
+/**
+ * Verify a Supabase access token with Supabase Auth, then resolve the matching
+ * legacy Firebase UID by verified email. This lets server actions continue to
+ * access existing Firebase records without trusting a caller-supplied UID.
+ */
 export async function verifySupabaseAccessToken(accessToken: string) {
   if (!accessToken || accessToken.length > 16_384) {
     throw new Error('A valid sign-in session is required.');
@@ -21,5 +26,17 @@ export async function verifySupabaseAccessToken(accessToken: string) {
   if (error || !data.user) {
     throw new Error('Your sign-in session has expired. Please sign in again.');
   }
-  return data.user;
+
+  let legacyUid = data.user.id;
+  if (data.user.email) {
+    try {
+      const firebaseUser = await adminAuth.getUserByEmail(data.user.email);
+      legacyUid = firebaseUser.uid;
+    } catch (lookupError) {
+      const code = (lookupError as { code?: string })?.code;
+      if (code !== 'auth/user-not-found') throw lookupError;
+    }
+  }
+
+  return { ...data.user, legacyUid };
 }
