@@ -390,6 +390,7 @@ export interface RegisteredUser {
     plan?: 'free' | 'basic' | 'pro';
     apiCallCount?: number;
     isAdmin?: boolean;
+    isSuperAdmin?: boolean;
     isOrganizationAdmin?: boolean;
     organizationId?: string;
     adminExpiresAt?: string | null;
