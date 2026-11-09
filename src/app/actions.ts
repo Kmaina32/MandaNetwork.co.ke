@@ -204,10 +204,12 @@ export async function awardPoints(idToken: string, targetUserId: string, points:
     }
     const decoded = await verifySupabaseAccessToken(idToken);
     const trustedRole = decoded.app_metadata?.role;
-    if (trustedRole !== 'admin' && trustedRole !== 'super_admin') {
+    const adminSnapshot = await adminDb.ref(`users/${decoded.legacyUid}`).get();
+    const adminProfile = adminSnapshot.val();
+    if (trustedRole !== 'admin' && trustedRole !== 'super_admin' && adminProfile?.isAdmin !== true) {
         throw new Error('Administrator access is required.');
     }
-    const adminExpiresAt = decoded.app_metadata?.admin_expires_at;
+    const adminExpiresAt = decoded.app_metadata?.admin_expires_at ?? adminProfile?.adminExpiresAt;
     if (adminExpiresAt != null) {
         const expiresAt = typeof adminExpiresAt === 'number' ? adminExpiresAt : Date.parse(String(adminExpiresAt));
         if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
