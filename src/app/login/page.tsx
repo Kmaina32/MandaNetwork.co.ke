@@ -45,7 +45,12 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [verificationNotice, setVerificationNotice] = useState(false);
 
+
+  useEffect(() => {
+    setVerificationNotice(new URLSearchParams(window.location.search).get('verify') === 'email');
+  }, []);
 
   useEffect(() => {
     const fetchImage = async () => {
@@ -77,9 +82,11 @@ export default function LoginPage() {
       await login(values.email, values.password);
       router.replace(getSafeReturnPath());
     } catch (e: any) {
-      if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-password') {
+      if (e.code === 'invalid_credentials' || e.code === 'invalid_grant' || e.code === 'auth/invalid-credential') {
         setError('Incorrect password or email. Please try again.');
-      } else if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-email') {
+      } else if (e.code === 'email_not_confirmed') {
+        setError('Please confirm your email address using the link we sent before signing in.');
+      } else if (e.code === 'user_not_found' || e.code === 'auth/user-not-found' || e.code === 'auth/invalid-email') {
         setError('No account found with this email.');
       } else {
         setError(e.message || 'An error occurred. Please try again.');
@@ -134,6 +141,7 @@ export default function LoginPage() {
             <CardContent>
                <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                      {verificationNotice && <Alert><AlertTitle>Check your email</AlertTitle><AlertDescription>We sent you a confirmation link. Open it to activate your account, then sign in here.</AlertDescription></Alert>}
                       {error && (
                       <Alert variant="destructive">
                           <AlertTriangle className="h-4 w-4" />
