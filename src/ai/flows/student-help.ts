@@ -9,6 +9,7 @@
  */
 
 import { ai } from '@/ai/genkit-instance';
+import { modelFor } from '@/ai/model-config';
 import {z} from 'genkit';
 import { NVIDIA_MODEL_ROUTING, assertNvidiaConfigured } from '@/lib/nvidia-models';
 
@@ -31,6 +32,7 @@ export async function studentHelp(
 
 const prompt = ai.definePrompt({
   name: 'studentHelpPrompt',
+  model: modelFor('support'),
   input: {schema: StudentHelpInputSchema},
   output: {schema: StudentHelpOutputSchema},
   prompt: `You are an AI support agent for the Varban Academy online learning platform. Your tone is friendly, helpful, and professional. A student is asking you a question about how the platform works.

@@ -10,6 +10,7 @@
  */
 
 import { ai } from '@/ai/genkit-instance';
+import { modelFor } from '@/ai/model-config';
 import {z} from 'genkit';
 import { listCoursesTool } from '../tools/course-catalog';
 
@@ -91,6 +92,7 @@ export async function generateCourseContent(
 
 const prompt = ai.definePrompt({
   name: 'generateCourseContentPrompt',
+  model: modelFor('admin'),
   tools: [listCoursesTool],
   input: {schema: GenerateCourseContentInputSchema},
   output: {schema: GenerateCourseContentOutputSchema},

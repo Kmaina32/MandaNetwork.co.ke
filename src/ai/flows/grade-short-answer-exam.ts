@@ -9,6 +9,7 @@
  */
 
 import { ai } from '@/ai/genkit-instance';
+import { modelFor } from '@/ai/model-config';
 import {z} from 'genkit';
 
 const GradeShortAnswerExamInputSchema = z.object({
@@ -39,6 +40,7 @@ export async function gradeShortAnswerExam(
 
 const prompt = ai.definePrompt({
   name: 'gradeShortAnswerExamPrompt',
+  model: modelFor('admin'),
   input: {schema: GradeShortAnswerExamInputSchema},
   output: {schema: GradeShortAnswerExamOutputSchema},
   prompt: `You are an AI exam grader. Grade the following answer to the question below. Provide detailed feedback and the number of points awarded.

@@ -9,6 +9,7 @@
  */
 
 import { ai } from '@/ai/genkit-instance';
+import { modelFor } from '@/ai/model-config';
 import {z} from 'genkit';
 import { updateCourse } from '@/lib/firebase-service';
 import { PortfolioProject } from '@/lib/types';
@@ -38,6 +39,7 @@ export async function generateProject(
 
 const prompt = ai.definePrompt({
   name: 'generateProjectPrompt',
+  model: modelFor('admin'),
   input: {schema: GenerateProjectInputSchema},
   output: {schema: GenerateProjectOutputSchema},
   prompt: `You are an expert curriculum developer. Your task is to generate a final project for an online course based on its title and description.

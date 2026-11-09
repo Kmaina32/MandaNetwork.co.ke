@@ -9,6 +9,7 @@
  */
 
 import { ai } from '@/ai/genkit-instance';
+import { modelFor } from '@/ai/model-config';
 import { z } from 'zod';
 import { listCoursesTool } from '../tools/course-catalog';
 import { NVIDIA_MODEL_ROUTING, assertNvidiaConfigured } from '@/lib/nvidia-models';
@@ -46,6 +47,7 @@ export async function getLearningPath(
 
 const prompt = ai.definePrompt({
   name: 'careerCoachPrompt',
+  model: modelFor('student'),
   tools: [listCoursesTool],
   input: { schema: LearningPathInputSchema },
   output: { schema: LearningPathOutputSchema },
