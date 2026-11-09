@@ -20,7 +20,8 @@ import type { StudentHelpInput, StudentHelpOutput } from '@/ai/flows/student-hel
 import type { SpeechToTextInput, SpeechToTextOutput, TextToSpeechInput, TextToSpeechOutput } from '@/ai/flows/text-to-speech';
 import type { GetPortfolioFeedbackInput, GetPortfolioFeedbackOutput } from '@/ai/flows/portfolio-advisor';
 
-import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { adminDb } from '@/lib/firebase-admin';
+import { verifySupabaseAccessToken } from '@/lib/supabase/verify-access-token';
 import { headers } from 'next/headers';
 import { createHash } from 'node:crypto';
 import { checkHackathonParticipantAchievement } from '@/lib/achievements';
@@ -201,8 +202,8 @@ export async function awardPoints(idToken: string, targetUserId: string, points:
     if (!Number.isInteger(points) || points < 1 || points > 1000) {
         throw new Error('Points must be an integer between 1 and 1,000.');
     }
-    const decoded = await adminAuth.verifyIdToken(idToken, true);
-    const adminSnapshot = await adminDb.ref(`users/${decoded.uid}`).get();
+    const decoded = await verifySupabaseAccessToken(idToken);
+    const adminSnapshot = await adminDb.ref(`users/${decoded.id}`).get();
     const adminProfile = adminSnapshot.val();
     if (!adminProfile?.isAdmin) throw new Error('Administrator access is required.');
     if (adminProfile.adminExpiresAt != null) {
@@ -245,8 +246,8 @@ export async function sendContactMessage(payload: {
 }) {
   if (!/^[A-Za-z0-9_-]{1,128}$/.test(payload.studentId)) throw new Error('Invalid learner identifier.');
   if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(payload.email) || payload.phone.trim().length < 10 || payload.phone.length > 30) throw new Error('Please provide valid contact details.');
-  const decoded = await adminAuth.verifyIdToken(payload.idToken, true);
-  const employerSnapshot = await adminDb.ref(`users/${decoded.uid}`).get();
+  const decoded = await verifySupabaseAccessToken(payload.idToken);
+  const employerSnapshot = await adminDb.ref(`users/${decoded.id}`).get();
   const employer = employerSnapshot.val();
   if (!employer?.isOrganizationAdmin || !employer.organizationId) {
     throw new Error('An active organization account is required to contact learners.');
@@ -261,12 +262,12 @@ export async function sendContactMessage(payload: {
   const committed = await existingRef.transaction((existing) => {
     if (existing?.organizationId && existing.organizationId !== employer.organizationId) return;
     const messages = Array.isArray(existing?.messages) ? [...existing.messages] : Object.values(existing?.messages || {});
-    messages.push({ senderId: 'employer', authorUid: decoded.uid, text: message, timestamp: new Date().toISOString() });
+    messages.push({ senderId: 'employer', authorUid: decoded.id, text: message, timestamp: new Date().toISOString() });
     return {
       ...(existing || {}),
       studentId: payload.studentId,
       studentName: studentSnapshot.val().displayName || 'Learner',
-      employerId: decoded.uid,
+      employerId: decoded.id,
       employerName: employer.displayName || payload.employerName.trim(),
       employerPhotoUrl: employer.photoURL || '',
       organizationId: employer.organizationId,
@@ -332,8 +333,8 @@ export async function saveExamGradeAndCertificate(input: {
     issuedAt: string;
   };
 }): Promise<void> {
-  const decoded = await adminAuth.verifyIdToken(input.idToken, true);
-  const adminSnapshot = await adminDb.ref(`users/${decoded.uid}`).get();
+  const decoded = await verifySupabaseAccessToken(input.idToken);
+  const adminSnapshot = await adminDb.ref(`users/${decoded.id}`).get();
   const adminProfile = adminSnapshot.val();
   if (!adminProfile?.isAdmin) throw new Error('Administrator access is required.');
   if (adminProfile.adminExpiresAt != null) {
@@ -365,8 +366,8 @@ export async function saveExamGradeAndCertificate(input: {
 
 
 async function requireActiveAdmin(idToken: string, requireSuperAdmin = false) {
-    const decoded = await adminAuth.verifyIdToken(idToken, true);
-    const snapshot = await adminDb.ref(`users/${decoded.uid}`).get();
+    const decoded = await verifySupabaseAccessToken(idToken);
+    const snapshot = await adminDb.ref(`users/${decoded.id}`).get();
     const profile = snapshot.val();
     const allowed = requireSuperAdmin ? profile?.isSuperAdmin === true : profile?.isAdmin === true;
     if (!allowed) throw new Error('Administrator access is required.');
@@ -399,30 +400,30 @@ export async function deleteBootcampAndRegistrations(idToken: string, bootcampId
 
 export async function getBootcampRegistrationStatus(idToken: string, bootcampId: string): Promise<boolean> {
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(bootcampId)) throw new Error('Invalid bootcamp identifier.');
-    const decoded = await adminAuth.verifyIdToken(idToken, true);
-    const snapshot = await adminDb.ref(`bootcampParticipants/${bootcampId}/${decoded.uid}`).get();
+    const decoded = await verifySupabaseAccessToken(idToken);
+    const snapshot = await adminDb.ref(`bootcampParticipants/${bootcampId}/${decoded.id}`).get();
     return snapshot.val() === true;
 }
 
 export async function registerFreeBootcamp(idToken: string, bootcampId: string): Promise<void> {
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(bootcampId)) throw new Error('Invalid bootcamp identifier.');
-    const decoded = await adminAuth.verifyIdToken(idToken, true);
+    const decoded = await verifySupabaseAccessToken(idToken);
     const bootcampSnapshot = await adminDb.ref(`bootcamps/${bootcampId}`).get();
     if (!bootcampSnapshot.exists()) throw new Error('This bootcamp is no longer available.');
     const bootcamp = bootcampSnapshot.val();
     const price = Number(bootcamp.price);
     if (!Number.isFinite(price) || price > 0) throw new Error('Paid bootcamp registration is unavailable until verified bootcamp payment processing is enabled.');
     const courseIds = Array.isArray(bootcamp.courseIds) ? bootcamp.courseIds : [];
-    const purchasedRef = adminDb.ref(`users/${decoded.uid}/purchasedCourses`);
+    const purchasedRef = adminDb.ref(`users/${decoded.id}/purchasedCourses`);
     const purchasedSnapshot = await purchasedRef.get();
     const purchased = purchasedSnapshot.val() || {};
     const enrolledAt = new Date().toISOString();
-    const updates: Record<string, unknown> = { [`bootcampParticipants/${bootcampId}/${decoded.uid}`]: true };
+    const updates: Record<string, unknown> = { [`bootcampParticipants/${bootcampId}/${decoded.id}`]: true };
     for (const courseId of courseIds) {
         if (typeof courseId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(courseId) || purchased[courseId]) continue;
         const courseSnapshot = await adminDb.ref(`courses/${courseId}`).get();
         if (!courseSnapshot.exists()) continue;
-        updates[`users/${decoded.uid}/purchasedCourses/${courseId}`] = {
+        updates[`users/${decoded.id}/purchasedCourses/${courseId}`] = {
             progress: 0, completed: false, certificateAvailable: false, completedLessons: [],
             enrollmentDate: enrolledAt, paymentMethod: 'free',
         };
