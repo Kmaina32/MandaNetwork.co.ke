@@ -23,8 +23,6 @@ import type { GetPortfolioFeedbackInput, GetPortfolioFeedbackOutput } from '@/ai
 import { adminDb } from '@/lib/supabase/admin-records';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { verifySupabaseAccessToken } from '@/lib/supabase/verify-access-token';
-import { headers } from 'next/headers';
-import { createHash } from 'node:crypto';
 import { checkHackathonParticipantAchievement } from '@/lib/achievements';
 import { assertNvidiaConfigured } from '@/lib/nvidia-models';
 
@@ -37,39 +35,23 @@ const SERVER_ACTION_LIMIT = 12;
  * The client cannot choose a target UID or email; both are derived from the verified token.
  */
 export async function ensureConfiguredAdmin(idToken: string): Promise<void> {
-  const decoded = await verifySupabaseAccessToken(idToken);
+  const { client, user } = await createSupabaseUserClient(idToken);
   const allowedEmails = ['bonfacewana3072@gmail.com','macos8388@gmail.com','gmaina424@gmail.com'];
-  if (!decoded.email || !allowedEmails.includes(decoded.email.toLowerCase())) throw new Error('This account is not authorized for administrator access.');
-  const admin = getSupabaseAdminClient();
-  const { data, error } = await admin.from('user_roles').select('role').eq('user_id',decoded.id).in('role',['admin','super_admin']);
-  if (error) throw error;
-  if (!data?.length) throw new Error('Administrator access must be granted by an existing platform administrator.');
+  if (!user.email || !allowedEmails.includes(user.email.toLowerCase()) || !user.email_confirmed_at) throw new Error('This account is not authorized for administrator access.');
+  const { data, error } = await client.rpc('has_role', { check_user_id: user.id, allowed_roles: ['admin','super_admin'] });
+  if (error || !data) throw new Error('Administrator access has not been assigned to this account.');
 }
 
 async function enforceServerActionRateLimit(actionName: string, maxCalls = SERVER_ACTION_LIMIT): Promise<void> {
-  const requestHeaders = await headers();
-  const forwarded = requestHeaders.get('x-vercel-forwarded-for')
-    || requestHeaders.get('x-forwarded-for')
-    || requestHeaders.get('x-real-ip')
-    || '';
-  const clientIp = forwarded.split(',')[0].trim();
-  if (!clientIp) throw new Error('Unable to verify request origin. Please retry.');
-  const key = createHash('sha256').update(clientIp).digest('hex');
-  const rateRef = adminDb.ref(`serverActionRateLimits/${actionName}/${key}`);
-  const now = Date.now();
-  const result = await rateRef.transaction((current) => {
-    const windowStart = Number(current?.windowStart) || 0;
-    const count = windowStart > 0 && now - windowStart < SERVER_ACTION_WINDOW_MS
-      ? Number(current?.count) || 0
-      : 0;
-    if (count >= maxCalls) return;
-    return { windowStart: count === 0 ? now : windowStart, count: count + 1, updatedAt: now };
+  const supabase = await getSupabaseServerClient();
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  if (authError || !auth.user) throw new Error('Sign in to use this feature.');
+  const { data, error } = await supabase.rpc('consume_server_action_rate_limit', {
+    p_action: actionName, p_max_calls: maxCalls, p_window_seconds: Math.floor(SERVER_ACTION_WINDOW_MS / 1000),
   });
-  if (!result.committed) throw new Error('Too many requests. Please wait a few minutes and try again.');
+  if (error) throw error;
+  if (!data) throw new Error('Too many requests. Please wait a few minutes and try again.');
 }
-
-// Each function dynamically imports its corresponding flow, ensuring that the AI logic
-// is only loaded on the server when the action is executed.
 
 export async function getLearningPath(input: LearningPathInput): Promise<LearningPathOutput> {
     assertNvidiaConfigured();
@@ -215,13 +197,9 @@ export async function generateHackathonIdeas(input: GenerateHackathonIdeasInput)
 export async function awardPoints(idToken: string, targetUserId: string, points: number): Promise<void> {
   if (!/^[0-9a-f-]{36}$/i.test(targetUserId)) throw new Error('Invalid learner identifier.');
   if (!Number.isInteger(points) || points < 1 || points > 1000) throw new Error('Points must be an integer between 1 and 1,000.');
-  const decoded = await verifySupabaseAccessToken(idToken); const admin = getSupabaseAdminClient();
-  const { data: roles, error: roleError } = await admin.from('user_roles').select('role').eq('user_id',decoded.id).in('role',['admin','super_admin']);
-  if (roleError) throw roleError; if (!roles?.length) throw new Error('Administrator access is required.');
-  const { data: target, error: targetError } = await admin.from('profiles').select('id,display_name,avatar_path').eq('id',targetUserId).maybeSingle();
-  if (targetError) throw targetError; if (!target) throw new Error('The selected learner no longer exists.');
-  const current = await adminDb.ref('leaderboard/'+targetUserId).get(); const value = current.val() || {};
-  await adminDb.ref('leaderboard/'+targetUserId).set({...value,userId:targetUserId,userName:target.display_name||'Learner',userAvatar:target.avatar_path||'',score:(Number(value.score)||0)+points,hackathonCount:Number(value.hackathonCount)||0});
+  const { client } = await createSupabaseUserClient(idToken);
+  const { error } = await client.rpc('award_manual_leaderboard_points', { p_target_user_id: targetUserId, p_points: points });
+  if (error) throw new Error(error.message || 'Points could not be saved.');
 }
 
 export async function getPortfolioFeedback(input: GetPortfolioFeedbackInput): Promise<GetPortfolioFeedbackOutput> {
@@ -230,143 +208,105 @@ export async function getPortfolioFeedback(input: GetPortfolioFeedbackInput): Pr
     return getPortfolioFeedback(input);
 }
 
-export async function sendContactMessage(payload: { idToken:string; studentId:string; employerName:string; email:string; phone:string; message:string; }) {
+export async function sendContactMessage(payload: { idToken: string; studentId: string; employerName: string; email: string; phone: string; message: string }) {
   if (!/^[0-9a-f-]{36}$/i.test(payload.studentId)) throw new Error('Invalid learner identifier.');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email) || payload.phone.trim().length < 10 || payload.phone.length > 30) throw new Error('Please provide valid contact details.');
-  const decoded=await verifySupabaseAccessToken(payload.idToken); const admin=getSupabaseAdminClient();
-  const [{data:employerProfile,error:employerError},{data:studentProfile,error:studentError},{data:membership,error:membershipError}]=await Promise.all([
-    admin.from('profiles').select('display_name,avatar_path').eq('id',decoded.id).maybeSingle(),
-    admin.from('profiles').select('display_name').eq('id',payload.studentId).maybeSingle(),
-    admin.from('organization_members').select('organization_id,member_role,status').eq('user_id',decoded.id).eq('status','active').in('member_role',['owner','admin']).limit(1).maybeSingle(),
-  ]);
-  if(employerError)throw employerError;if(studentError)throw studentError;if(membershipError)throw membershipError;
-  if(!employerProfile||!studentProfile||!membership)throw new Error('An active organization account is required to contact learners.');
-  const organizationId=membership.organization_id;
-  const {data:organization,error:orgError}=await admin.from('organizations').select('id,name').eq('id',organizationId).maybeSingle();
-  if(orgError)throw orgError;if(!organization)throw new Error('Your organization could not be verified.');
-  const message=payload.message.trim();if(message.length<20||message.length>3000)throw new Error('Message must be between 20 and 3,000 characters.');
-  const existingRef=adminDb.ref('conversations/'+payload.studentId);const existing=(await existingRef.get()).val()||{};
-  if(existing.organizationId&&existing.organizationId!==organizationId)throw new Error('This learner already has a conversation with another organization.');
-  const messages=Array.isArray(existing.messages)?[...existing.messages]:Object.values(existing.messages||{});
-  messages.push({senderId:'employer',authorUid:decoded.id,text:message,timestamp:new Date().toISOString()});
-  await existingRef.set({...existing,studentId:payload.studentId,studentName:studentProfile.display_name||'Learner',employerId:decoded.id,employerName:employerProfile.display_name||payload.employerName.trim(),employerPhotoUrl:employerProfile.avatar_path||'',organizationId,organizationName:organization.name,employerDetails:{email:payload.email.trim(),phone:payload.phone.trim()},messages,lastMessageAt:new Date().toISOString()});
+  const message = payload.message.trim();
+  if (message.length < 20 || message.length > 3000) throw new Error('Message must be between 20 and 3,000 characters.');
+  const { client, user } = await createSupabaseUserClient(payload.idToken);
+  const { data: membership, error: memberError } = await client.from('organization_members').select('organization_id,member_role')
+    .eq('user_id',user.id).eq('status','active').in('member_role',['owner','admin']).limit(1).maybeSingle();
+  if (memberError || !membership) throw new Error('An active organization account is required to contact learners.');
+  const { data: organization, error: orgError } = await client.from('organizations').select('id,name').eq('id',membership.organization_id).maybeSingle();
+  if (orgError || !organization) throw new Error('Your organization could not be verified.');
+  const { data: existing, error: readError } = await client.from('conversations').select('content,participant_ids').eq('id',payload.studentId).maybeSingle();
+  if (readError) throw readError;
+  if (existing?.content?.organizationId && existing.content.organizationId !== organization.id) throw new Error('This learner already has a conversation with another organization.');
+  const { data: student } = await client.from('profiles').select('display_name').eq('id',payload.studentId).maybeSingle();
+  const now = new Date().toISOString();
+  const { error: upsertError } = await client.from('conversations').upsert({
+    id: payload.studentId, user_id: payload.studentId, participant_ids: [...new Set([payload.studentId,user.id])],
+    content: { ...(existing?.content || {}), studentId: payload.studentId, studentName: student?.display_name || 'Learner',
+      employerId: user.id, employerName: user.user_metadata?.display_name || payload.employerName.trim(),
+      employerPhotoUrl: user.user_metadata?.avatar_url || '', organizationId: organization.id, organizationName: organization.name,
+      employerDetails: { email: payload.email.trim(), phone: payload.phone.trim() }, lastMessageAt: now },
+    updated_at: now,
+  }, { onConflict: 'id' });
+  if (upsertError) throw upsertError;
+  const { error: messageError } = await client.from('conversation_messages').insert({
+    conversation_id: payload.studentId, user_id: user.id, content: { senderId: user.id, text: message, timestamp: now },
+  });
+  if (messageError) throw messageError;
 }
 
 export async function sendGeneralContactMessage(payload: { name: string; email: string; message: string }) {
-    const name = typeof payload?.name === 'string' ? payload.name.trim() : '';
-    const email = typeof payload?.email === 'string' ? payload.email.trim().toLowerCase() : '';
-    const message = typeof payload?.message === 'string' ? payload.message.trim() : '';
-    if (name.length < 2 || name.length > 80 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || message.length < 10 || message.length > 3000) {
-        throw new Error('Please provide a valid name, email address, and message.');
-    }
-
-    const requestHeaders = await headers();
-    const clientIp = requestHeaders.get('x-forwarded-for')?.split(',')[0]?.trim() || requestHeaders.get('x-real-ip') || email;
-    const bucket = Math.floor(Date.now() / 600000);
-    const rateKey = Buffer.from(clientIp).toString('base64url');
-    const rateRef = adminDb.ref(`contactRateLimits/${rateKey}/${bucket}`);
-    const rate = await rateRef.transaction((current) => {
-        const count = Number(current?.count) || 0;
-        if (count >= 5) return;
-        return { count: count + 1, updatedAt: Date.now() };
-    });
-    if (!rate.committed) throw new Error('Too many messages have been sent. Please wait a few minutes and try again.');
-
-    const contactRef = adminDb.ref('contactMessages').push();
-    const notificationRef = adminDb.ref('notifications').push();
-    if (!contactRef.key || !notificationRef.key) throw new Error('Could not save your message.');
-    const now = new Date().toISOString();
-    const adminUid = 'YlyqSWedlPfEqI9LlGzjN7zlRtC2';
-    await adminDb.ref().update({
-        [`contactMessages/${contactRef.key}`]: { name, email, message, createdAt: now, read: false },
-        [`notifications/${notificationRef.key}`]: {
-            userId: adminUid,
-            title: `New Message from ${name}`,
-            body: { fromName: name, fromEmail: email, message },
-            link: '/admin/messages',
-            createdAt: now,
-            read: false,
-        },
-    });
+  const name = typeof payload?.name === 'string' ? payload.name.trim() : '';
+  const email = typeof payload?.email === 'string' ? payload.email.trim().toLowerCase() : '';
+  const message = typeof payload?.message === 'string' ? payload.message.trim() : '';
+  if (name.length < 2 || name.length > 80 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || message.length < 10 || message.length > 3000) throw new Error('Please provide a valid name, email address, and message.');
+  const supabase = await getSupabaseServerClient();
+  const { error } = await supabase.from('contact_messages').insert({ name, email, message, content: { source: 'public_contact_form' } });
+  if (error) throw error;
 }
 
-
-/** Atomically persist an approved exam grade, course certificate entitlement and public verification record. */
-export async function saveExamGradeAndCertificate(input:{idToken:string;submissionId:string;pointsAwarded:number;feedback:string;certificate?:{certificateId:string;studentName:string;courseId:string;courseTitle:string;issuedAt:string}}):Promise<void>{
-  const decoded=await verifySupabaseAccessToken(input.idToken);const admin=getSupabaseAdminClient();
-  const {data:roles,error:roleError}=await admin.from('user_roles').select('role').eq('user_id',decoded.id).in('role',['admin','super_admin']);
-  if(roleError)throw roleError;if(!roles?.length)throw new Error('Administrator access is required.');
-  if(!/^[A-Za-z0-9_-]{1,128}$/.test(input.submissionId)||!Number.isFinite(input.pointsAwarded)||input.pointsAwarded<0||input.feedback.length>50000)throw new Error('Invalid grade payload.');
-  const {data:submission,error:submissionError}=await admin.from('submissions').select('*').eq('id',input.submissionId).maybeSingle();
-  if(submissionError)throw submissionError;if(!submission)throw new Error('Submission not found.');
-  if(submission.graded_at)throw new Error('This submission has already been graded.');
-  const content={...(submission.content||{}),graded:true,pointsAwarded:input.pointsAwarded,feedback:input.feedback};
-  const {error:updateError}=await admin.from('submissions').update({content,graded_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',input.submissionId).is('graded_at',null);
-  if(updateError)throw updateError;
-  if(input.certificate){const cert=input.certificate;if(cert.courseId!==submission.course_id||!/^[A-Za-z0-9_-]{1,128}$/.test(cert.certificateId))throw new Error('Certificate does not match this submission.');
-    const {data:enrollment,error:readError}=await admin.from('enrollments').select('content').eq('user_id',submission.user_id).eq('course_id',submission.course_id).maybeSingle();
-    if(readError)throw readError;if(!enrollment)throw new Error('Course enrollment not found.');
-    const {error}=await admin.from('enrollments').update({content:{...(enrollment.content||{}),certificateAvailable:true,certificateId:cert.certificateId},updated_at:new Date().toISOString()}).eq('user_id',submission.user_id).eq('course_id',submission.course_id);
-    if(error)throw error;await adminDb.ref('publicCertificates/'+cert.certificateId).set({...cert,status:'valid'});
-  }
+export async function saveExamGradeAndCertificate(input: {
+  idToken: string; submissionId: string; pointsAwarded: number; feedback: string;
+  certificate?: { certificateId: string; studentName: string; courseId: string; courseTitle: string; issuedAt: string };
+}): Promise<void> {
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(input.submissionId) || !Number.isFinite(input.pointsAwarded) || input.pointsAwarded < 0 || input.feedback.length > 50000) throw new Error('Invalid grade payload.');
+  if (input.certificate && (input.certificate.courseId.length > 128 || !/^[A-Za-z0-9_-]{1,128}$/.test(input.certificate.certificateId))) throw new Error('Certificate does not match this submission.');
+  const { client } = await createSupabaseUserClient(input.idToken);
+  const { error } = await client.rpc('grade_submission_and_issue_certificate', {
+    p_submission_id: input.submissionId, p_points: input.pointsAwarded, p_feedback: input.feedback, p_certificate: input.certificate || null,
+  });
+  if (error) throw new Error(error.message || 'Could not save the grade.');
 }
 
-async function requireActiveAdmin(idToken:string,requireSuperAdmin=false) {
-  const decoded=await verifySupabaseAccessToken(idToken);const admin=getSupabaseAdminClient();
-  const allowed=requireSuperAdmin?['super_admin']:['admin','super_admin'];
-  const {data,error}=await admin.from('user_roles').select('role').eq('user_id',decoded.id).in('role',allowed);
-  if(error)throw error;if(!data?.length)throw new Error('Administrator access is required.');return decoded;
+async function requireActiveAdmin(idToken: string, requireSuperAdmin = false) {
+  const { client, user } = await createSupabaseUserClient(idToken);
+  const { data, error } = await client.rpc('has_role', {
+    check_user_id: user.id, allowed_roles: requireSuperAdmin ? ['super_admin'] : ['admin','super_admin'],
+  });
+  if (error || !data) throw new Error('Administrator access is required.');
+  return { ...user, client };
 }
 
 export async function getBootcampParticipantCounts(idToken: string): Promise<Record<string, number>> {
-    await requireActiveAdmin(idToken);
-    const snapshot = await adminDb.ref('bootcampParticipants').get();
-    const values = snapshot.val() || {};
-    return Object.fromEntries(Object.entries(values).map(([bootcampId, participants]) => [
-        bootcampId,
-        participants && typeof participants === 'object' ? Object.keys(participants as Record<string, unknown>).length : 0,
-    ]));
+  const admin = await requireActiveAdmin(idToken);
+  const { data, error } = await admin.client.from('bootcamp_registrations').select('bootcamp_id');
+  if (error) throw error;
+  return (data || []).reduce((counts: Record<string,number>, row: any) => { counts[row.bootcamp_id] = (counts[row.bootcamp_id] || 0) + 1; return counts; }, {});
 }
 
 export async function deleteBootcampAndRegistrations(idToken: string, bootcampId: string): Promise<void> {
-    if (!/^[A-Za-z0-9_-]{1,128}$/.test(bootcampId)) throw new Error('Invalid bootcamp identifier.');
-    await requireActiveAdmin(idToken, true);
-    const updates: Record<string, null> = {
-        [`bootcamps/${bootcampId}`]: null,
-        [`bootcampParticipants/${bootcampId}`]: null,
-    };
-    await adminDb.ref().update(updates);
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(bootcampId)) throw new Error('Invalid bootcamp identifier.');
+  const admin = await requireActiveAdmin(idToken,true);
+  const { error } = await admin.client.from('bootcamps').delete().eq('id',bootcampId);
+  if (error) throw error;
 }
 
 export async function getBootcampRegistrationStatus(idToken: string, bootcampId: string): Promise<boolean> {
-    if (!/^[A-Za-z0-9_-]{1,128}$/.test(bootcampId)) throw new Error('Invalid bootcamp identifier.');
-    const decoded = await verifySupabaseAccessToken(idToken);
-    const snapshot = await adminDb.ref(`bootcampParticipants/${bootcampId}/${decoded.id}`).get();
-    return snapshot.val() === true;
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(bootcampId)) throw new Error('Invalid bootcamp identifier.');
+  const { client, user } = await createSupabaseUserClient(idToken);
+  const { data, error } = await client.from('bootcamp_registrations').select('id').eq('bootcamp_id',bootcampId).eq('user_id',user.id).maybeSingle();
+  if (error) throw error; return Boolean(data);
 }
 
 export async function registerFreeBootcamp(idToken: string, bootcampId: string): Promise<void> {
-    if (!/^[A-Za-z0-9_-]{1,128}$/.test(bootcampId)) throw new Error('Invalid bootcamp identifier.');
-    const decoded = await verifySupabaseAccessToken(idToken);
-    const bootcampSnapshot = await adminDb.ref(`bootcamps/${bootcampId}`).get();
-    if (!bootcampSnapshot.exists()) throw new Error('This bootcamp is no longer available.');
-    const bootcamp = bootcampSnapshot.val();
-    const price = Number(bootcamp.price);
-    if (!Number.isFinite(price) || price > 0) throw new Error('Paid bootcamp registration is unavailable until verified bootcamp payment processing is enabled.');
-    const courseIds = Array.isArray(bootcamp.courseIds) ? bootcamp.courseIds : [];
-    const purchasedRef = adminDb.ref(`users/${decoded.id}/purchasedCourses`);
-    const purchasedSnapshot = await purchasedRef.get();
-    const purchased = purchasedSnapshot.val() || {};
-    const enrolledAt = new Date().toISOString();
-    const updates: Record<string, unknown> = { [`bootcampParticipants/${bootcampId}/${decoded.id}`]: true };
-    for (const courseId of courseIds) {
-        if (typeof courseId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(courseId) || purchased[courseId]) continue;
-        const courseSnapshot = await adminDb.ref(`courses/${courseId}`).get();
-        if (!courseSnapshot.exists()) continue;
-        updates[`users/${decoded.id}/purchasedCourses/${courseId}`] = {
-            progress: 0, completed: false, certificateAvailable: false, completedLessons: [],
-            enrollmentDate: enrolledAt, paymentMethod: 'free',
-        };
-    }
-    await adminDb.ref().update(updates);
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(bootcampId)) throw new Error('Invalid bootcamp identifier.');
+  const { client, user } = await createSupabaseUserClient(idToken);
+  const { data: bootcamp, error } = await client.from('bootcamps').select('id,content').eq('id',bootcampId).eq('is_published',true).maybeSingle();
+  if (error || !bootcamp) throw new Error('This bootcamp is no longer available.');
+  const content = (bootcamp.content || {}) as Record<string,any>;
+  if (!Number.isFinite(Number(content.price || 0)) || Number(content.price || 0) > 0) throw new Error('Paid bootcamp registration is unavailable until verified bootcamp payment processing is enabled.');
+  const { error: registrationError } = await client.from('bootcamp_registrations').upsert({ bootcamp_id:bootcampId,user_id:user.id },{ onConflict:'bootcamp_id,user_id' });
+  if (registrationError) throw registrationError;
+  for (const courseId of Array.isArray(content.courseIds) ? content.courseIds : []) {
+    if (typeof courseId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(courseId)) continue;
+    const { data: course, error: courseError } = await client.from('courses').select('id,price,is_published').eq('id',courseId).eq('is_published',true).maybeSingle();
+    if (courseError) throw courseError;
+    if (!course || Number(course.price) > 0) continue;
+    const { error } = await client.from('enrollments').upsert({ user_id:user.id,course_id:courseId,progress:0,completed:false,content:{ enrollmentDate:new Date().toISOString(),paymentMethod:'free',completedLessons:[] } },{ onConflict:'user_id,course_id',ignoreDuplicates:true });
+    if (error) throw error;
+  }
 }
