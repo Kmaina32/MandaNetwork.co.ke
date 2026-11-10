@@ -7,7 +7,6 @@ import Image from "next/image";
 import Link from 'next/link';
 import type { Course } from "@/lib/mock-data";
 import type { UserCourse } from "@/lib/types";
-import { auth } from '@/lib/firebase';
 import { getCourseBySlug, getUserCourses, getAllCourses } from '@/lib/firebase-service';
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -259,7 +258,7 @@ export default function CourseDetailPage() {
     }
     setIsEnrolling(true);
     try {
-      const currentUser = auth.currentUser;
+      const currentUser = user;
       if (!currentUser || currentUser.uid !== user.uid) {
         throw new Error('Your sign-in session has expired. Please sign in again and retry.');
       }
