@@ -1,41 +1,20 @@
 create table if not exists public.app_settings (
-  key text primary key,
-  value jsonb not null default '{}'::jsonb,
-  updated_by uuid references auth.users(id) on delete set null,
-  updated_at timestamptz not null default now()
-);
-create table if not exists public.calendar_events (
-  id text primary key default gen_random_uuid()::text,
-  event_date timestamptz,
-  content jsonb not null default '{}'::jsonb,
-  created_by uuid references auth.users(id) on delete set null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  key text primary key, value jsonb not null default '{}'::jsonb,
+  updated_by uuid references auth.users(id) on delete set null, updated_at timestamptz not null default now()
 );
 create table if not exists public.user_notes (
   user_id uuid not null references auth.users(id) on delete cascade,
   course_id text not null references public.courses(id) on delete cascade,
-  notes text not null default '',
-  updated_at timestamptz not null default now(),
+  notes text not null default '', updated_at timestamptz not null default now(),
   primary key(user_id,course_id)
 );
 create table if not exists public.tutor_history (
   user_id uuid not null references auth.users(id) on delete cascade,
-  course_id text not null,
-  lesson_id text not null,
-  messages jsonb not null default '[]'::jsonb,
-  updated_at timestamptz not null default now(),
+  course_id text not null, lesson_id text not null,
+  messages jsonb not null default '[]'::jsonb, updated_at timestamptz not null default now(),
   primary key(user_id,course_id,lesson_id)
 );
-create table if not exists public.submissions (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  course_id text not null,
-  content jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-create index if not exists submissions_user_course_idx on public.submissions(user_id,course_id,created_at desc);
+alter table public.submissions add column if not exists updated_at timestamptz not null default now();
 
 alter table public.app_settings enable row level security;
 alter table public.calendar_events enable row level security;
