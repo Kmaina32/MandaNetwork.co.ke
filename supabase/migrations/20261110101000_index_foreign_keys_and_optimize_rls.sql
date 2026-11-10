@@ -63,7 +63,7 @@ begin
     check_expr := replace(replace(policy_row.with_check, 'auth.uid()', '(select auth.uid())'), 'auth.jwt()', '(select auth.jwt())');
     select string_agg(quote_ident(role_name), ', ')
       into role_list
-      from unnest(policy_row.roles) as role_name;
+      from unnest(policy_row.roles) as roles(role_name);
 
     execute format('drop policy %I on %I.%I', policy_row.policyname, policy_row.schemaname, policy_row.tablename);
     statement := format(
