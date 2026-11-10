@@ -256,6 +256,16 @@ export const ContentStrategyOutputSchema = z.object({
 });
 export type ContentStrategyOutput = z.infer<typeof ContentStrategyOutputSchema>;
 
+export interface PublicCertificateRecord {
+  certificateId: string;
+  studentName: string;
+  studentPhotoURL?: string;
+  courseId: string;
+  courseTitle: string;
+  issuedAt: string;
+  status?: 'valid' | 'revoked';
+}
+
 export interface ApiKey {
     id: string;
     name: string;
