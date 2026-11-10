@@ -3,8 +3,6 @@
 import { db } from './firebase';
 import { ref, get, set, push, update, remove, query, orderByChild, equalTo, increment, limitToLast } from 'firebase/database';
 import type { Assignment, TutorSettings, Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, TeamMember, ContactMessage, Form as FormType, FormSubmission, Referral, Bootcamp, BlogPost, HeroData } from './types';
-import { getRemoteConfig, fetchAndActivate, getString } from 'firebase/remote-config';
-import { app } from './firebase';
 import { slugify } from './utils';
 import { getSupabaseBrowserClient } from './supabase/client';
 import { uploadAcademyAsset } from './supabase/storage';
