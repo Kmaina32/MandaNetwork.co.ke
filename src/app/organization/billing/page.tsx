@@ -17,7 +17,7 @@ import PaymentIcons from '@/components/PaymentIcons';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
 
 export default function OrganizationBillingPage() {
-    const { organization, loading: authLoading, fetchUserData, user } = useAuth();
+    const { organization, loading: authLoading, user } = useAuth();
     const { toast } = useToast();
     const [paymentModalState, setPaymentModalState] = useState<{isOpen: boolean, plan: PricingPlan | null}>({ isOpen: false, plan: null });
     const [plans, setPlans] = useState<PricingPlan[]>([]);
