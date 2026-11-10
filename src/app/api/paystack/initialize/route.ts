@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
-import { initializePaystackTransaction, newPaystackReference } from '@/lib/paystack';
+import { createPaystackPlan, initializePaystackTransaction, newPaystackReference } from '@/lib/paystack';
 
 export const runtime = 'nodejs';
 
@@ -29,6 +29,8 @@ export async function POST(request: NextRequest) {
     let itemName: string;
     let amount: number;
     let organizationId: string | undefined;
+    let pricingPlanId: string | undefined;
+    let recurringPlanCode: string | undefined;
 
     if (requestedType === 'organization_plan') {
       itemType = 'organization_plan';
@@ -46,6 +48,7 @@ export async function POST(request: NextRequest) {
       }
       if (!planSnapshot.exists()) return NextResponse.json({ error: 'This plan is no longer available.' }, { status: 404 });
       const plan = planSnapshot.val();
+      pricingPlanId = planId;
       itemName = String(plan.name || '').trim();
       amount = Number(plan.price);
       if (!['basic', 'pro'].includes(itemName.toLowerCase())) {
@@ -95,6 +98,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'A checkout for this item is already in progress. Complete it or wait 20 minutes before retrying.' }, { status: 409 });
     }
 
+    if (itemType === 'organization_plan' && pricingPlanId) {
+      const cachedPlan = await adminDb.ref(`paystackPlanCodes/${pricingPlanId}`).get();
+      const cached = cachedPlan.val();
+      if (cached?.amount === amount && cached?.currency === 'KES' && cached?.interval === 'monthly' && typeof cached?.planCode === 'string') {
+        recurringPlanCode = cached.planCode;
+      } else {
+        const createdPlan = await createPaystackPlan({ name: `Varban ${itemName} monthly`, amount, currency: 'KES', interval: 'monthly' });
+        recurringPlanCode = createdPlan.planCode;
+        await adminDb.ref(`paystackPlanCodes/${pricingPlanId}`).set({ planCode: recurringPlanCode, amount, currency: 'KES', interval: 'monthly', updatedAt: Date.now() });
+      }
+    }
+
     const transaction = {
       uid: decoded.uid,
       email: decoded.email.toLowerCase(),
@@ -102,6 +117,9 @@ export async function POST(request: NextRequest) {
       itemId,
       itemName,
       organizationId: organizationId || null,
+      pricingPlanId: pricingPlanId || null,
+      recurring: itemType === 'organization_plan',
+      billingInterval: itemType === 'organization_plan' ? 'monthly' : null,
       amount,
       currency: 'KES',
       reference,
@@ -118,6 +136,7 @@ export async function POST(request: NextRequest) {
         reference,
         callbackUrl: parsedCallback.toString(),
         metadata: { uid: decoded.uid, itemType, itemId, itemName },
+        ...(recurringPlanCode ? { planCode: recurringPlanCode } : {}),
       });
       await adminDb.ref(`paystackTransactions/${reference}`).update({ status: 'pending', updatedAt: Date.now() });
       return NextResponse.json({ authorizationUrl: checkout.authorizationUrl, reference });
