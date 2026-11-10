@@ -64,7 +64,7 @@ function makeSnapshot(key: string | null, value: any): Snapshot {
 }
 export const db = database;
 export function ref(_db: unknown, path: string): PathRef {
-  return { path: parts(path), key: parts(path).at(-1) || null };
+  return { path: parts(path), key: parts(path)[parts(path).length - 1] || null };
 }
 export function query(reference: PathRef, ...constraints: Constraint[]): PathRef {
   return { ...reference, constraints: [...(reference.constraints || []), ...constraints] };
@@ -111,7 +111,7 @@ export function onChildAdded(reference: PathRef, callback: (snapshot: Snapshot) 
   activeListeners.set(callback, unsubscribe);
   return unsubscribe;
 }
-export function off(_reference: PathRef, _event?: string, callback?: Function) { if (callback) activeListeners.get(callback)?.(); }
+export function off(_reference: PathRef, _event?: string, callback?: Function) { if (typeof callback === 'function') (callback as any)(); }
 export function push(reference: PathRef): PathRef {
   const key = crypto.randomUUID();
   return { path: [...reference.path, key], key };
