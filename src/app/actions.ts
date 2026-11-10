@@ -20,7 +20,8 @@ import type { StudentHelpInput, StudentHelpOutput } from '@/ai/flows/student-hel
 import type { SpeechToTextInput, SpeechToTextOutput, TextToSpeechInput, TextToSpeechOutput } from '@/ai/flows/text-to-speech';
 import type { GetPortfolioFeedbackInput, GetPortfolioFeedbackOutput } from '@/ai/flows/portfolio-advisor';
 
-import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { adminDb } from '@/lib/supabase/admin-records';
+import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { verifySupabaseAccessToken } from '@/lib/supabase/verify-access-token';
 import { headers } from 'next/headers';
 import { createHash } from 'node:crypto';
@@ -36,26 +37,14 @@ const SERVER_ACTION_LIMIT = 12;
  * The client cannot choose a target UID or email; both are derived from the verified token.
  */
 export async function ensureConfiguredAdmin(idToken: string): Promise<void> {
-  if (typeof idToken !== 'string' || idToken.length < 100 || idToken.length > 10000) {
-    throw new Error('A valid sign-in session is required.');
-  }
-  const decoded = await adminAuth.verifyIdToken(idToken, true);
-  const email = typeof decoded.email === 'string' ? decoded.email.trim().toLowerCase() : '';
-  if (email !== 'nextrademarkets@gmail.com' || decoded.email_verified !== true) {
-    throw new Error('This account is not authorized for administrator access.');
-  }
-
-  const firebaseUser = await adminAuth.getUser(decoded.uid);
-  const existingClaims = firebaseUser.customClaims || {};
-  await adminAuth.setCustomUserClaims(decoded.uid, { ...existingClaims, isAdmin: true });
-  await adminDb.ref(`users/${decoded.uid}`).update({
-    uid: decoded.uid,
-    email,
-    isAdmin: true,
-    adminExpiresAt: null,
-  });
+  const decoded = await verifySupabaseAccessToken(idToken);
+  const allowedEmails = ['bonfacewana3072@gmail.com','macos8388@gmail.com','gmaina424@gmail.com'];
+  if (!decoded.email || !allowedEmails.includes(decoded.email.toLowerCase())) throw new Error('This account is not authorized for administrator access.');
+  const admin = getSupabaseAdminClient();
+  const { data, error } = await admin.from('user_roles').select('role').eq('user_id',decoded.id).in('role',['admin','super_admin']);
+  if (error) throw error;
+  if (!data?.length) throw new Error('Administrator access must be granted by an existing platform administrator.');
 }
-
 
 async function enforceServerActionRateLimit(actionName: string, maxCalls = SERVER_ACTION_LIMIT): Promise<void> {
   const requestHeaders = await headers();
@@ -224,38 +213,15 @@ export async function generateHackathonIdeas(input: GenerateHackathonIdeasInput)
 }
 
 export async function awardPoints(idToken: string, targetUserId: string, points: number): Promise<void> {
-    if (!/^[A-Za-z0-9_-]{1,128}$/.test(targetUserId)) throw new Error('Invalid learner identifier.');
-    if (!Number.isInteger(points) || points < 1 || points > 1000) {
-        throw new Error('Points must be an integer between 1 and 1,000.');
-    }
-    const decoded = await verifySupabaseAccessToken(idToken);
-    const trustedRole = decoded.app_metadata?.role;
-    const adminSnapshot = await adminDb.ref(`users/${decoded.legacyUid}`).get();
-    const adminProfile = adminSnapshot.val();
-    if (trustedRole !== 'admin' && trustedRole !== 'super_admin' && adminProfile?.isAdmin !== true) {
-        throw new Error('Administrator access is required.');
-    }
-    const adminExpiresAt = decoded.app_metadata?.admin_expires_at ?? adminProfile?.adminExpiresAt;
-    if (adminExpiresAt != null) {
-        const expiresAt = typeof adminExpiresAt === 'number' ? adminExpiresAt : Date.parse(String(adminExpiresAt));
-        if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
-            throw new Error('Administrator access has expired.');
-        }
-    }
-
-    const targetSnapshot = await adminDb.ref(`users/${targetUserId}`).get();
-    if (!targetSnapshot.exists()) throw new Error('The selected learner no longer exists.');
-    const target = targetSnapshot.val();
-    const leaderboardRef = adminDb.ref(`leaderboard/${targetUserId}`);
-    const result = await leaderboardRef.transaction((current) => ({
-        ...(current || {}),
-        userId: targetUserId,
-        userName: target.displayName || 'Learner',
-        userAvatar: target.photoURL || '',
-        score: (Number(current?.score) || 0) + points,
-        hackathonCount: Number(current?.hackathonCount) || 0,
-    }));
-    if (!result.committed) throw new Error('Points could not be saved. Please retry.');
+  if (!/^[0-9a-f-]{36}$/i.test(targetUserId)) throw new Error('Invalid learner identifier.');
+  if (!Number.isInteger(points) || points < 1 || points > 1000) throw new Error('Points must be an integer between 1 and 1,000.');
+  const decoded = await verifySupabaseAccessToken(idToken); const admin = getSupabaseAdminClient();
+  const { data: roles, error: roleError } = await admin.from('user_roles').select('role').eq('user_id',decoded.id).in('role',['admin','super_admin']);
+  if (roleError) throw roleError; if (!roles?.length) throw new Error('Administrator access is required.');
+  const { data: target, error: targetError } = await admin.from('profiles').select('id,display_name,avatar_path').eq('id',targetUserId).maybeSingle();
+  if (targetError) throw targetError; if (!target) throw new Error('The selected learner no longer exists.');
+  const current = await adminDb.ref('leaderboard/'+targetUserId).get(); const value = current.val() || {};
+  await adminDb.ref('leaderboard/'+targetUserId).set({...value,userId:targetUserId,userName:target.display_name||'Learner',userAvatar:target.avatar_path||'',score:(Number(value.score)||0)+points,hackathonCount:Number(value.hackathonCount)||0});
 }
 
 export async function getPortfolioFeedback(input: GetPortfolioFeedbackInput): Promise<GetPortfolioFeedbackOutput> {
@@ -264,48 +230,26 @@ export async function getPortfolioFeedback(input: GetPortfolioFeedbackInput): Pr
     return getPortfolioFeedback(input);
 }
 
-export async function sendContactMessage(payload: {
-  idToken: string;
-  studentId: string;
-  employerName: string;
-  email: string;
-  phone: string;
-  message: string;
-}) {
-  if (!/^[A-Za-z0-9_-]{1,128}$/.test(payload.studentId)) throw new Error('Invalid learner identifier.');
-  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(payload.email) || payload.phone.trim().length < 10 || payload.phone.length > 30) throw new Error('Please provide valid contact details.');
-  const decoded = await verifySupabaseAccessToken(payload.idToken);
-  const employerSnapshot = await adminDb.ref(`users/${decoded.legacyUid}`).get();
-  const employer = employerSnapshot.val();
-  if (!employer?.isOrganizationAdmin || !employer.organizationId) {
-    throw new Error('An active organization account is required to contact learners.');
-  }
-  const organizationSnapshot = await adminDb.ref(`organizations/${employer.organizationId}`).get();
-  if (!organizationSnapshot.exists()) throw new Error('Your organization could not be verified.');
-  const studentSnapshot = await adminDb.ref(`users/${payload.studentId}`).get();
-  if (!studentSnapshot.exists()) throw new Error('The selected learner could not be found.');
-  const message = payload.message.trim();
-  if (message.length < 20 || message.length > 3000) throw new Error('Message must be between 20 and 3,000 characters.');
-  const existingRef = adminDb.ref(`conversations/${payload.studentId}`);
-  const committed = await existingRef.transaction((existing) => {
-    if (existing?.organizationId && existing.organizationId !== employer.organizationId) return;
-    const messages = Array.isArray(existing?.messages) ? [...existing.messages] : Object.values(existing?.messages || {});
-    messages.push({ senderId: 'employer', authorUid: decoded.legacyUid, text: message, timestamp: new Date().toISOString() });
-    return {
-      ...(existing || {}),
-      studentId: payload.studentId,
-      studentName: studentSnapshot.val().displayName || 'Learner',
-      employerId: decoded.legacyUid,
-      employerName: employer.displayName || payload.employerName.trim(),
-      employerPhotoUrl: employer.photoURL || '',
-      organizationId: employer.organizationId,
-      organizationName: organizationSnapshot.val().name,
-      employerDetails: { email: payload.email.trim(), phone: payload.phone.trim() },
-      messages,
-      lastMessageAt: new Date().toISOString(),
-    };
-  });
-  if (!committed.committed) throw new Error('This learner already has a conversation with another organization.');
+export async function sendContactMessage(payload: { idToken:string; studentId:string; employerName:string; email:string; phone:string; message:string; }) {
+  if (!/^[0-9a-f-]{36}$/i.test(payload.studentId)) throw new Error('Invalid learner identifier.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email) || payload.phone.trim().length < 10 || payload.phone.length > 30) throw new Error('Please provide valid contact details.');
+  const decoded=await verifySupabaseAccessToken(payload.idToken); const admin=getSupabaseAdminClient();
+  const [{data:employerProfile,error:employerError},{data:studentProfile,error:studentError},{data:membership,error:membershipError}]=await Promise.all([
+    admin.from('profiles').select('display_name,avatar_path').eq('id',decoded.id).maybeSingle(),
+    admin.from('profiles').select('display_name').eq('id',payload.studentId).maybeSingle(),
+    admin.from('organization_members').select('organization_id,member_role,status').eq('user_id',decoded.id).eq('status','active').in('member_role',['owner','admin']).limit(1).maybeSingle(),
+  ]);
+  if(employerError)throw employerError;if(studentError)throw studentError;if(membershipError)throw membershipError;
+  if(!employerProfile||!studentProfile||!membership)throw new Error('An active organization account is required to contact learners.');
+  const organizationId=membership.organization_id;
+  const {data:organization,error:orgError}=await admin.from('organizations').select('id,name').eq('id',organizationId).maybeSingle();
+  if(orgError)throw orgError;if(!organization)throw new Error('Your organization could not be verified.');
+  const message=payload.message.trim();if(message.length<20||message.length>3000)throw new Error('Message must be between 20 and 3,000 characters.');
+  const existingRef=adminDb.ref('conversations/'+payload.studentId);const existing=(await existingRef.get()).val()||{};
+  if(existing.organizationId&&existing.organizationId!==organizationId)throw new Error('This learner already has a conversation with another organization.');
+  const messages=Array.isArray(existing.messages)?[...existing.messages]:Object.values(existing.messages||{});
+  messages.push({senderId:'employer',authorUid:decoded.id,text:message,timestamp:new Date().toISOString()});
+  await existingRef.set({...existing,studentId:payload.studentId,studentName:studentProfile.display_name||'Learner',employerId:decoded.id,employerName:employerProfile.display_name||payload.employerName.trim(),employerPhotoUrl:employerProfile.avatar_path||'',organizationId,organizationName:organization.name,employerDetails:{email:payload.email.trim(),phone:payload.phone.trim()},messages,lastMessageAt:new Date().toISOString()});
 }
 
 export async function sendGeneralContactMessage(payload: { name: string; email: string; message: string }) {
@@ -348,62 +292,30 @@ export async function sendGeneralContactMessage(payload: { name: string; email: 
 
 
 /** Atomically persist an approved exam grade, course certificate entitlement and public verification record. */
-export async function saveExamGradeAndCertificate(input: {
-  idToken: string;
-  submissionId: string;
-  pointsAwarded: number;
-  feedback: string;
-  certificate?: {
-    certificateId: string;
-    studentName: string;
-    courseId: string;
-    courseTitle: string;
-    issuedAt: string;
-  };
-}): Promise<void> {
-  const decoded = await verifySupabaseAccessToken(input.idToken);
-  const adminSnapshot = await adminDb.ref(`users/${decoded.legacyUid}`).get();
-  const adminProfile = adminSnapshot.val();
-  if (!adminProfile?.isAdmin) throw new Error('Administrator access is required.');
-  if (adminProfile.adminExpiresAt != null) {
-    const expiresAt = typeof adminProfile.adminExpiresAt === 'number' ? adminProfile.adminExpiresAt : Date.parse(adminProfile.adminExpiresAt);
-    if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) throw new Error('Administrator access has expired.');
+export async function saveExamGradeAndCertificate(input:{idToken:string;submissionId:string;pointsAwarded:number;feedback:string;certificate?:{certificateId:string;studentName:string;courseId:string;courseTitle:string;issuedAt:string}}):Promise<void>{
+  const decoded=await verifySupabaseAccessToken(input.idToken);const admin=getSupabaseAdminClient();
+  const {data:roles,error:roleError}=await admin.from('user_roles').select('role').eq('user_id',decoded.id).in('role',['admin','super_admin']);
+  if(roleError)throw roleError;if(!roles?.length)throw new Error('Administrator access is required.');
+  if(!/^[A-Za-z0-9_-]{1,128}$/.test(input.submissionId)||!Number.isFinite(input.pointsAwarded)||input.pointsAwarded<0||input.feedback.length>50000)throw new Error('Invalid grade payload.');
+  const {data:submission,error:submissionError}=await admin.from('submissions').select('*').eq('id',input.submissionId).maybeSingle();
+  if(submissionError)throw submissionError;if(!submission)throw new Error('Submission not found.');
+  if(submission.graded_at)throw new Error('This submission has already been graded.');
+  const content={...(submission.content||{}),graded:true,pointsAwarded:input.pointsAwarded,feedback:input.feedback};
+  const {error:updateError}=await admin.from('submissions').update({content,graded_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',input.submissionId).is('graded_at',null);
+  if(updateError)throw updateError;
+  if(input.certificate){const cert=input.certificate;if(cert.courseId!==submission.course_id||!/^[A-Za-z0-9_-]{1,128}$/.test(cert.certificateId))throw new Error('Certificate does not match this submission.');
+    const {data:enrollment,error:readError}=await admin.from('enrollments').select('content').eq('user_id',submission.user_id).eq('course_id',submission.course_id).maybeSingle();
+    if(readError)throw readError;if(!enrollment)throw new Error('Course enrollment not found.');
+    const {error}=await admin.from('enrollments').update({content:{...(enrollment.content||{}),certificateAvailable:true,certificateId:cert.certificateId},updated_at:new Date().toISOString()}).eq('user_id',submission.user_id).eq('course_id',submission.course_id);
+    if(error)throw error;await adminDb.ref('publicCertificates/'+cert.certificateId).set({...cert,status:'valid'});
   }
-  if (!/^[A-Za-z0-9_-]{1,128}$/.test(input.submissionId) || !Number.isFinite(input.pointsAwarded) || input.pointsAwarded < 0 || input.feedback.length > 50000) {
-    throw new Error('Invalid grade payload.');
-  }
-  const submissionRef = adminDb.ref(`submissions/${input.submissionId}`);
-  const snapshot = await submissionRef.get();
-  if (!snapshot.exists()) throw new Error('Submission not found.');
-  const submission = snapshot.val();
-  if (submission.graded) throw new Error('This submission has already been graded.');
-  const updates: Record<string, unknown> = {
-    [`submissions/${input.submissionId}/graded`]: true,
-    [`submissions/${input.submissionId}/pointsAwarded`]: input.pointsAwarded,
-    [`submissions/${input.submissionId}/feedback`]: input.feedback,
-  };
-  if (input.certificate) {
-    const certificate = input.certificate;
-    if (certificate.courseId !== submission.courseId || !/^[A-Za-z0-9_-]{1,128}$/.test(certificate.certificateId)) throw new Error('Certificate does not match this submission.');
-    updates[`users/${submission.userId}/purchasedCourses/${submission.courseId}/certificateAvailable`] = true;
-    updates[`users/${submission.userId}/purchasedCourses/${submission.courseId}/certificateId`] = certificate.certificateId;
-    updates[`publicCertificates/${certificate.certificateId}`] = { ...certificate, status: 'valid' };
-  }
-  await adminDb.ref().update(updates);
 }
 
-
-async function requireActiveAdmin(idToken: string, requireSuperAdmin = false) {
-    const decoded = await verifySupabaseAccessToken(idToken);
-    const snapshot = await adminDb.ref(`users/${decoded.legacyUid}`).get();
-    const profile = snapshot.val();
-    const allowed = requireSuperAdmin ? profile?.isSuperAdmin === true : profile?.isAdmin === true;
-    if (!allowed) throw new Error('Administrator access is required.');
-    if (profile.adminExpiresAt != null) {
-        const expiry = typeof profile.adminExpiresAt === 'number' ? profile.adminExpiresAt : Date.parse(profile.adminExpiresAt);
-        if (!Number.isFinite(expiry) || expiry <= Date.now()) throw new Error('Administrator access has expired.');
-    }
-    return decoded;
+async function requireActiveAdmin(idToken:string,requireSuperAdmin=false) {
+  const decoded=await verifySupabaseAccessToken(idToken);const admin=getSupabaseAdminClient();
+  const allowed=requireSuperAdmin?['super_admin']:['admin','super_admin'];
+  const {data,error}=await admin.from('user_roles').select('role').eq('user_id',decoded.id).in('role',allowed);
+  if(error)throw error;if(!data?.length)throw new Error('Administrator access is required.');return decoded;
 }
 
 export async function getBootcampParticipantCounts(idToken: string): Promise<Record<string, number>> {
@@ -429,7 +341,7 @@ export async function deleteBootcampAndRegistrations(idToken: string, bootcampId
 export async function getBootcampRegistrationStatus(idToken: string, bootcampId: string): Promise<boolean> {
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(bootcampId)) throw new Error('Invalid bootcamp identifier.');
     const decoded = await verifySupabaseAccessToken(idToken);
-    const snapshot = await adminDb.ref(`bootcampParticipants/${bootcampId}/${decoded.legacyUid}`).get();
+    const snapshot = await adminDb.ref(`bootcampParticipants/${bootcampId}/${decoded.id}`).get();
     return snapshot.val() === true;
 }
 
@@ -442,16 +354,16 @@ export async function registerFreeBootcamp(idToken: string, bootcampId: string):
     const price = Number(bootcamp.price);
     if (!Number.isFinite(price) || price > 0) throw new Error('Paid bootcamp registration is unavailable until verified bootcamp payment processing is enabled.');
     const courseIds = Array.isArray(bootcamp.courseIds) ? bootcamp.courseIds : [];
-    const purchasedRef = adminDb.ref(`users/${decoded.legacyUid}/purchasedCourses`);
+    const purchasedRef = adminDb.ref(`users/${decoded.id}/purchasedCourses`);
     const purchasedSnapshot = await purchasedRef.get();
     const purchased = purchasedSnapshot.val() || {};
     const enrolledAt = new Date().toISOString();
-    const updates: Record<string, unknown> = { [`bootcampParticipants/${bootcampId}/${decoded.legacyUid}`]: true };
+    const updates: Record<string, unknown> = { [`bootcampParticipants/${bootcampId}/${decoded.id}`]: true };
     for (const courseId of courseIds) {
         if (typeof courseId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(courseId) || purchased[courseId]) continue;
         const courseSnapshot = await adminDb.ref(`courses/${courseId}`).get();
         if (!courseSnapshot.exists()) continue;
-        updates[`users/${decoded.legacyUid}/purchasedCourses/${courseId}`] = {
+        updates[`users/${decoded.id}/purchasedCourses/${courseId}`] = {
             progress: 0, completed: false, certificateAvailable: false, completedLessons: [],
             enrollmentDate: enrolledAt, paymentMethod: 'free',
         };
