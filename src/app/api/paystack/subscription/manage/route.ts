@@ -9,9 +9,7 @@ export async function POST(request: NextRequest) {
     if (!authorization.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Please sign in to manage your subscription.' }, { status: 401 });
     }
-    const { user } = await createSupabaseUserClient(authorization.slice(7));
-    const supabase = (await import('@/lib/supabase/server')).getSupabaseServerClient;
-    const client = await supabase();
+    const { user, client } = await createSupabaseUserClient(authorization.slice(7));
     const { data: membership, error } = await client.from('organization_members')
       .select('organization_id,member_role').eq('user_id', user.id).eq('status', 'active')
       .in('member_role', ['owner','admin']).limit(1).maybeSingle();
