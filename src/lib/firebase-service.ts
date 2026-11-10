@@ -116,47 +116,38 @@ export async function saveUser(uid: string, dataToSave: Partial<Omit<RegisteredU
   }
 }
 export async function getUserById(uid: string): Promise<RegisteredUser | null> {
-    const userRef = ref(db, `users/${uid}`);
-    const snapshot = await get(userRef);
-    if (snapshot.exists()) {
-        return { uid, ...snapshot.val() };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('profiles').select('*').eq('id',uid).maybeSingle();
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
+  }
+  if (!data) return null;
+  const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id',uid);
+  const roleNames = (roles || []).map((row: any) => row.role);
+  return { ...(data.metadata || {}), uid: data.id, email: data.email, displayName: data.display_name || data.email, photoURL: data.avatar_path || '', isAdmin: roleNames.includes('admin') || roleNames.includes('super_admin'), isSuperAdmin: roleNames.includes('super_admin') } as RegisteredUser;
 }
 
-// Public portfolio reads use a separate, intentionally limited record.
-// Never fetch the private users/{uid} node for anonymous portfolio visitors.
 export async function getPublicProfileById(uid: string): Promise<RegisteredUser | null> {
-    const profileRef = ref(db, `publicProfiles/${uid}`);
-    const snapshot = await get(profileRef);
-    if (!snapshot.exists()) return null;
-    return { uid, ...snapshot.val() } as RegisteredUser;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('profiles').select('id,display_name,avatar_path,metadata').eq('id',uid).eq('metadata->>isPublic','true').maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.metadata || {}), uid: data.id, displayName: data.display_name, photoURL: data.avatar_path || '' } as RegisteredUser) : null;
 }
 
 export async function getUserByEmail(email: string): Promise<RegisteredUser | null> {
-    const directoryRef = query(ref(db, 'userDirectory'), orderByChild('email'), equalTo(email.trim()));
-    const snapshot = await get(directoryRef);
-    if (snapshot.exists()) {
-        const records = snapshot.val();
-        const uid = Object.keys(records)[0];
-        const record = records[uid];
-        return { uid, email: record.email || null, displayName: null, organizationId: record.organizationId || undefined };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('profiles').select('id,email,display_name,metadata').ilike('email',email.trim()).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.metadata || {}), uid: data.id, email: data.email, displayName: data.display_name } as RegisteredUser) : null;
 }
 
 export async function getUserByDisplayName(displayName: string): Promise<RegisteredUser | null> {
-    const usersRef = query(ref(db, 'users'), orderByChild('displayName'), equalTo(displayName));
-    const snapshot = await get(usersRef);
-    if (snapshot.exists()) {
-        const usersData = snapshot.val();
-        const uid = Object.keys(usersData)[0];
-        return { uid, ...usersData[uid] };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('profiles').select('id,email,display_name,avatar_path,metadata').ilike('display_name',displayName.trim()).limit(1).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.metadata || {}), uid: data.id, email: data.email, displayName: data.display_name, photoURL: data.avatar_path || '' } as RegisteredUser) : null;
 }
-
-
 
 export async function enrollUserInCourse(userId: string, courseId: string, paymentMethod: UserCourse['paymentMethod'] = 'free'): Promise<void> {
   const supabase = getSupabaseBrowserClient();
@@ -222,26 +213,16 @@ export async function getAllUsers(): Promise<RegisteredUser[]> {
   })) as RegisteredUser[];
 }
 export async function getPublicProfiles(): Promise<RegisteredUser[]> {
-  const dbRef = ref(db, 'publicProfiles');
-  const snapshot = await get(dbRef);
-  if (snapshot.exists()) {
-    const data = snapshot.val();
-    return Object.keys(data).map(uid => ({
-      uid,
-      ...data[uid],
-    }));
-  }
-  return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('profiles').select('id,display_name,avatar_path,metadata').eq('metadata->>isPublic','true').order('display_name');
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.metadata || {}), uid: row.id, displayName: row.display_name, photoURL: row.avatar_path || '' })) as RegisteredUser[];
 }
-
 
 export async function deleteUser(userId: string): Promise<void> {
-    const userRef = ref(db, `users/${userId}`);
-    await remove(userRef);
+  throw new Error('Account deletion must use the protected Supabase Auth administration endpoint; direct client-side profile deletion is disabled.');
 }
 
-
-// Hero Section Functions
 export async function getHeroData(): Promise<HeroData> {
   const defaults: HeroData = {
     title: 'Unlock Your Potential.', subtitle: 'Quality, affordable courses designed for the Kenyan market.',
