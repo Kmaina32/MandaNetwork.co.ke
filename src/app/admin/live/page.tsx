@@ -8,6 +8,8 @@ import { ArrowLeft, Loader2, Video, PhoneOff, Users, Hand, Mic, MicOff, Calendar
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
+import { useAuth } from '@/hooks/use-auth';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { ref, onValue, set, remove, onChildAdded, query } from 'firebase/database';
 import { createNotification, getAllCalendarEvents } from '@/lib/firebase-service';
 import type { CalendarEvent } from '@/lib/mock-data';
@@ -133,6 +135,8 @@ function NoSessionCard({ onGoLive, onScheduleSuccess }: { onGoLive: (event: Cale
 
 export default function AdminLivePage() {
     const { toast } = useToast();
+    const { user } = useAuth();
+    const supabase = getSupabaseBrowserClient();
     const [isLive, setIsLive] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [isFetchingEvents, setIsFetchingEvents] = useState(true);
@@ -215,6 +219,13 @@ export default function AdminLivePage() {
             return;
         }
 
+        if (!user) { setIsLoading(false); toast({ title: 'Sign in required', description: 'Sign in again to start a live class.', variant: 'destructive' }); return; }
+        const { error: sessionError } = await supabase.from('live_sessions').upsert({
+            id: sessionId, host_id: user.uid, title: event.title, status: 'live',
+            metadata: { description: event.description || '' }, updated_at: new Date().toISOString(),
+        }, { onConflict: 'id' });
+        if (sessionError) { setIsLoading(false); toast({ title: 'Could not start live chat', description: sessionError.message, variant: 'destructive' }); return; }
+
         const notificationPayload = {
             title: `🔴 Live Now: ${event.title}`,
             body: event.description || 'A live session has started. Join now!',
@@ -290,6 +301,7 @@ export default function AdminLivePage() {
             videoRef.current.srcObject = null;
         }
 
+        await supabase.from('live_sessions').update({ status: 'ended', updated_at: new Date().toISOString() }).eq('id', sessionId);
         await Promise.all([
             remove(offerRef),
             remove(answersRef),
