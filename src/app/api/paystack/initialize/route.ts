@@ -113,6 +113,7 @@ export async function POST(request: NextRequest) {
           adminDb.ref(`paystackPlanCodeLookup/${recurringPlanCode}`).set(planRecord),
         ]);
       }
+      await adminDb.ref(`paystackPlanCodeLookup/${recurringPlanCode}`).set({ planId: pricingPlanId, planCode: recurringPlanCode, amount, currency: 'KES', interval: 'monthly', updatedAt: Date.now() });
       } catch (error) {
         await lockRef.transaction((current) => current?.reference === reference ? null : current);
         throw error;
