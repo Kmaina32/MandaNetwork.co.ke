@@ -49,3 +49,4 @@ export const getAllPrograms = cache(() => readRecords<Program>('programs'), ['su
 export const getAllBootcamps = cache(() => readRecords<Bootcamp>('bootcamps'), ['supabase-all-bootcamps'], { revalidate });
 export const getPublicProfiles = cache(() => readRecords<RegisteredUser>('publicProfiles'), ['supabase-public-profiles'], { revalidate });
 export const getAllBlogPosts = cache(() => readRecords<BlogPost>('blog'), ['supabase-all-blog-posts'], { revalidate });
+export const getAllAdvertisements = cache(() => readRecords<import('./types').Advertisement>('advertisements'), ['supabase-all-advertisements'], { revalidate });
