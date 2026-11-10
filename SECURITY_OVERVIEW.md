@@ -1,65 +1,46 @@
 ![Varban Academy](/public/logo.png)
 # Varban Academy — Security Overview
 
-## 1. Platform architecture
+## Platform architecture
+Varban Academy is a Next.js 15 / TypeScript application using Supabase Auth, PostgreSQL, Storage and Realtime. Server-side privileged database operations use the Supabase service-role client and must never expose its key to browser code. Genkit routes AI workloads through the configured model providers.
 
-Varban Academy is a Next.js 15 / TypeScript application using Firebase Authentication, Firebase Realtime Database, Firebase Storage, Firebase Admin SDK, and Genkit with Google Gemini. It provides student, organization, and administrator experiences.
+Some legacy source modules retain historical names such as `firebase-service.ts`; their current implementations use Supabase. They are compatibility names only, not Firebase SDK clients.
 
-## 2. Identity and authorization
+## Identity and authorization
+- Supabase Auth is the sole application identity provider.
+- Authorization is derived from the database-backed `user_roles` table and RLS policies, not user-editable profile metadata.
+- Every exposed public-schema table must have RLS enabled and policies matching the actual ownership/role model.
+- Never expose Supabase service-role or secret keys through `NEXT_PUBLIC_*` variables.
+- Server routes must verify the caller's Supabase access token and derive the user ID from the verified session.
+- Sensitive writes, including paid-course enrollment, must be performed only after server-side validation.
 
-- Firebase Authentication is the source of user identity.
-- Production builds must never enable the local development authentication bypass. The client bypass is now restricted to non-production builds.
-- Privileged server operations must verify Firebase ID tokens and derive the acting UID from the verified token. Never trust a UID, role, price, or payment state supplied only by the browser.
-- Firebase Realtime Database rules are the client-side authorization boundary. Server-side Admin SDK calls bypass those rules and must perform their own authorization checks.
-- Admin and organization roles are privileged data. Client rules protect administrator flags and subscription entitlements from self-service edits.
-- Sensitive server actions such as awarding hackathon points and contacting learners verify the caller's Firebase ID token and required role on the server.
-- Public contact submissions are validated and rate-limited before server-side persistence.
+## Payments and enrollment
+- Paystack checkout uses server-generated references and server-side transaction verification.
+- A webhook is a notification, not proof of payment; the server independently verifies the transaction with Paystack.
+- Verified payment fulfillment is performed atomically in PostgreSQL and is idempotent under concurrent callbacks.
+- M-Pesa callback payloads are not trusted as proof of settlement. The server queries Daraja and compares the result with the stored transaction before fulfillment.
+- Self-service enrollment is restricted to published zero-price courses. Paid course access requires verified payment fulfillment.
+- Do not enable live payment traffic until provider credentials are configured securely and end-to-end sandbox reconciliation has passed.
 
-## 3. Payments and enrollment
-
-- Paystack checkout initiation verifies the signed-in user, loads the item price from the trusted database, and stores a pending transaction against a unique server-generated reference.
-- An STK push acceptance is not a completed payment. The client waits for the stored transaction to reach the completed state.
-- API keys are stored as SHA-256 hashes, shown only once at creation, and checked with constant-time comparison. Legacy plaintext keys are migrated to hashes on authenticated key-list access or first use.
-- The public courses API enforces a per-user daily request ceiling and records usage through the Admin SDK.
-- The Paystack callback is treated as a notification, not proof of payment. The server independently verifies the transaction with Paystack and compares the reference, amount, currency, and customer email before granting course access.
-- Enrollment and the completed transaction record are written together.
-- Paystack is the only payment provider exposed in the customer checkout UI. Card and mobile-money options are presented only by Paystack-hosted checkout; the application does not collect or store card details.
-
-## 4. Server credentials and configuration
-
-The Firebase Admin SDK uses server-only environment variables:
-- `FIREBASE_PROJECT_ID`
-- `FIREBASE_CLIENT_EMAIL`
-- `FIREBASE_PRIVATE_KEY`
-
-Paystack credentials are server-only:
-- `MPESA_ENVIRONMENT`
+## Server-only configuration
+Required server-side secrets are configured in the deployment platform, not committed to this repository. Examples include:
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `PAYSTACK_SECRET_KEY`
 - `MPESA_CONSUMER_KEY`
 - `MPESA_CONSUMER_SECRET`
 - `MPESA_PASSKEY`
-- `MPESA_TILL_NUMBER`
-- `MPESA_CALLBACK_URL`
 
-Do not commit service-account JSON, private keys, payment credentials, or provider secrets. Public Firebase web configuration values are not service-account secrets; database authorization must be enforced by Firebase rules.
+Never commit service-role keys, provider secrets, private keys or full service-account JSON. Public Supabase URL and publishable key may be used by the browser.
 
-Firebase Admin initialization is lazy so a Next.js build can evaluate route modules without server credentials. Any runtime route that uses the Admin SDK still requires the server environment variables to be configured.
+## Auth security settings
+Enable Supabase Auth leaked-password protection in the Supabase Dashboard under Authentication password security. This setting is managed by the Supabase project configuration and is not changed by an application migration. Confirm it is enabled before production launch.
 
-## 5. CI and workflow security
+## CI and release requirements
+- Run TypeScript checks, unit tests, database migration tests and a production build on each pull request.
+- Review every server action and API route for authentication, role authorization, input validation and abuse controls.
+- Run payment provider sandbox tests, including duplicate and concurrent callback delivery.
+- Re-run Supabase Security, Performance and Health Advisors after applying database migrations.
+- Do not treat a READY deployment as evidence that external payment credentials or provider callbacks are configured correctly.
 
-- GitHub Actions must pass model output through environment variables and quote shell arguments. Do not interpolate untrusted model output directly into shell commands.
-- AI summaries are untrusted text and must never be executed as commands.
-- Dependency and build checks should run on pull requests before merge.
-
-## 6. Remaining audit work and deployment requirements
-
-This is an evolving security record, not a certification or guarantee of security. The following require continued verification before production payment traffic:
-- Review every exported server action and Genkit flow for caller authentication, role authorization, input validation, and abuse/rate limits.
-- Review organization-scoped access for conversations, invitations, live sessions, and media signaling.
-- Run Firebase Emulator tests against the deployed Realtime Database rules, including role escalation, cross-user reads/writes, and payment/enrollment cases.
-- Confirm the Paystack secret key, webhook secret, callback URL, and Firebase Admin environment variables are configured in every Vercel environment that needs them.
-- Start with Paystack test keys and test webhook events. Switch to live keys only after the Paystack merchant account is fully verified and the webhook endpoint is configured.
-- Run dependency scanning, TypeScript checks, unit tests, and a production build before merging.
-
-## 7. Incident response
-
-If a service-account private key or payment credential is exposed, revoke and rotate it in the provider console, replace the corresponding Vercel environment variable in all affected environments, and redeploy. Review Firebase Authentication, database, and payment logs for unauthorized activity.
+## Incident response
+If a Supabase service-role key or payment credential is exposed, revoke and rotate it in the provider console, replace it in the deployment platform, redeploy, and review authentication, database and payment logs for unauthorized activity.
