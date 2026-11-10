@@ -141,9 +141,9 @@ export default function EditPlanPage() {
                         name="priceDetail"
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Price Detail</FormLabel>
+                            <FormLabel>Billing Interval</FormLabel>
                             <FormControl>
-                            <Input placeholder="e.g., per user / month" {...field} />
+                            <Input placeholder="per month" readOnly {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
