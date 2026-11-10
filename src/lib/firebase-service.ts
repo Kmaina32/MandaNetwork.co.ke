@@ -579,46 +579,49 @@ export async function deleteProgram(id: string): Promise<void> {
 }
 
 export async function createBundle(bundleData: Omit<Bundle, 'id'>): Promise<string> {
-    const bundlesRef = ref(db, 'bundles');
-    const newBundleRef = push(bundlesRef);
-    await set(newBundleRef, bundleData);
-    return newBundleRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Administrator sign-in is required.');
+  const item = bundleData as any; const id = crypto.randomUUID();
+  const { error } = await supabase.from('bundles').insert({ id, title: String(item.title || 'Bundle'), price: Number(item.price || 0), is_published: Boolean(item.isPublished), content: item, created_by: authData.user.id });
+  if (error) throw error;
+  return id;
 }
 
 export async function getAllBundles(): Promise<Bundle[]> {
-    const bundlesRef = ref(db, 'bundles');
-    const snapshot = await get(bundlesRef);
-    if (snapshot.exists()) {
-        const bundlesData = snapshot.val();
-        return Object.keys(bundlesData).map(key => ({
-            id: key,
-            ...bundlesData[key]
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('bundles').select('*').order('created_at',{ascending:false});
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, title: row.title, price: Number(row.price), isPublished: row.is_published })) as Bundle[];
 }
 
 export async function getBundleById(id: string): Promise<Bundle | null> {
-    const bundleRef = ref(db, `bundles/${id}`);
-    const snapshot = await get(bundleRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('bundles').select('*').eq('id',id).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.content || {}), id: data.id, title: data.title, price: Number(data.price), isPublished: data.is_published } as Bundle) : null;
 }
 
 export async function updateBundle(id: string, bundleData: Partial<Bundle>): Promise<void> {
-    const bundleRef = ref(db, `bundles/${id}`);
-    await update(bundleRef, bundleData);
+  const supabase = getSupabaseBrowserClient();
+  const { data: current, error: readError } = await supabase.from('bundles').select('content').eq('id',id).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Bundle not found.');
+  const item = bundleData as any;
+  const { error } = await supabase.from('bundles').update({
+    ...(item.title !== undefined ? { title: item.title } : {}), ...(item.price !== undefined ? { price: item.price } : {}),
+    ...(item.isPublished !== undefined ? { is_published: item.isPublished } : {}),
+    content: { ...(current.content || {}), ...item }, updated_at: new Date().toISOString(),
+  }).eq('id',id);
+  if (error) throw error;
 }
 
 export async function deleteBundle(id: string): Promise<void> {
-    const bundleRef = ref(db, `bundles/${id}`);
-    await remove(bundleRef);
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('bundles').delete().eq('id',id);
+  if (error) throw error;
 }
 
-
-// API Key and Usage Functions
 export async function createApiKey(userId: string, keyData: Omit<ApiKey, 'id'>): Promise<string> {
     const keysRef = ref(db, `apiKeys/${userId}`);
     const newKeyRef = push(keysRef);
@@ -781,89 +784,98 @@ export async function deleteOrganization(orgId: string): Promise<void> {
 }
 
 export async function createInvitation(inviteData: Omit<Invitation, 'id'>): Promise<string> {
-    const invitesRef = ref(db, 'invitations');
-    const newInviteRef = push(invitesRef);
-    
-    if (inviteData.userId) {
-        await createNotification({
-            userId: inviteData.userId,
-            title: 'Organization Invitation',
-            body: `You have been invited to join ${inviteData.organizationName}.`,
-            actions: [{
-                title: 'Accept',
-                action: 'accept_org_invite',
-                payload: {
-                    inviteId: newInviteRef.key!,
-                    organizationId: inviteData.organizationId,
-                }
-            }]
-        });
-    }
-
-    await set(newInviteRef, inviteData);
-    return newInviteRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Sign in is required to invite organization members.');
+  const item = inviteData as any; const id = crypto.randomUUID();
+  const { error } = await supabase.from('organization_invitations').insert({
+    id, organization_id: item.organizationId, email: String(item.email || '').toLowerCase(),
+    invited_user_id: item.userId || null, member_role: item.role || 'member',
+    status: item.status || 'pending', invited_by: authData.user.id,
+    expires_at: item.expiresAt || new Date(Date.now()+7*86400000).toISOString(), content: item,
+  });
+  if (error) throw error;
+  return id;
 }
 
 export async function getInvitation(inviteId: string): Promise<Invitation | null> {
-    const inviteRef = ref(db, `invitations/${inviteId}`);
-    const snapshot = await get(inviteRef);
-    if (snapshot.exists()) {
-        return { id: inviteId, ...snapshot.val() };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('organization_invitations').select('*').eq('id',inviteId).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.content || {}), id: data.id, organizationId: data.organization_id, userId: data.invited_user_id, email: data.email, role: data.member_role, status: data.status, expiresAt: data.expires_at } as Invitation) : null;
 }
 
 export async function updateInvitationStatus(inviteId: string, status: 'accepted'): Promise<void> {
-    const inviteRef = ref(db, `invitations/${inviteId}`);
-    await update(inviteRef, { status });
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Sign in to accept this invitation.');
+  const { data: invite, error: readError } = await supabase.from('organization_invitations').select('*').eq('id',inviteId).maybeSingle();
+  if (readError) throw readError;
+  if (!invite || invite.status !== 'pending' || (invite.expires_at && new Date(invite.expires_at) < new Date())) throw new Error('This invitation is no longer valid.');
+  if (invite.invited_user_id && invite.invited_user_id !== authData.user.id) throw new Error('This invitation belongs to another account.');
+  if (!invite.invited_user_id && invite.email.toLowerCase() !== (authData.user.email || '').toLowerCase()) throw new Error('Sign in with the email address that received this invitation.');
+  const { error } = await supabase.from('organization_invitations').update({ status, invited_user_id: authData.user.id }).eq('id',inviteId);
+  if (error) throw error;
+  const { error: memberError } = await supabase.from('organization_members').upsert({
+    organization_id: invite.organization_id, user_id: authData.user.id, member_role: invite.member_role,
+    status: 'active', joined_at: new Date().toISOString(),
+  }, { onConflict: 'organization_id,user_id' });
+  if (memberError) throw memberError;
 }
 
 export async function deleteInvitation(inviteId: string): Promise<void> {
-    const inviteRef = ref(db, `invitations/${inviteId}`);
-    await remove(inviteRef);
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('organization_invitations').delete().eq('id',inviteId);
+  if (error) throw error;
 }
 
-// Pricing Plan Functions
 export async function createPlan(planData: Omit<PricingPlan, 'id'>): Promise<string> {
-    const plansRef = ref(db, 'pricingPlans');
-    const newPlanRef = push(plansRef);
-    await set(newPlanRef, planData);
-    return newPlanRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Administrator sign-in is required.');
+  const item = planData as any; const id = crypto.randomUUID();
+  const { error } = await supabase.from('pricing_plans').insert({
+    id, name: String(item.name || 'Plan'), price: Number(item.price || 0),
+    interval: item.interval || item.billingCycle || null, is_active: item.isActive !== false, content: item, created_by: authData.user.id,
+  });
+  if (error) throw error;
+  return id;
 }
 
 export async function getAllPlans(): Promise<PricingPlan[]> {
-    const plansRef = ref(db, 'pricingPlans');
-    const snapshot = await get(plansRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('pricing_plans').select('*').order('price');
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, name: row.name, price: Number(row.price), interval: row.interval, isActive: row.is_active })) as PricingPlan[];
 }
 
 export async function getPlanById(id: string): Promise<PricingPlan | null> {
-    const planRef = ref(db, `pricingPlans/${id}`);
-    const snapshot = await get(planRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('pricing_plans').select('*').eq('id',id).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.content || {}), id: data.id, name: data.name, price: Number(data.price), interval: data.interval, isActive: data.is_active } as PricingPlan) : null;
 }
 
 export async function updatePlan(id: string, planData: Partial<PricingPlan>): Promise<void> {
-    const planRef = ref(db, `pricingPlans/${id}`);
-    await update(planRef, planData);
+  const supabase = getSupabaseBrowserClient();
+  const { data: current, error: readError } = await supabase.from('pricing_plans').select('content').eq('id',id).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Pricing plan not found.');
+  const item = planData as any;
+  const { error } = await supabase.from('pricing_plans').update({
+    ...(item.name !== undefined ? { name: item.name } : {}), ...(item.price !== undefined ? { price: item.price } : {}),
+    ...(item.interval !== undefined ? { interval: item.interval } : {}), ...(item.isActive !== undefined ? { is_active: item.isActive } : {}),
+    content: { ...(current.content || {}), ...item }, updated_at: new Date().toISOString(),
+  }).eq('id',id);
+  if (error) throw error;
 }
 
 export async function deletePlan(id: string): Promise<void> {
-    const planRef = ref(db, `pricingPlans/${id}`);
-    await remove(planRef);
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('pricing_plans').delete().eq('id',id);
+  if (error) throw error;
 }
 
-// Document Management Functions
 export async function saveDocument(docType: string, content: string): Promise<void> {
     const docRef = ref(db, `documents/${docType}`);
     await set(docRef, { content });
