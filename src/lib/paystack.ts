@@ -240,13 +240,18 @@ export function verifyPaystackWebhookSignature(rawBody: string, headers: Headers
   return false;
 }
 
-async function processRecurringCharge(reference: string, subscriptionCode: string, email?: string) {
+async function processRecurringCharge(reference: string, subscriptionCode: string | undefined, planCode: string | undefined, email?: string) {
   const verified = await verifyWithPaystack(reference);
   if (verified.status !== 'success' || verified.reference !== reference || verified.currency !== 'KES') {
     throw new Error('Recurring charge could not be verified.');
   }
   const organizations = await adminDb.ref('organizations').get();
-  const match = Object.entries(organizations.val() || {}).find(([, value]: [string, any]) => value?.paystackSubscriptionCode === subscriptionCode);
+  let match = Object.entries(organizations.val() || {}).find(([, value]: [string, any]) => (subscriptionCode && value?.paystackSubscriptionCode === subscriptionCode) || (planCode && value?.paystackPlanCode === planCode));
+  if (match && email) {
+    const ownerId = (match[1] as any)?.ownerId;
+    const owner = ownerId ? (await adminDb.ref(`users/${ownerId}`).get()).val() : null;
+    if (owner?.email && owner.email.toLowerCase() !== email.toLowerCase()) match = undefined;
+  }
   if (!match) throw new Error('Recurring subscription could not be matched to an organization.');
   const [organizationId, organization] = match as [string, any];
   if (email && verified.customer?.email && verified.customer.email.toLowerCase() !== email.toLowerCase()) {
@@ -291,12 +296,13 @@ export async function handlePaystackWebhookEvent(event: unknown) {
       next_payment_date?: string | null;
       status?: string;
       customer?: { customer_code?: string; email?: string };
-      plan?: { plan_code?: string; name?: string; amount?: number; interval?: string };
+      plan?: string | { plan_code?: string; name?: string; amount?: number; interval?: string };
       subscription?: { subscription_code?: string; email_token?: string; next_payment_date?: string | null; status?: string };
     };
   };
   const data = payload?.data;
   const subscriptionCode = data?.subscription_code || data?.subscription?.subscription_code;
+  const eventPlanCode = typeof data?.plan === 'string' ? data.plan : data?.plan?.plan_code;
 
   if (payload?.event === 'charge.success') {
     const reference = data?.reference;
@@ -306,8 +312,8 @@ export async function handlePaystackWebhookEvent(event: unknown) {
       return { ignored: false, payment };
     } catch (error) {
       if (!(error instanceof Error) || !error.message.includes('Unknown payment reference')) throw error;
-      if (!subscriptionCode) throw error;
-      const renewal = await processRecurringCharge(reference, subscriptionCode, data?.customer?.email);
+      if (!subscriptionCode && !eventPlanCode) throw error;
+      const renewal = await processRecurringCharge(reference, subscriptionCode, eventPlanCode, data?.customer?.email);
       return { ignored: false, renewal };
     }
   }
@@ -316,7 +322,7 @@ export async function handlePaystackWebhookEvent(event: unknown) {
     const code = subscriptionCode;
     const emailToken = data.email_token || data.subscription?.email_token;
     const email = data.customer?.email?.toLowerCase();
-    const planCode = data.plan?.plan_code;
+    const planCode = typeof data.plan === 'string' ? data.plan : data.plan?.plan_code;
     if (!code || !email || !planCode) throw new Error('Subscription event is missing required identifiers.');
     const planMap = await adminDb.ref('paystackPlanCodes').get();
     const matchedPlan = Object.entries(planMap.val() || {}).find(([, value]: [string, any]) => value?.planCode === planCode);
