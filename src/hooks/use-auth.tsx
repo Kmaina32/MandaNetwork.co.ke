@@ -186,9 +186,8 @@ export const AuthProvider = ({ children, isAiConfigured }: { children: ReactNode
         return;
       }
       if (active && current === sequence) setLoading(true);
-      let appUser: User;
+      const appUser = toAppUser(session.user);
       try {
-        appUser = toAppUser(session.user);
         await fetchUserData(appUser);
         if (active && current === sequence) setUser(appUser);
       } catch (error) {
