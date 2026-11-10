@@ -20,9 +20,6 @@ import type { StudentHelpInput, StudentHelpOutput } from '@/ai/flows/student-hel
 import type { SpeechToTextInput, SpeechToTextOutput, TextToSpeechInput, TextToSpeechOutput } from '@/ai/flows/text-to-speech';
 import type { GetPortfolioFeedbackInput, GetPortfolioFeedbackOutput } from '@/ai/flows/portfolio-advisor';
 
-import { adminDb } from '@/lib/supabase/admin-records';
-import { getSupabaseAdminClient } from '@/lib/supabase/admin';
-import { verifySupabaseAccessToken } from '@/lib/supabase/verify-access-token';
 import { checkHackathonParticipantAchievement } from '@/lib/achievements';
 import { assertNvidiaConfigured } from '@/lib/nvidia-models';
 
