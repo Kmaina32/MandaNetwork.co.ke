@@ -1,7 +1,6 @@
 'use server';
 
 import { createSupabaseUserClient } from '@/lib/supabase/user-client';
-import { verifySupabaseAccessToken } from '@/lib/supabase/verify-access-token';
 import { z } from 'zod';
 import { ai } from '@/ai/genkit-instance';
 
