@@ -20,8 +20,6 @@ import { Separator } from '@/components/ui/separator';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { fetchAndActivate, getString } from 'firebase/remote-config';
-import { remoteConfig } from '@/lib/firebase';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription as AlertDialogDescriptionComponent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
@@ -109,8 +107,8 @@ export default function AdminHeroPage() {
         
         form.reset({
           ...dbData,
-          title: remoteTitle,
-          subtitle: remoteSubtitle,
+          title: dbData.title,
+          subtitle: dbData.subtitle,
           theme: dbData.theme || 'default',
           animationsEnabled: dbData.animationsEnabled !== false, // default to true if not set
           adsEnabled: dbData.adsEnabled || false,
