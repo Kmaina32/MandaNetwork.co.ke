@@ -6,6 +6,7 @@ import type { Assignment, TutorSettings, Course, UserCourse, CalendarEvent, Subm
 import { getRemoteConfig, fetchAndActivate, getString } from 'firebase/remote-config';
 import { app } from './firebase';
 import { slugify } from './utils';
+import { getSupabaseBrowserClient } from './supabase/client';
 import { uploadAcademyAsset } from './supabase/storage';
 
 export type { Assignment, Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, TeamMember, ContactMessage, Form, FormSubmission, Referral, Bootcamp, BlogPost, HeroData, TutorSettings } from './types';
@@ -23,77 +24,66 @@ export async function uploadImage(path: string, file: File): Promise<string> {
     return uploadAcademyAsset(file, folder);
 }
 
-// Course Functions
+// Course Functions — Supabase is the source of truth.
 export async function getAllCourses(): Promise<Course[]> {
-  const dbRef = ref(db, 'courses');
-  const snapshot = await get(dbRef);
-  if (snapshot.exists()) {
-    const coursesData = snapshot.val();
-    const courses = Object.keys(coursesData).map(key => ({
-      id: key,
-      ...coursesData[key]
-    }));
-    return courses.reverse();
-  }
-  return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('courses').select('*').order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map((row: any) => ({
+    ...(row.content || {}), id: row.id, title: row.title, description: row.description || '',
+    category: row.category || '', price: Number(row.price || 0), imageUrl: row.image_url || '',
+    isPublished: Boolean(row.is_published), createdAt: row.created_at, updatedAt: row.updated_at,
+  })) as Course[];
 }
 
 export async function getCourseById(id: string): Promise<Course | null> {
-    const courseRef = ref(db, `courses/${id}`);
-    const snapshot = await get(courseRef);
-    if(snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('courses').select('*').eq('id', id).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return { ...(data.content || {}), id: data.id, title: data.title, description: data.description || '',
+    category: data.category || '', price: Number(data.price || 0), imageUrl: data.image_url || '',
+    isPublished: Boolean(data.is_published), createdAt: data.created_at, updatedAt: data.updated_at } as Course;
 }
 
 export async function getCourseBySlug(slug: string): Promise<Course | null> {
-    const allCourses = await getAllCourses();
-    return allCourses.find(course => slugify(course.title) === slug) || null;
+  const allCourses = await getAllCourses();
+  return allCourses.find(course => slugify(course.title) === slug || (course as any).slug === slug) || null;
 }
 
-
 export async function createCourse(courseData: Omit<Course, 'id' | 'createdAt'>): Promise<string> {
-    const coursesRef = ref(db, 'courses');
-    const newCourseRef = push(coursesRef);
-    const dataToSave = {
-        ...courseData,
-        createdAt: new Date().toISOString(),
-        modules: courseData.modules || [],
-        exam: courseData.exam || [],
-    };
-
-    if (dataToSave.prerequisiteCourseId === 'none' || !dataToSave.prerequisiteCourseId) {
-        delete dataToSave.prerequisiteCourseId;
-    }
-    
-    // Ensure project is not undefined
-    if (dataToSave.project === undefined) {
-        delete (dataToSave as Partial<Course>).project;
-    }
-
-    await set(newCourseRef, dataToSave);
-    return newCourseRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { title, description, category, price, imageUrl, isPublished, ...content } = courseData as any;
+  const { data, error } = await supabase.from('courses').insert({
+    title, description: description || null, category: category || null, price: Number(price || 0),
+    image_url: imageUrl || null, is_published: Boolean(isPublished), content,
+  }).select('id').single();
+  if (error) throw error;
+  return data.id;
 }
 
 export async function updateCourse(courseId: string, courseData: Partial<Course>): Promise<void> {
-    const courseRef = ref(db, `courses/${courseId}`);
-    const dataToUpdate = { ...courseData };
-    if (dataToUpdate.prerequisiteCourseId === 'none') {
-        dataToUpdate.prerequisiteCourseId = undefined; // This will get filtered out
-    }
-     // Filter out undefined values to avoid overwriting with null in Firebase
-    const finalData = Object.fromEntries(Object.entries(dataToUpdate).filter(([_, v]) => v !== undefined));
-
-    await update(courseRef, finalData);
+  const supabase = getSupabaseBrowserClient();
+  const { title, description, category, price, imageUrl, isPublished, ...contentUpdate } = courseData as any;
+  const { data: current, error: readError } = await supabase.from('courses').select('content').eq('id', courseId).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Course not found.');
+  const patch: Record<string, unknown> = { content: { ...(current.content || {}), ...Object.fromEntries(Object.entries(contentUpdate).filter(([,v]) => v !== undefined)) }, updated_at: new Date().toISOString() };
+  if (title !== undefined) patch.title = title;
+  if (description !== undefined) patch.description = description;
+  if (category !== undefined) patch.category = category;
+  if (price !== undefined) patch.price = price;
+  if (imageUrl !== undefined) patch.image_url = imageUrl;
+  if (isPublished !== undefined) patch.is_published = isPublished;
+  const { error } = await supabase.from('courses').update(patch).eq('id', courseId);
+  if (error) throw error;
 }
-
 
 export async function deleteCourse(courseId: string): Promise<void> {
-    const courseRef = ref(db, `courses/${courseId}`);
-    await remove(courseRef);
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('courses').delete().eq('id', courseId);
+  if (error) throw error;
 }
-
 
 // User Functions
 export async function saveUser(uid: string, dataToSave: Partial<Omit<RegisteredUser, 'uid'>>): Promise<void> {
@@ -184,45 +174,43 @@ export async function getUserByDisplayName(displayName: string): Promise<Registe
 
 
 export async function enrollUserInCourse(userId: string, courseId: string, paymentMethod: UserCourse['paymentMethod'] = 'free'): Promise<void> {
-    const enrollmentRef = ref(db, `users/${userId}/purchasedCourses/${courseId}`);
-    await set(enrollmentRef, {
-        progress: 0,
-        completed: false,
-        certificateAvailable: false,
-        completedLessons: [],
-        enrollmentDate: new Date().toISOString(),
-        paymentMethod: paymentMethod,
-    });
-     const course = await getCourseById(courseId);
-    if (course) {
-        await logActivity(userId, {
-            type: 'enrollment',
-            details: {
-                courseTitle: course.title,
-                courseId: courseId
-            }
-        });
-    }
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) throw new Error('You can only enrol your own account.');
+  const { error } = await supabase.from('enrollments').upsert({
+    user_id: userId, course_id: courseId, progress: 0, completed: false,
+    content: { enrollmentDate: new Date().toISOString(), paymentMethod, completedLessons: [], certificateAvailable: false },
+  }, { onConflict: 'user_id,course_id', ignoreDuplicates: true });
+  if (error) throw error;
+  await logActivity(userId, { type: 'enrollment', details: { courseId } });
 }
 
 export async function getUserCourses(userId: string): Promise<UserCourse[]> {
-    const userCoursesRef = ref(db, `users/${userId}/purchasedCourses`);
-    const snapshot = await get(userCoursesRef);
-    if (snapshot.exists()) {
-        const coursesData = snapshot.val();
-        return Object.keys(coursesData).map(courseId => ({
-            courseId,
-            ...coursesData[courseId]
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) throw new Error('You can only view your own enrollments.');
+  const { data, error } = await supabase.from('enrollments').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map((row: any) => ({
+    ...(row.content || {}), courseId: row.course_id, progress: Number(row.progress || 0),
+    completed: Boolean(row.completed), enrollmentDate: row.content?.enrollmentDate || row.created_at,
+  })) as UserCourse[];
 }
 
 export async function updateUserCourseProgress(userId: string, courseId: string, data: Partial<Omit<UserCourse, 'courseId'>>) {
-    const progressRef = ref(db, `users/${userId}/purchasedCourses/${courseId}`);
-    await update(progressRef, data);
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) throw new Error('You can only update your own course progress.');
+  const { data: current, error: readError } = await supabase.from('enrollments').select('content').eq('user_id', userId).eq('course_id', courseId).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Course enrollment not found.');
+  const { progress, completed, ...content } = data as any;
+  const patch: Record<string, unknown> = { content: { ...(current.content || {}), ...content }, updated_at: new Date().toISOString() };
+  if (progress !== undefined) patch.progress = progress;
+  if (completed !== undefined) patch.completed = completed;
+  const { error } = await supabase.from('enrollments').update(patch).eq('user_id', userId).eq('course_id', courseId);
+  if (error) throw error;
 }
-
 
 export async function getAllUsers(): Promise<RegisteredUser[]> {
     const usersRef = ref(db, 'users');
