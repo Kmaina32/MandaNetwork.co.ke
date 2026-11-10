@@ -113,7 +113,7 @@ export default function AdminPlansPage() {
                               {plan.isPrimary && <Badge variant="default"><CheckCircle className="h-3 w-3 mr-1"/>Recommended</Badge>}
                             </div>
                           </TableCell>
-                          <TableCell>Ksh {plan.price.toLocaleString()} / {plan.priceDetail}</TableCell>
+                          <TableCell>Ksh {plan.price.toLocaleString()} / month (recurring card subscription)</TableCell>
                           <TableCell>{plan.features.join(', ')}</TableCell>
                           <TableCell className="text-right">
                             <Button asChild variant="ghost" size="icon" className="mr-2">
