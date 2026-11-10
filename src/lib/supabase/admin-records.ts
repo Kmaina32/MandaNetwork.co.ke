@@ -48,7 +48,7 @@ async function write(ref:Ref,value:any,mode:'set'|'update') {
 }
 class AdminRef {
   path:string[]; key:string|null; orderField?:string; equalValue?:unknown;
-  constructor(path:string[],orderField?:string,equalValue?:unknown){this.path=path;this.key=path.at(-1)||null;this.orderField=orderField;this.equalValue=equalValue;}
+  constructor(path:string[],orderField?:string,equalValue?:unknown){this.path=path;this.key=path[path.length-1]||null;this.orderField=orderField;this.equalValue=equalValue;}
   child(path:string){return new AdminRef([...this.path,...split(path)]);}
   orderByChild(field:string){return new AdminRef(this.path,field,this.equalValue);}
   equalTo(value:unknown){return new AdminRef(this.path,this.orderField,value);}
