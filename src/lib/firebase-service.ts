@@ -14,6 +14,16 @@ export interface CertificateSettings {
     academicDirector: string;
 }
 
+export interface PublicCertificateRecord {
+  certificateId: string;
+  studentName: string;
+  courseId: string;
+  courseTitle: string;
+  issuedAt: string;
+  studentPhotoURL?: string;
+  status?: 'valid' | 'revoked';
+}
+
 // Image Upload Service
 export async function uploadImage(path: string, file: File): Promise<string> {
     const folder = path.split('/').filter(Boolean).slice(0, 2).join('-') || 'images';
