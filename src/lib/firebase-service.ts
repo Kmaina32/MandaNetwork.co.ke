@@ -245,223 +245,183 @@ export async function deleteUser(userId: string): Promise<void> {
 
 // Hero Section Functions
 export async function getHeroData(): Promise<HeroData> {
-    const heroRef = ref(db, 'hero');
-    const snapshot = await get(heroRef);
-    const defaults = {
-        title: 'Unlock Your Potential.', 
-        subtitle: 'Quality, affordable courses designed for the Kenyan market.',
-        imageUrl: 'https://placehold.co/1200x400.png',
-        loginImageUrl: 'https://placehold.co/1200x900.png',
-        signupImageUrl: 'https://placehold.co/1200x900.png',
-        programsImageUrl: 'https://picsum.photos/1200/400',
-        bootcampsImageUrl: 'https://picsum.photos/1200/400',
-        hackathonsImageUrl: 'https://picsum.photos/1200/400',
-        portfoliosImageUrl: 'https://picsum.photos/1200/400',
-        slideshowSpeed: 5,
-        imageBrightness: 60,
-        recaptchaEnabled: true,
-        onboardingEnabled: true,
-        theme: 'default',
-        animationsEnabled: true,
-        orgHeroTitle: 'Varban Academy for Business',
-        orgHeroSubtitle: 'Empower your workforce with the skills they need to succeed.',
-        orgHeroImageUrl: 'https://picsum.photos/1200/800',
-        orgLoginImageUrl: 'https://picsum.photos/1200/900',
-        orgSignupImageUrl: 'https://picsum.photos/1200/900',
-        adsEnabled: false,
-        adInterval: 30,
-        activityTrackingEnabled: false,
-        aiProvider: 'gemini' as const,
-        customModelId: '',
-    };
-    const dbData = snapshot.exists() ? snapshot.val() : {};
-    return { ...defaults, ...dbData };
+  const defaults: HeroData = {
+    title: 'Unlock Your Potential.', subtitle: 'Quality, affordable courses designed for the Kenyan market.',
+    imageUrl: 'https://placehold.co/1200x400.png', loginImageUrl: 'https://placehold.co/1200x900.png',
+    signupImageUrl: 'https://placehold.co/1200x900.png', programsImageUrl: 'https://picsum.photos/1200/400',
+    bootcampsImageUrl: 'https://picsum.photos/1200/400', hackathonsImageUrl: 'https://picsum.photos/1200/400',
+    portfoliosImageUrl: 'https://picsum.photos/1200/400', slideshowSpeed: 5, imageBrightness: 60,
+    recaptchaEnabled: true, onboardingEnabled: true, theme: 'default', animationsEnabled: true,
+    orgHeroTitle: 'Varban Academy for Business', orgHeroSubtitle: 'Empower your workforce with the skills they need to succeed.',
+    orgHeroImageUrl: 'https://picsum.photos/1200/800', orgLoginImageUrl: 'https://picsum.photos/1200/900',
+    orgSignupImageUrl: 'https://picsum.photos/1200/900', adsEnabled: false, adInterval: 30,
+    activityTrackingEnabled: false, aiProvider: 'gemini', customModelId: '',
+  };
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('app_settings').select('value').eq('key','hero').maybeSingle();
+  if (error) throw error;
+  return { ...defaults, ...(data?.value || {}) } as HeroData;
 }
 
 export async function saveHeroData(data: Partial<HeroData>): Promise<void> {
-    const heroRef = ref(db, 'hero');
-    await update(heroRef, data);
+  const supabase = getSupabaseBrowserClient();
+  const { data: current, error: readError } = await supabase.from('app_settings').select('value').eq('key','hero').maybeSingle();
+  if (readError) throw readError;
+  const { data: authData } = await supabase.auth.getUser();
+  const { error } = await supabase.from('app_settings').upsert({
+    key: 'hero', value: { ...(current?.value || {}), ...data }, updated_by: authData.user?.id || null,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'key' });
+  if (error) throw error;
 }
 
-
-// Calendar Event Functions
 export async function createCalendarEvent(eventData: Omit<CalendarEvent, 'id'>): Promise<string> {
-    const eventsRef = ref(db, 'calendarEvents');
-    const newEventRef = push(eventsRef);
-    await set(newEventRef, eventData);
-    return newEventRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Sign in is required to create a calendar event.');
+  const event = eventData as any;
+  const id = crypto.randomUUID();
+  const { error } = await supabase.from('calendar_events').insert({
+    id, title: String(event.title || 'Event'), starts_at: event.date || event.startsAt || null,
+    content: eventData, created_by: authData.user.id,
+  });
+  if (error) throw error;
+  return id;
 }
 
 export async function getAllCalendarEvents(): Promise<CalendarEvent[]> {
-    const eventsRef = ref(db, 'calendarEvents');
-    const snapshot = await get(eventsRef);
-    if (snapshot.exists()) {
-        const eventsData = snapshot.val();
-        return Object.keys(eventsData).map(key => ({
-            id: key,
-            ...eventsData[key]
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('calendar_events').select('*').order('starts_at', { ascending: true });
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, title: row.title, date: row.starts_at || row.content?.date })) as CalendarEvent[];
 }
 
 export async function deleteCalendarEvent(eventId: string): Promise<void> {
-    const eventRef = ref(db, `calendarEvents/${eventId}`);
-    await remove(eventRef);
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('calendar_events').delete().eq('id', eventId);
+  if (error) throw error;
 }
 
-// Submission Functions
 export async function createSubmission(submissionData: Omit<Submission, 'id'>): Promise<string> {
-    const submissionsRef = ref(db, 'submissions');
-    const newSubmissionRef = push(submissionsRef);
-    await set(newSubmissionRef, submissionData);
-    return newSubmissionRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Sign in is required to submit work.');
+  const item = submissionData as any;
+  const id = crypto.randomUUID();
+  const { error } = await supabase.from('submissions').insert({
+    id, user_id: authData.user.id, course_id: item.courseId || '', assignment_id: item.assignmentId || null,
+    content: submissionData, submitted_at: new Date().toISOString(),
+  });
+  if (error) throw error;
+  return id;
 }
 
 export async function getSubmissionsByUserId(userId: string): Promise<Submission[]> {
-    const submissionsRef = query(ref(db, 'submissions'), orderByChild('userId'), equalTo(userId));
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const submissionsData = snapshot.val();
-        return Object.keys(submissionsData).map(key => ({
-            id: key,
-            ...submissionsData[key],
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('submissions').select('*').eq('user_id', userId).order('submitted_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, userId: row.user_id, courseId: row.course_id, submittedAt: row.submitted_at })) as Submission[];
 }
 
 export async function getUserSubmissionsForCourse(userId: string, courseId: string): Promise<Submission[]> {
-    const submissionsRef = query(ref(db, 'submissions'), orderByChild('userId'), equalTo(userId));
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const submissionsData = snapshot.val();
-        return Object.keys(submissionsData)
-            .map(key => ({
-                id: key,
-                ...submissionsData[key],
-            }))
-            .filter(submission => submission.courseId === courseId);
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('submissions').select('*').eq('user_id', userId).eq('course_id', courseId).order('submitted_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, userId: row.user_id, courseId: row.course_id, submittedAt: row.submitted_at })) as Submission[];
 }
 
 export async function getAllSubmissions(): Promise<Submission[]> {
-    const submissionsRef = ref(db, 'submissions');
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('submissions').select('*').order('submitted_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, userId: row.user_id, courseId: row.course_id, submittedAt: row.submitted_at })) as Submission[];
 }
 
 export async function getSubmissionById(id: string): Promise<Submission | null> {
-    const submissionRef = ref(db, `submissions/${id}`);
-    const snapshot = await get(submissionRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('submissions').select('*').eq('id', id).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.content || {}), id: data.id, userId: data.user_id, courseId: data.course_id, submittedAt: data.submitted_at } as Submission) : null;
 }
 
 export async function updateSubmission(id: string, data: Partial<Submission>): Promise<void> {
-    const submissionRef = ref(db, `submissions/${id}`);
-    await update(submissionRef, data);
+  const supabase = getSupabaseBrowserClient();
+  const { data: current, error: readError } = await supabase.from('submissions').select('content').eq('id', id).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Submission not found.');
+  const { error } = await supabase.from('submissions').update({
+    content: { ...(current.content || {}), ...data }, updated_at: new Date().toISOString(),
+  }).eq('id', id);
+  if (error) throw error;
 }
 
-// Tutor History Functions
-export async function saveTutorHistory(
-  userId: string,
-  courseId: string,
-  lessonId: string,
-  messages: TutorMessage[]
-): Promise<void> {
-  const historyRef = ref(db, `tutorHistory/${userId}/${courseId}/${lessonId}`);
-  await set(historyRef, messages);
+export async function saveTutorHistory(userId: string, courseId: string, lessonId: string, messages: TutorMessage[]): Promise<void> {
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) throw new Error('You can only save your own tutor history.');
+  const { error } = await supabase.from('tutor_history').upsert({
+    user_id: userId, course_id: courseId, lesson_id: lessonId, messages, updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id,course_id,lesson_id' });
+  if (error) throw error;
 }
 
-export async function getTutorHistory(
-  userId: string,
-  courseId: string,
-  lessonId: string
-): Promise<TutorMessage[]> {
-  const historyRef = ref(db, `tutorHistory/${userId}/${courseId}/${lessonId}`);
-  const snapshot = await get(historyRef);
-  if (snapshot.exists()) {
-    return snapshot.val();
-  }
-  return [];
+export async function getTutorHistory(userId: string, courseId: string, lessonId: string): Promise<TutorMessage[]> {
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) throw new Error('You can only read your own tutor history.');
+  const { data, error } = await supabase.from('tutor_history').select('messages').eq('user_id', userId).eq('course_id', courseId).eq('lesson_id', lessonId).maybeSingle();
+  if (error) throw error;
+  return (data?.messages || []) as TutorMessage[];
 }
 
-// Tutor Settings Functions
 export async function saveTutorSettings(settings: TutorSettings): Promise<void> {
-    const settingsRef = ref(db, 'tutorSettings');
-    await set(settingsRef, settings);
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData } = await supabase.auth.getUser();
+  const { error } = await supabase.from('app_settings').upsert({ key: 'tutor_settings', value: settings, updated_by: authData.user?.id || null, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+  if (error) throw error;
 }
 
 export async function getTutorSettings(): Promise<TutorSettings> {
-    const settingsRef = ref(db, 'tutorSettings');
-    const snapshot = await get(settingsRef);
-    const defaults: TutorSettings = {
-        voice: 'algenib',
-        speed: 1.0,
-        prompts: "Welcome! To talk with me, your virtual tutor, just click the chat button.\nHow can I help you with this lesson?",
-        avatarUrl: '/gina-avatar.png',
-    };
-    if (snapshot.exists()) {
-        return { ...defaults, ...snapshot.val() };
-    }
-    return defaults;
+  const defaults: TutorSettings = { voice: 'algenib', speed: 1.0, prompts: "Welcome! To talk with me, your virtual tutor, just click the chat button.\nHow can I help you with this lesson?", avatarUrl: '/gina-avatar.png' };
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('app_settings').select('value').eq('key','tutor_settings').maybeSingle();
+  if (error) throw error;
+  return { ...defaults, ...(data?.value || {}) } as TutorSettings;
 }
 
-// Certificate Settings Functions
 export async function saveCertificateSettings(settings: CertificateSettings): Promise<void> {
-    const settingsRef = ref(db, 'certificateSettings');
-    await set(settingsRef, settings);
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData } = await supabase.auth.getUser();
+  const { error } = await supabase.from('app_settings').upsert({ key: 'certificate_settings', value: settings, updated_by: authData.user?.id || null, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+  if (error) throw error;
 }
 
 export async function getCertificateSettings(): Promise<CertificateSettings> {
-    const settingsRef = ref(db, 'certificateSettings');
-    const snapshot = await get(settingsRef);
-    const defaults: CertificateSettings = {
-        academicDirector: 'Dr. Emily Carter',
-    };
-    if (snapshot.exists()) {
-        return { ...defaults, ...snapshot.val() };
-    }
-    return defaults;
+  const defaults: CertificateSettings = { academicDirector: 'Dr. Emily Carter' };
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('app_settings').select('value').eq('key','certificate_settings').maybeSingle();
+  if (error) throw error;
+  return { ...defaults, ...(data?.value || {}) } as CertificateSettings;
 }
 
-
-// Remote Config Functions
 export async function getRemoteConfigValues(keys: string[]): Promise<Record<string, string>> {
-    const remoteConfig = getRemoteConfig(app);
-    if (typeof window !== 'undefined') {
-        await fetchAndActivate(remoteConfig);
-    }
-    
-    const configValues: Record<string, string> = {};
-    keys.forEach(key => {
-        configValues[key] = getString(remoteConfig, key);
-    });
-    return configValues;
+  const hero = await getHeroData();
+  const values: Record<string, string> = {};
+  keys.forEach(key => {
+    if (key === 'hero_title') values[key] = String(hero.title || '');
+    else if (key === 'hero_subtitle') values[key] = String(hero.subtitle || '');
+    else values[key] = '';
+  });
+  return values;
 }
-
 
 export async function saveRemoteConfigValues(data: Record<string, string>): Promise<void> {
-    // This function can't actually save to remote config from the client.
-    // It will write to the Realtime Database instead as a mock.
-    const heroRef = ref(db, 'hero');
-    await update(heroRef, {
-        title: data.hero_title,
-        subtitle: data.hero_subtitle
-    });
-    console.log("Remote config values saved to RTDB for demo purposes:", data);
+  await saveHeroData({
+    ...(data.hero_title !== undefined ? { title: data.hero_title } : {}),
+    ...(data.hero_subtitle !== undefined ? { subtitle: data.hero_subtitle } : {}),
+  });
 }
 
-
-// Notification Functions
 export async function createNotification(notificationData: Partial<Omit<Notification, 'id'>>): Promise<string> {
     const notificationsRef = ref(db, 'notifications');
     const newNotificationRef = push(notificationsRef);
@@ -498,20 +458,22 @@ export async function getAllNotifications(userId: string, cohort?: string): Prom
 
 // User Notes Functions
 export async function saveUserNotes(userId: string, courseId: string, notes: string): Promise<void> {
-    const notesRef = ref(db, `userNotes/${userId}/${courseId}`);
-    await set(notesRef, { notes });
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) throw new Error('You can only save your own notes.');
+  const { error } = await supabase.from('user_notes').upsert({ user_id: userId, course_id: courseId, notes, updated_at: new Date().toISOString() }, { onConflict: 'user_id,course_id' });
+  if (error) throw error;
 }
 
 export async function getUserNotes(userId: string, courseId: string): Promise<string> {
-    const notesRef = ref(db, `userNotes/${userId}/${courseId}/notes`);
-    const snapshot = await get(notesRef);
-    if (snapshot.exists()) {
-        return snapshot.val();
-    }
-    return '';
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) throw new Error('You can only read your own notes.');
+  const { data, error } = await supabase.from('user_notes').select('notes').eq('user_id', userId).eq('course_id', courseId).maybeSingle();
+  if (error) throw error;
+  return data?.notes || '';
 }
 
-// Discussion Forum Functions
 export async function createThread(courseId: string, threadData: Omit<DiscussionThread, 'id'>): Promise<string> {
     const threadsRef = ref(db, `discussions/threads/${courseId}`);
     const newThreadRef = push(threadsRef);
