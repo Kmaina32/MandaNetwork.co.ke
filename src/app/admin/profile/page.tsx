@@ -170,7 +170,7 @@ export default function ProfilePage() {
       await saveUser(user.uid, {
         email: user.email,
         displayName: newDisplayName,
-        createdAt: user.metadata.creationTime,
+        createdAt: user.metadata?.creationTime || user.created_at || new Date().toISOString(),
       });
       setUser({ ...user, displayName: newDisplayName });
       toast({ title: 'Success', description: 'Your profile has been updated.' });
