@@ -213,9 +213,10 @@ export async function getAllUsers(): Promise<RegisteredUser[]> {
 }
 export async function getPublicProfiles(): Promise<RegisteredUser[]> {
   const supabase = getSupabaseBrowserClient();
-  const { data, error } = await supabase.from('academy_records').select('record_id,data').eq('collection','publicProfiles').limit(200);
+  const { data, error } = await supabase.from('profiles').select('id,display_name,avatar_path,metadata')
+    .eq('metadata->>isPublic','true').order('display_name').limit(200);
   if (error) throw error;
-  return (data || []).map((row: any) => ({ uid: row.record_id, ...(row.data || {}) })) as RegisteredUser[];
+  return (data || []).map((row: any) => ({ ...(row.metadata || {}), uid: row.id, displayName: row.display_name, photoURL: row.avatar_path || '' })) as RegisteredUser[];
 }
 
 export async function deleteUser(userId: string): Promise<void> {
