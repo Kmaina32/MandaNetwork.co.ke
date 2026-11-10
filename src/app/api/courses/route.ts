@@ -14,9 +14,9 @@ export async function GET(req:NextRequest) {
   if(!/^sk_live_[a-f0-9]{48}$/i.test(apiKey))return NextResponse.json({message:'Unauthorized: Invalid API Key'},{status:401});
   try {
     const keyHash=createHash('sha256').update(apiKey).digest('hex');
-    const {data:userId,error:verifyError}=await supabase.rpc('validate_api_key_and_consume',{p_key_hash:keyHash});
+    const {data:valid,error:verifyError}=await supabase.rpc('validate_api_key_and_consume',{p_key_hash:keyHash});
     if(verifyError)throw verifyError;
-    if(!userId)return NextResponse.json({message:'Invalid API key or daily rate limit reached.'},{status:401});
+    if(!valid)return NextResponse.json({message:'Invalid API key or daily rate limit reached.'},{status:401});
     const {data:courses,error:coursesError}=await supabase.from('courses')
       .select('id,title,description,category,price,image_url,is_published,created_at')
       .eq('is_published',true).order('created_at',{ascending:false});
