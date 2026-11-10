@@ -257,8 +257,8 @@ async function processRecurringCharge(reference: string, subscriptionCode: strin
   if (email && verified.customer?.email && verified.customer.email.toLowerCase() !== email.toLowerCase()) {
     throw new Error('Recurring payment customer did not match the subscription.');
   }
-  const planCodes = await adminDb.ref('paystackPlanCodes').get();
-  const plan = Object.values(planCodes.val() || {}).find((value: any) => value?.planCode === organization.paystackPlanCode) as any;
+  const planSnapshot = await adminDb.ref(`paystackPlanCodeLookup/${organization.paystackPlanCode}`).get();
+  const plan = planSnapshot.val();
   if (!plan || Number(verified.amount) !== Number(plan.amount) * 100) {
     throw new Error('Recurring payment amount did not match the subscribed plan.');
   }
@@ -324,10 +324,10 @@ export async function handlePaystackWebhookEvent(event: unknown) {
     const email = data.customer?.email?.toLowerCase();
     const planCode = typeof data.plan === 'string' ? data.plan : data.plan?.plan_code;
     if (!code || !email || !planCode) throw new Error('Subscription event is missing required identifiers.');
-    const planMap = await adminDb.ref('paystackPlanCodes').get();
-    const matchedPlan = Object.entries(planMap.val() || {}).find(([, value]: [string, any]) => value?.planCode === planCode);
-    if (!matchedPlan) throw new Error('Subscription plan could not be matched to a Varban plan.');
-    const [planId] = matchedPlan as [string, any];
+    const planSnapshot = await adminDb.ref(`paystackPlanCodeLookup/${planCode}`).get();
+    const planRecord = planSnapshot.val();
+    if (!planRecord?.planId) throw new Error('Subscription plan could not be matched to a Varban plan.');
+    const planId = planRecord.planId as string;
     const transactions = await adminDb.ref('paystackTransactions').orderByChild('email').equalTo(email).limitToLast(20).get();
     const candidates = Object.values(transactions.val() || {}) as any[];
     const payment = candidates.find(item => item.itemType === 'organization_plan' && item.itemId === `org-upgrade-${planId}` && ['pending', 'processing', 'completed'].includes(item.status));
