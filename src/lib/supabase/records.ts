@@ -37,9 +37,11 @@ function nestedMerge(value: any, patch: any): any {
   if (!patch || typeof patch !== 'object' || Array.isArray(patch)) return patch;
   const output = value && typeof value === 'object' && !Array.isArray(value) ? { ...value } : {};
   for (const [key, item] of Object.entries(patch)) {
-    output[key] = item && typeof item === 'object' && !Array.isArray(item)
-      ? nestedMerge(output[key], item)
-      : item;
+    output[key] = item && typeof item === 'object' && '__supabaseIncrement' in item
+      ? Number(output[key] || 0) + Number((item as any).__supabaseIncrement || 0)
+      : item && typeof item === 'object' && !Array.isArray(item)
+        ? nestedMerge(output[key], item)
+        : item;
   }
   return output;
 }
