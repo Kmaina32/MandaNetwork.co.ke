@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     if (String(invitation.email || '').trim().toLowerCase() !== user.email.trim().toLowerCase())
       return NextResponse.json({error:'This invitation was sent to a different email address.'},{status:403});
     if (invitation.status === 'accepted' && invitation.invited_user_id === user.id)
-      return NextResponse.json({success:true,organizationId:invitation.organizationId});
+      return NextResponse.json({success:true,organizationId:invitation.organization_id});
     if (invitation.status !== 'pending') return NextResponse.json({error:'This invitation has already been used.'},{status:409});
     if (invitation.expires_at && new Date(invitation.expires_at).getTime() <= Date.now())
       return NextResponse.json({error:'This invitation has expired. Ask your organization administrator for a new one.'},{status:410});
@@ -38,8 +38,10 @@ export async function POST(request: NextRequest) {
       organization_id:organizationId, user_id:user.id, member_role:invitation.member_role || 'member', status:'active', joined_at:new Date().toISOString(),
     },{onConflict:'organization_id,user_id'});
     if (memberError) throw memberError;
+    const { data:profile, error:profileReadError } = await admin.from('profiles').select('metadata').eq('id',user.id).maybeSingle();
+    if (profileReadError) throw profileReadError;
     const { error:profileError } = await admin.from('profiles').update({
-      metadata:{ organizationId, isOrganizationAdmin:false }, updated_at:new Date().toISOString(),
+      metadata:{ ...(profile?.metadata || {}), organizationId, isOrganizationAdmin:false }, updated_at:new Date().toISOString(),
     }).eq('id',user.id);
     if (profileError) throw profileError;
     const { error:updateError } = await admin.from('organization_invitations').update({
