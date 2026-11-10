@@ -4,21 +4,14 @@ import { Header } from "@/components/Header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { ProgramCard } from "@/components/ProgramCard";
 import { Library } from "lucide-react";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAllPrograms } from '@/lib/firebase-server';
 import type { Program } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
 
 async function getPublicPrograms(): Promise<Program[]> {
-  try {
-    const snapshot = await adminDb.ref("programs").get();
-    if (!snapshot.exists()) return [];
-    const value = snapshot.val();
-    return Object.entries(value).map(([id, program]) => ({ id, ...(program as Omit<Program, "id">) }));
-  } catch (error) {
-    console.error("Failed to load public programs:", error);
-    return [];
-  }
+  try { return await getAllPrograms(); }
+  catch(error){ console.error('Failed to load public programs:',error); return []; }
 }
 
 export default async function ProgramsPage() {

@@ -4,10 +4,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/lib/firebase';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { db } from '@/lib/supabase/records';
 import { createNotification, getAllCalendarEvents, createCalendarEvent } from '@/lib/firebase-service';
 import { Loader2, PhoneOff, VideoOff, Mic, MicOff, Video, Calendar } from 'lucide-react';
-import { onValue, ref, onChildAdded, set, remove, query } from 'firebase/database';
+import { onValue, ref, onChildAdded, set, remove, query } from '@/lib/supabase/records';
 import { useToast } from '@/hooks/use-toast';
 import { ViewerList } from '@/components/ViewerList';
 import { NoLiveSession } from '@/components/NoLiveSession';
@@ -143,7 +144,8 @@ function NoSessionControls({ onGoLive, onScheduleSuccess }: { onGoLive: (event: 
 }
 
 export function AdminHostView({ sessionId, isSessionActive }: { sessionId: string; isSessionActive: boolean }) {
-    const { organization } = useAuth();
+    const { organization, user } = useAuth();
+    const supabase = getSupabaseBrowserClient();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
@@ -194,6 +196,13 @@ export function AdminHostView({ sessionId, isSessionActive }: { sessionId: strin
         }
 
         setIsLoading(true);
+        if (!user) { setIsLoading(false); toast({ title: 'Sign in required', description: 'Sign in again to host a live class.', variant: 'destructive' }); return; }
+        const { error: sessionError } = await supabase.from('live_sessions').upsert({
+            id: sessionId, host_id: user.uid, title: event.title, status: 'live',
+            metadata: { description: event.description || '', organizationId: organization?.id || null },
+            updated_at: new Date().toISOString(),
+        }, { onConflict: 'id' });
+        if (sessionError) { setIsLoading(false); toast({ title: 'Could not start live chat', description: sessionError.message, variant: 'destructive' }); return; }
 
         const notificationPayload = {
             title: `🔴 Live Now: ${event.title}`,
@@ -253,6 +262,7 @@ export function AdminHostView({ sessionId, isSessionActive }: { sessionId: strin
         peerConnectionsRef.current.forEach(pc => pc.close());
         peerConnectionsRef.current.clear();
         
+        await supabase.from('live_sessions').update({ status: 'ended', updated_at: new Date().toISOString() }).eq('id', sessionId);
         await Promise.all([
             remove(offerRef),
             remove(answersRef),

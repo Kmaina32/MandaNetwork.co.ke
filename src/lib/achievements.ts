@@ -1,6 +1,5 @@
 
-import { db } from './firebase';
-import { ref, get, set, update } from 'firebase/database';
+import { db, ref, get, set, update } from './supabase/records';
 import type { RegisteredUser, UserCourse, Submission } from './types';
 
 export interface Achievement {

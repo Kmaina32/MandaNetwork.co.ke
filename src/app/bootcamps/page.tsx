@@ -9,21 +9,14 @@ import { Rocket } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAllBootcamps } from '@/lib/firebase-server';
 import type { Bootcamp } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 async function getPublicBootcamps(): Promise<Bootcamp[]> {
-  try {
-    const snapshot = await adminDb.ref("bootcamps").get();
-    if (!snapshot.exists()) return [];
-    const value = snapshot.val();
-    return Object.entries(value).map(([id, bootcamp]) => ({ id, ...(bootcamp as Omit<Bootcamp, "id">) }));
-  } catch (error) {
-    console.error("Failed to load public bootcamps:", error);
-    return [];
-  }
+  try { return await getAllBootcamps(); }
+  catch(error){ console.error('Failed to load public bootcamps:',error); return []; }
 }
 
 function formatStartDate(value: string) {

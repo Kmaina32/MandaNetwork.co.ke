@@ -4,10 +4,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/supabase/records';
 import { Hand, Loader2, PhoneOff, Maximize } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { onValue, ref, onChildAdded, set, remove, off } from 'firebase/database';
+import { onValue, ref, onChildAdded, set, remove, off } from '@/lib/supabase/records';
 import { useToast } from '@/hooks/use-toast';
 import { ViewerList } from '@/components/ViewerList';
 import { SessionInfo } from '@/components/SessionInfo';

@@ -1,10 +1,6 @@
 'use server';
 
-/**
- * Creates a verified invitation for a member of an organization.
- */
-import { adminDb } from '@/lib/firebase-admin';
-import { verifySupabaseAccessToken } from '@/lib/supabase/verify-access-token';
+import { createSupabaseUserClient } from '@/lib/supabase/user-client';
 import { z } from 'zod';
 import { ai } from '@/ai/genkit-instance';
 
@@ -14,66 +10,50 @@ const CreateOrgInviteInputSchema = z.object({
   organizationId: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/),
 });
 export type CreateOrgInviteInput = z.infer<typeof CreateOrgInviteInputSchema>;
-
-const CreateOrgInviteOutputSchema = z.object({
-  success: z.boolean(),
-  inviteId: z.string().optional(),
-  message: z.string(),
-});
+const CreateOrgInviteOutputSchema = z.object({ success: z.boolean(), inviteId: z.string().optional(), message: z.string() });
 export type CreateOrgInviteOutput = z.infer<typeof CreateOrgInviteOutputSchema>;
 
 export async function createOrganizationInvite(input: CreateOrgInviteInput): Promise<CreateOrgInviteOutput> {
   return createOrganizationInviteFlow(input);
 }
 
-const createOrganizationInviteFlow = ai.defineFlow(
-  {
-    name: 'createOrganizationInviteFlow',
-    inputSchema: CreateOrgInviteInputSchema,
-    outputSchema: CreateOrgInviteOutputSchema,
-  },
-  async ({ idToken, email, organizationId }) => {
-    try {
-      const decoded = await verifySupabaseAccessToken(idToken);
-      const userSnapshot = await adminDb.ref(`users/${decoded.legacyUid}`).get();
-      const user = userSnapshot.val();
-      if (!user?.isOrganizationAdmin || user.organizationId !== organizationId) {
-        throw new Error('You are not authorized to invite members to this organization.');
-      }
+const createOrganizationInviteFlow = ai.defineFlow({
+  name: 'createOrganizationInviteFlow',
+  inputSchema: CreateOrgInviteInputSchema,
+  outputSchema: CreateOrgInviteOutputSchema,
+}, async ({ idToken, email, organizationId }) => {
+  try {
+    const { user, client } = await createSupabaseUserClient(idToken);
+    const [{ data: organization, error: orgError }, { data: membership, error: memberError }] = await Promise.all([
+      client.from('organizations').select('id,name,owner_id').eq('id',organizationId).maybeSingle(),
+      client.from('organization_members').select('member_role,status').eq('organization_id',organizationId)
+        .eq('user_id',user.id).eq('status','active').maybeSingle(),
+    ]);
+    if (orgError) throw orgError;
+    if (memberError) throw memberError;
+    if (!organization) throw new Error('Organization not found.');
+    const isOwner = organization.owner_id === user.id;
+    const isMemberAdmin = membership && ['owner','admin'].includes(membership.member_role);
+    if (!isOwner && !isMemberAdmin) throw new Error('You are not authorized to invite members to this organization.');
 
-      const organizationSnapshot = await adminDb.ref(`organizations/${organizationId}`).get();
-      if (!organizationSnapshot.exists()) throw new Error('Organization not found.');
-      const organization = organizationSnapshot.val();
-      if (organization.ownerId !== decoded.legacyUid && user.isOrganizationAdmin !== true) {
-        throw new Error('Organization administrator permission is required.');
-      }
+    const { data: existing, error: existingError } = await client.from('organization_invitations')
+      .select('id,email,organization_id,status,expires_at').eq('organization_id',organizationId)
+      .ilike('email',email).eq('status','pending').limit(20);
+    if (existingError) throw existingError;
+    const duplicate = (existing || []).find((row:any) => !row.expires_at || new Date(row.expires_at).getTime() > Date.now());
+    if (duplicate) return { success:true, inviteId:duplicate.id, message:'A pending invitation already exists for this email.' };
 
-      const existingInvites = await adminDb.ref('invitations').orderByChild('email').equalTo(email).get();
-      if (existingInvites.exists()) {
-        const existing = existingInvites.val() as Record<string, any>;
-        const duplicate = Object.entries(existing).find(([, invite]) =>
-          invite.organizationId === organizationId && invite.status === 'pending'
-        );
-        if (duplicate) {
-          return { success: true, inviteId: duplicate[0], message: 'A pending invitation already exists for this email.' };
-        }
-      }
-
-      const inviteRef = adminDb.ref('invitations').push();
-      if (!inviteRef.key) throw new Error('Could not allocate an invitation.');
-      await inviteRef.set({
-        email,
-        organizationId,
-        organizationName: organization.name,
-        createdBy: decoded.legacyUid,
-        createdAt: new Date().toISOString(),
-        expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
-        status: 'pending',
-      });
-      return { success: true, inviteId: inviteRef.key, message: 'Invitation created successfully.' };
-    } catch (error) {
-      console.error('Failed to create organization invitation:', error instanceof Error ? error.message : 'Unknown error');
-      return { success: false, message: error instanceof Error ? error.message : 'An internal error occurred.' };
-    }
+    const inviteId = crypto.randomUUID();
+    const { error } = await client.from('organization_invitations').insert({
+      id:inviteId, organization_id:organizationId, email, invited_user_id:null,
+      member_role:'member', status:'pending', invited_by:user.id,
+      expires_at:new Date(Date.now()+7*24*60*60*1000).toISOString(),
+      content:{organizationName:organization.name,createdBy:user.id,createdAt:new Date().toISOString()},
+    });
+    if (error) throw error;
+    return { success:true, inviteId, message:'Invitation created successfully.' };
+  } catch (error) {
+    console.error('Failed to create Supabase organization invitation:', error instanceof Error ? error.message : 'Unknown error');
+    return { success:false, message:error instanceof Error ? error.message : 'An internal error occurred.' };
   }
-);
+});

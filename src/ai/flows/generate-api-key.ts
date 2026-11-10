@@ -1,11 +1,6 @@
 'use server';
 
-/**
- * Generates a user-owned API key. The user identity is derived from a verified
- * Firebase ID token; a caller-supplied UID is never trusted.
- */
-import { adminDb } from '@/lib/firebase-admin';
-import { verifySupabaseAccessToken } from '@/lib/supabase/verify-access-token';
+import { createSupabaseUserClient } from '@/lib/supabase/user-client';
 import type { ApiKey } from '@/lib/types';
 import { createHash, randomBytes } from 'crypto';
 import { z } from 'zod';
@@ -18,53 +13,22 @@ export type GenerateApiKeyInput = z.infer<typeof GenerateApiKeyInputSchema>;
 
 export async function generateApiKey(input: GenerateApiKeyInput): Promise<ApiKey> {
   const parsed = GenerateApiKeyInputSchema.parse(input);
-  const decoded = await verifySupabaseAccessToken(parsed.idToken);
-  const userId = decoded.legacyUid;
-  const key = `sk_live_${randomBytes(24).toString('hex')}`;
-  const keyRef = adminDb.ref(`apiKeys/${userId}`).push();
-  if (!keyRef.key) throw new Error('Could not allocate an API key identifier.');
-
-  const newKeyData: Omit<ApiKey, 'id'> = {
-    name: parsed.keyName,
-    keyPreview: key.slice(-4),
-    createdAt: new Date().toISOString(),
-    userId,
-  };
-  await keyRef.set({
-    name: newKeyData.name,
-    keyHash: createHash('sha256').update(key).digest('hex'),
-    keyPreview: newKeyData.keyPreview,
-    createdAt: newKeyData.createdAt,
-    userId,
-  });
-  return { ...newKeyData, key, id: keyRef.key };
+  const { user, client } = await createSupabaseUserClient(parsed.idToken);
+  const key = 'sk_live_' + randomBytes(24).toString('hex');
+  const { data, error } = await client.from('user_api_keys').insert({
+    user_id: user.id, name: parsed.keyName,
+    key_hash: createHash('sha256').update(key).digest('hex'),
+    key_prefix: key.slice(-4),
+  }).select('id,name,key_prefix,created_at,user_id').single();
+  if (error) throw error;
+  return { id: data.id, name: data.name, keyPreview: data.key_prefix, createdAt: data.created_at, userId: data.user_id, key } as ApiKey;
 }
 
-export async function listUserApiKeys(idToken: string): Promise<Array<Omit<ApiKey, 'key'> & { keyPreview: string }>> {
-  const decoded = await verifySupabaseAccessToken(idToken);
-  const snapshot = await adminDb.ref(`apiKeys/${decoded.legacyUid}`).get();
-  if (!snapshot.exists()) return [];
-
-  const records = snapshot.val() as Record<string, any>;
-  const results: Array<Omit<ApiKey, 'key'> & { keyPreview: string }> = [];
-  for (const [id, record] of Object.entries(records)) {
-    let keyPreview = typeof record.keyPreview === 'string' ? record.keyPreview : '••••';
-    if (typeof record.key === 'string') {
-      const keyHash = createHash('sha256').update(record.key).digest('hex');
-      keyPreview = record.key.slice(-4);
-      await adminDb.ref(`apiKeys/${decoded.legacyUid}/${id}`).update({
-        keyHash,
-        keyPreview,
-        key: null,
-      });
-    }
-    results.push({
-      id,
-      name: String(record.name || 'API key'),
-      keyPreview,
-      createdAt: String(record.createdAt || new Date().toISOString()),
-      userId: decoded.legacyUid,
-    });
-  }
-  return results;
+export async function listUserApiKeys(idToken: string): Promise<Array<Omit<ApiKey, 'key'>>> {
+  const { user, client } = await createSupabaseUserClient(idToken);
+  const { data, error } = await client.from('user_api_keys')
+    .select('id,name,key_prefix,created_at,user_id').eq('user_id',user.id).is('revoked_at',null)
+    .order('created_at',{ascending:false});
+  if (error) throw error;
+  return (data || []).map(row => ({ id: row.id, name: row.name, keyPreview: row.key_prefix, createdAt: row.created_at, userId: row.user_id })) as Array<Omit<ApiKey,'key'>>;
 }

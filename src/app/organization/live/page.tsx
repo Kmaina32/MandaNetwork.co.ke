@@ -5,11 +5,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { LiveChat } from '@/components/LiveChat';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/supabase/records';
 import { createNotification, getUserById } from '@/lib/firebase-service';
 import { Hand, Loader2, PhoneOff, Users, Maximize, VideoOff, Mic, MicOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { onValue, ref, onChildAdded, set, remove, query } from 'firebase/database';
+import { onValue, ref, onChildAdded, set, remove, query } from '@/lib/supabase/records';
 import { NotebookSheet } from '@/components/NotebookSheet';
 import { useToast } from '@/hooks/use-toast';
 import {

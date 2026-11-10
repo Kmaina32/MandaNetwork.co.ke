@@ -24,8 +24,7 @@ import type { Course, CalendarEvent, Notification as DbNotification } from '@/li
 import { getAllCourses, getAllCalendarEvents, getAllNotifications, getUserById, getLiveSession, saveUser, updateInvitationStatus } from '@/lib/firebase-service';
 import { differenceInDays, isToday, parseISO, formatDistanceToNow } from 'date-fns';
 import { usePathname, useRouter } from 'next/navigation';
-import { db } from '@/lib/firebase';
-import { onValue, ref } from 'firebase/database';
+import { db, onValue, ref } from '@/lib/supabase/records';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 

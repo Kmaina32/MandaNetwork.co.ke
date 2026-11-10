@@ -3,10 +3,10 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/supabase/records';
 import { getUserById } from '@/lib/firebase-service';
 import { Hand, Users } from 'lucide-react';
-import { onValue, ref, onChildAdded, off } from 'firebase/database';
+import { onValue, ref, onChildAdded, off } from '@/lib/supabase/records';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export function ViewerList({ sessionId }: { sessionId: string }) {

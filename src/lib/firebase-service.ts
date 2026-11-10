@@ -1,12 +1,9 @@
 'use client';
 
-import { db, storage } from './firebase';
-import { ref, get, set, push, update, remove, query, orderByChild, equalTo, increment, limitToLast } from 'firebase/database';
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { Assignment, TutorSettings, Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, TeamMember, ContactMessage, Form as FormType, FormSubmission, Referral, Bootcamp, BlogPost, HeroData } from './types';
-import { getRemoteConfig, fetchAndActivate, getString } from 'firebase/remote-config';
-import { app } from './firebase';
 import { slugify } from './utils';
+import { getSupabaseBrowserClient } from './supabase/client';
+import { uploadAcademyAsset, uploadPublicAcademyImage } from './supabase/storage';
 
 export type { Assignment, Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, TeamMember, ContactMessage, Form, FormSubmission, Referral, Bootcamp, BlogPost, HeroData, TutorSettings } from './types';
 
@@ -17,1283 +14,1112 @@ export interface CertificateSettings {
     academicDirector: string;
 }
 
-// Image Upload Service
-export async function uploadImage(path: string, file: File): Promise<string> {
-    const imageRef = storageRef(storage, path);
-    await uploadBytes(imageRef, file);
-    const downloadURL = await getDownloadURL(imageRef);
-    return downloadURL;
+export interface PublicCertificateRecord {
+  certificateId: string;
+  studentName: string;
+  courseId: string;
+  courseTitle: string;
+  issuedAt: string;
+  studentPhotoURL?: string;
+  status?: 'valid' | 'revoked';
 }
 
-// Course Functions
+// Image Upload Service
+export async function uploadImage(path: string, file: File): Promise<string> {
+    const folder = path.split('/').filter(Boolean).slice(0, 2).join('-') || 'images';
+    return uploadPublicAcademyImage(file, folder);
+}
+
+// Course Functions — Supabase is the source of truth.
 export async function getAllCourses(): Promise<Course[]> {
-  const dbRef = ref(db, 'courses');
-  const snapshot = await get(dbRef);
-  if (snapshot.exists()) {
-    const coursesData = snapshot.val();
-    const courses = Object.keys(coursesData).map(key => ({
-      id: key,
-      ...coursesData[key]
-    }));
-    return courses.reverse();
-  }
-  return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('courses').select('*').order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map((row: any) => ({
+    ...(row.content || {}), id: row.id, title: row.title, description: row.description || '',
+    category: row.category || '', price: Number(row.price || 0), imageUrl: row.image_url || '',
+    isPublished: Boolean(row.is_published), createdAt: row.created_at, updatedAt: row.updated_at,
+  })) as Course[];
 }
 
 export async function getCourseById(id: string): Promise<Course | null> {
-    const courseRef = ref(db, `courses/${id}`);
-    const snapshot = await get(courseRef);
-    if(snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('courses').select('*').eq('id', id).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return { ...(data.content || {}), id: data.id, title: data.title, description: data.description || '',
+    category: data.category || '', price: Number(data.price || 0), imageUrl: data.image_url || '',
+    isPublished: Boolean(data.is_published), createdAt: data.created_at, updatedAt: data.updated_at } as Course;
 }
 
 export async function getCourseBySlug(slug: string): Promise<Course | null> {
-    const allCourses = await getAllCourses();
-    return allCourses.find(course => slugify(course.title) === slug) || null;
+  const allCourses = await getAllCourses();
+  return allCourses.find(course => slugify(course.title) === slug || (course as any).slug === slug) || null;
 }
 
-
 export async function createCourse(courseData: Omit<Course, 'id' | 'createdAt'>): Promise<string> {
-    const coursesRef = ref(db, 'courses');
-    const newCourseRef = push(coursesRef);
-    const dataToSave = {
-        ...courseData,
-        createdAt: new Date().toISOString(),
-        modules: courseData.modules || [],
-        exam: courseData.exam || [],
-    };
-
-    if (dataToSave.prerequisiteCourseId === 'none' || !dataToSave.prerequisiteCourseId) {
-        delete dataToSave.prerequisiteCourseId;
-    }
-    
-    // Ensure project is not undefined
-    if (dataToSave.project === undefined) {
-        delete (dataToSave as Partial<Course>).project;
-    }
-
-    await set(newCourseRef, dataToSave);
-    return newCourseRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { title, description, category, price, imageUrl, isPublished, ...content } = courseData as any;
+  const { data, error } = await supabase.from('courses').insert({
+    title, description: description || null, category: category || null, price: Number(price || 0),
+    image_url: imageUrl || null, is_published: Boolean(isPublished), content,
+  }).select('id').single();
+  if (error) throw error;
+  return data.id;
 }
 
 export async function updateCourse(courseId: string, courseData: Partial<Course>): Promise<void> {
-    const courseRef = ref(db, `courses/${courseId}`);
-    const dataToUpdate = { ...courseData };
-    if (dataToUpdate.prerequisiteCourseId === 'none') {
-        dataToUpdate.prerequisiteCourseId = undefined; // This will get filtered out
-    }
-     // Filter out undefined values to avoid overwriting with null in Firebase
-    const finalData = Object.fromEntries(Object.entries(dataToUpdate).filter(([_, v]) => v !== undefined));
-
-    await update(courseRef, finalData);
+  const supabase = getSupabaseBrowserClient();
+  const { title, description, category, price, imageUrl, isPublished, ...contentUpdate } = courseData as any;
+  const { data: current, error: readError } = await supabase.from('courses').select('content').eq('id', courseId).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Course not found.');
+  const patch: Record<string, unknown> = { content: { ...(current.content || {}), ...Object.fromEntries(Object.entries(contentUpdate).filter(([,v]) => v !== undefined)) }, updated_at: new Date().toISOString() };
+  if (title !== undefined) patch.title = title;
+  if (description !== undefined) patch.description = description;
+  if (category !== undefined) patch.category = category;
+  if (price !== undefined) patch.price = price;
+  if (imageUrl !== undefined) patch.image_url = imageUrl;
+  if (isPublished !== undefined) patch.is_published = isPublished;
+  const { error } = await supabase.from('courses').update(patch).eq('id', courseId);
+  if (error) throw error;
 }
-
 
 export async function deleteCourse(courseId: string): Promise<void> {
-    const courseRef = ref(db, `courses/${courseId}`);
-    await remove(courseRef);
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('courses').delete().eq('id', courseId);
+  if (error) throw error;
 }
-
 
 // User Functions
 export async function saveUser(uid: string, dataToSave: Partial<Omit<RegisteredUser, 'uid'>>): Promise<void> {
-    const userRef = ref(db, `users/${uid}`);
-    await update(userRef, dataToSave);
-    const userSnapshot = await get(userRef);
-    const fullUser = userSnapshot.val() || {};
-
-    // Minimal email lookup index for organization invitations. Rules bind the
-    // email to the caller's verified Firebase Auth token.
-    const directoryEmail = fullUser.email || null;
-    if (directoryEmail) {
-        await set(ref(db, `userDirectory/${uid}`), {
-            uid,
-            email: String(directoryEmail).trim(),
-            organizationId: fullUser.organizationId || null,
-        });
-    } else {
-        await remove(ref(db, `userDirectory/${uid}`));
-    }
-
-    if (dataToSave.portfolio || dataToSave.displayName || dataToSave.photoURL) {
-        const publicProfileRef = ref(db, `publicProfiles/${uid}`);
-        if (fullUser.portfolio?.public) {
-            const portfolio = fullUser.portfolio;
-            // Deliberately exclude phone, postal address, wallet and all account fields.
-            const publicPortfolio = {
-                public: true,
-                aboutMe: portfolio.aboutMe || '',
-                socialLinks: portfolio.socialLinks || {},
-                projects: portfolio.projects || [],
-                workExperience: portfolio.workExperience || [],
-                education: portfolio.education || [],
-            };
-            await set(publicProfileRef, {
-                uid,
-                displayName: fullUser.displayName || '',
-                photoURL: fullUser.photoURL || '',
-                portfolio: publicPortfolio,
-            });
-        } else {
-            await remove(publicProfileRef);
-        }
-    }
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('A signed-in account is required.');
+  const isSelf = authData.user.id === uid;
+  if (!isSelf) {
+    const { data: isAdmin, error: roleError } = await supabase.rpc('has_role', {
+      check_user_id: authData.user.id, allowed_roles: ['admin', 'super_admin'],
+    });
+    if (roleError || !isAdmin) throw new Error('You are not allowed to update this profile.');
+  }
+  const { displayName, photoURL, email, ...metadata } = dataToSave as any;
+  const { data: current, error: readError } = await supabase.from('profiles').select('metadata').eq('id', uid).maybeSingle();
+  if (readError) throw readError;
+  const safeMetadata = { ...(current?.metadata || {}) };
+  for (const [key, value] of Object.entries(metadata)) {
+    if (!['isAdmin','isSuperAdmin','role','roles','isOrganizationAdmin'].includes(key) && value !== undefined) safeMetadata[key] = value;
+  }
+  const patch: Record<string, unknown> = { metadata: safeMetadata, updated_at: new Date().toISOString() };
+  if (displayName !== undefined) patch.display_name = displayName;
+  if (photoURL !== undefined) patch.avatar_path = photoURL;
+  if (email !== undefined && isSelf) patch.email = email;
+  if (current) {
+    const { error } = await supabase.from('profiles').update(patch).eq('id', uid);
+    if (error) throw error;
+  } else {
+    if (!isSelf) throw new Error('The requested profile does not exist.');
+    const { error } = await supabase.from('profiles').insert({ id: uid, ...patch });
+    if (error) throw error;
+  }
 }
-
 export async function getUserById(uid: string): Promise<RegisteredUser | null> {
-    const userRef = ref(db, `users/${uid}`);
-    const snapshot = await get(userRef);
-    if (snapshot.exists()) {
-        return { uid, ...snapshot.val() };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('profiles').select('id,email,display_name,avatar_path,metadata,created_at').eq('id',uid).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const { data: roles, error: roleError } = await supabase.from('user_roles').select('role').eq('user_id',uid);
+  if (roleError) throw roleError;
+  const roleNames = (roles || []).map((row: any) => row.role);
+  return { ...(data.metadata || {}), uid: data.id, email: data.email, displayName: data.display_name || data.email,
+    photoURL: data.avatar_path || '', createdAt: data.created_at,
+    isAdmin: roleNames.some((role: string) => ['admin','super_admin'].includes(role)),
+    isSuperAdmin: roleNames.includes('super_admin') } as RegisteredUser;
 }
 
-// Public portfolio reads use a separate, intentionally limited record.
-// Never fetch the private users/{uid} node for anonymous portfolio visitors.
 export async function getPublicProfileById(uid: string): Promise<RegisteredUser | null> {
-    const profileRef = ref(db, `publicProfiles/${uid}`);
-    const snapshot = await get(profileRef);
-    if (!snapshot.exists()) return null;
-    return { uid, ...snapshot.val() } as RegisteredUser;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('profiles').select('id,display_name,avatar_path,metadata').eq('id',uid).eq('metadata->>isPublic','true').maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.metadata || {}), uid: data.id, displayName: data.display_name, photoURL: data.avatar_path || '' } as RegisteredUser) : null;
 }
 
 export async function getUserByEmail(email: string): Promise<RegisteredUser | null> {
-    const directoryRef = query(ref(db, 'userDirectory'), orderByChild('email'), equalTo(email.trim()));
-    const snapshot = await get(directoryRef);
-    if (snapshot.exists()) {
-        const records = snapshot.val();
-        const uid = Object.keys(records)[0];
-        const record = records[uid];
-        return { uid, email: record.email || null, displayName: null, organizationId: record.organizationId || undefined };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('profiles').select('id,email,display_name,metadata').ilike('email',email.trim()).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.metadata || {}), uid: data.id, email: data.email, displayName: data.display_name || null } as RegisteredUser) : null;
 }
 
 export async function getUserByDisplayName(displayName: string): Promise<RegisteredUser | null> {
-    const usersRef = query(ref(db, 'users'), orderByChild('displayName'), equalTo(displayName));
-    const snapshot = await get(usersRef);
-    if (snapshot.exists()) {
-        const usersData = snapshot.val();
-        const uid = Object.keys(usersData)[0];
-        return { uid, ...usersData[uid] };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('profiles').select('id,email,display_name,metadata').ilike('display_name',displayName.trim()).limit(1).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.metadata || {}), uid: data.id, email: data.email, displayName: data.display_name } as RegisteredUser) : null;
 }
 
-
-
 export async function enrollUserInCourse(userId: string, courseId: string, paymentMethod: UserCourse['paymentMethod'] = 'free'): Promise<void> {
-    const enrollmentRef = ref(db, `users/${userId}/purchasedCourses/${courseId}`);
-    await set(enrollmentRef, {
-        progress: 0,
-        completed: false,
-        certificateAvailable: false,
-        completedLessons: [],
-        enrollmentDate: new Date().toISOString(),
-        paymentMethod: paymentMethod,
-    });
-     const course = await getCourseById(courseId);
-    if (course) {
-        await logActivity(userId, {
-            type: 'enrollment',
-            details: {
-                courseTitle: course.title,
-                courseId: courseId
-            }
-        });
-    }
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) throw new Error('You can only enrol your own account.');
+  const { error } = await supabase.from('enrollments').upsert({
+    user_id: userId, course_id: courseId, progress: 0, completed: false,
+    content: { enrollmentDate: new Date().toISOString(), paymentMethod, completedLessons: [], certificateAvailable: false },
+  }, { onConflict: 'user_id,course_id', ignoreDuplicates: true });
+  if (error) throw error;
+  await supabase.from('activity_logs').insert({ user_id: userId, event_type: 'course_enrollment', content: { courseId } });
 }
 
 export async function getUserCourses(userId: string): Promise<UserCourse[]> {
-    const userCoursesRef = ref(db, `users/${userId}/purchasedCourses`);
-    const snapshot = await get(userCoursesRef);
-    if (snapshot.exists()) {
-        const coursesData = snapshot.val();
-        return Object.keys(coursesData).map(courseId => ({
-            courseId,
-            ...coursesData[courseId]
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) throw new Error('You can only view your own enrollments.');
+  const { data, error } = await supabase.from('enrollments').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map((row: any) => ({
+    ...(row.content || {}), courseId: row.course_id, progress: Number(row.progress || 0),
+    completed: Boolean(row.completed), enrollmentDate: row.content?.enrollmentDate || row.created_at,
+  })) as UserCourse[];
 }
 
 export async function updateUserCourseProgress(userId: string, courseId: string, data: Partial<Omit<UserCourse, 'courseId'>>) {
-    const progressRef = ref(db, `users/${userId}/purchasedCourses/${courseId}`);
-    await update(progressRef, data);
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) throw new Error('You can only update your own course progress.');
+  const { data: current, error: readError } = await supabase.from('enrollments').select('content').eq('user_id', userId).eq('course_id', courseId).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Course enrollment not found.');
+  const { progress, completed, ...content } = data as any;
+  const patch: Record<string, unknown> = { content: { ...(current.content || {}), ...content }, updated_at: new Date().toISOString() };
+  if (progress !== undefined) patch.progress = progress;
+  if (completed !== undefined) patch.completed = completed;
+  const { error } = await supabase.from('enrollments').update(patch).eq('user_id', userId).eq('course_id', courseId);
+  if (error) throw error;
 }
-
 
 export async function getAllUsers(): Promise<RegisteredUser[]> {
-    const usersRef = ref(db, 'users');
-    const snapshot = await get(usersRef);
-    if (snapshot.exists()) {
-        const usersData = snapshot.val();
-        return Object.keys(usersData).map(uid => ({
-            uid,
-            ...usersData[uid],
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data: current } = await supabase.auth.getUser();
+  if (!current.user) throw new Error('Administrator sign-in is required.');
+  const { data: allowed, error: roleError } = await supabase.rpc('has_role', {
+    check_user_id: current.user.id, allowed_roles: ['admin', 'super_admin'],
+  });
+  if (roleError || !allowed) throw new Error('Administrator access is required.');
+  const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+  if (error) throw error;
+  const ids = (data || []).map((row: any) => row.id);
+  const { data: roleRows, error: rolesError } = ids.length
+    ? await supabase.from('user_roles').select('user_id,role').in('user_id', ids)
+    : { data: [], error: null };
+  if (rolesError) throw rolesError;
+  const roles = new Map<string, string[]>();
+  (roleRows || []).forEach((row: any) => roles.set(row.user_id, [...(roles.get(row.user_id) || []), row.role]));
+  return (data || []).map((row: any) => ({
+    ...(row.metadata || {}), uid: row.id, email: row.email || null,
+    displayName: row.display_name || row.email || 'Learner', photoURL: row.avatar_path || '',
+    createdAt: row.created_at, isAdmin: (roles.get(row.id) || []).some(role => ['admin','super_admin'].includes(role)),
+    isSuperAdmin: (roles.get(row.id) || []).includes('super_admin'),
+  })) as RegisteredUser[];
 }
-
 export async function getPublicProfiles(): Promise<RegisteredUser[]> {
-  const dbRef = ref(db, 'publicProfiles');
-  const snapshot = await get(dbRef);
-  if (snapshot.exists()) {
-    const data = snapshot.val();
-    return Object.keys(data).map(uid => ({
-      uid,
-      ...data[uid],
-    }));
-  }
-  return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('profiles').select('id,display_name,avatar_path,metadata')
+    .eq('metadata->>isPublic','true').order('display_name').limit(200);
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.metadata || {}), uid: row.id, displayName: row.display_name, photoURL: row.avatar_path || '' })) as RegisteredUser[];
 }
-
 
 export async function deleteUser(userId: string): Promise<void> {
-    const userRef = ref(db, `users/${userId}`);
-    await remove(userRef);
+  const supabase = getSupabaseBrowserClient();
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError || !sessionData.session) throw new Error('Administrator sign-in is required.');
+  const response = await fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+    method: 'DELETE', headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || 'Could not delete this account.');
 }
 
-
-// Hero Section Functions
 export async function getHeroData(): Promise<HeroData> {
-    const heroRef = ref(db, 'hero');
-    const snapshot = await get(heroRef);
-    const defaults = {
-        title: 'Unlock Your Potential.', 
-        subtitle: 'Quality, affordable courses designed for the Kenyan market.',
-        imageUrl: 'https://placehold.co/1200x400.png',
-        loginImageUrl: 'https://placehold.co/1200x900.png',
-        signupImageUrl: 'https://placehold.co/1200x900.png',
-        programsImageUrl: 'https://picsum.photos/1200/400',
-        bootcampsImageUrl: 'https://picsum.photos/1200/400',
-        hackathonsImageUrl: 'https://picsum.photos/1200/400',
-        portfoliosImageUrl: 'https://picsum.photos/1200/400',
-        slideshowSpeed: 5,
-        imageBrightness: 60,
-        recaptchaEnabled: true,
-        onboardingEnabled: true,
-        theme: 'default',
-        animationsEnabled: true,
-        orgHeroTitle: 'Varban Academy for Business',
-        orgHeroSubtitle: 'Empower your workforce with the skills they need to succeed.',
-        orgHeroImageUrl: 'https://picsum.photos/1200/800',
-        orgLoginImageUrl: 'https://picsum.photos/1200/900',
-        orgSignupImageUrl: 'https://picsum.photos/1200/900',
-        adsEnabled: false,
-        adInterval: 30,
-        activityTrackingEnabled: false,
-        aiProvider: 'gemini' as const,
-        customModelId: '',
-    };
-    const dbData = snapshot.exists() ? snapshot.val() : {};
-    return { ...defaults, ...dbData };
+  const defaults: HeroData = {
+    title: 'Unlock Your Potential.', subtitle: 'Quality, affordable courses designed for the Kenyan market.',
+    imageUrl: 'https://placehold.co/1200x400.png', loginImageUrl: 'https://placehold.co/1200x900.png',
+    signupImageUrl: 'https://placehold.co/1200x900.png', programsImageUrl: 'https://picsum.photos/1200/400',
+    bootcampsImageUrl: 'https://picsum.photos/1200/400', hackathonsImageUrl: 'https://picsum.photos/1200/400',
+    portfoliosImageUrl: 'https://picsum.photos/1200/400', slideshowSpeed: 5, imageBrightness: 60,
+    recaptchaEnabled: true, onboardingEnabled: true, theme: 'default', animationsEnabled: true,
+    orgHeroTitle: 'Varban Academy for Business', orgHeroSubtitle: 'Empower your workforce with the skills they need to succeed.',
+    orgHeroImageUrl: 'https://picsum.photos/1200/800', orgLoginImageUrl: 'https://picsum.photos/1200/900',
+    orgSignupImageUrl: 'https://picsum.photos/1200/900', adsEnabled: false, adInterval: 30,
+    activityTrackingEnabled: false, aiProvider: 'gemini', customModelId: '',
+  };
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('app_settings').select('value').eq('key','hero').maybeSingle();
+  if (error) throw error;
+  return { ...defaults, ...(data?.value || {}) } as HeroData;
 }
 
 export async function saveHeroData(data: Partial<HeroData>): Promise<void> {
-    const heroRef = ref(db, 'hero');
-    await update(heroRef, data);
+  const supabase = getSupabaseBrowserClient();
+  const { data: current, error: readError } = await supabase.from('app_settings').select('value').eq('key','hero').maybeSingle();
+  if (readError) throw readError;
+  const { data: authData } = await supabase.auth.getUser();
+  const { error } = await supabase.from('app_settings').upsert({
+    key: 'hero', value: { ...(current?.value || {}), ...data }, updated_by: authData.user?.id || null,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'key' });
+  if (error) throw error;
 }
 
-
-// Calendar Event Functions
 export async function createCalendarEvent(eventData: Omit<CalendarEvent, 'id'>): Promise<string> {
-    const eventsRef = ref(db, 'calendarEvents');
-    const newEventRef = push(eventsRef);
-    await set(newEventRef, eventData);
-    return newEventRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Sign in is required to create a calendar event.');
+  const event = eventData as any;
+  const id = crypto.randomUUID();
+  const { error } = await supabase.from('calendar_events').insert({
+    id, title: String(event.title || 'Event'), starts_at: event.date || event.startsAt || null,
+    content: eventData, created_by: authData.user.id,
+  });
+  if (error) throw error;
+  return id;
 }
 
 export async function getAllCalendarEvents(): Promise<CalendarEvent[]> {
-    const eventsRef = ref(db, 'calendarEvents');
-    const snapshot = await get(eventsRef);
-    if (snapshot.exists()) {
-        const eventsData = snapshot.val();
-        return Object.keys(eventsData).map(key => ({
-            id: key,
-            ...eventsData[key]
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('calendar_events').select('*').order('starts_at', { ascending: true });
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, title: row.title, date: row.starts_at || row.content?.date })) as CalendarEvent[];
 }
 
 export async function deleteCalendarEvent(eventId: string): Promise<void> {
-    const eventRef = ref(db, `calendarEvents/${eventId}`);
-    await remove(eventRef);
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('calendar_events').delete().eq('id', eventId);
+  if (error) throw error;
 }
 
-// Submission Functions
 export async function createSubmission(submissionData: Omit<Submission, 'id'>): Promise<string> {
-    const submissionsRef = ref(db, 'submissions');
-    const newSubmissionRef = push(submissionsRef);
-    await set(newSubmissionRef, submissionData);
-    return newSubmissionRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Sign in is required to submit work.');
+  const item = submissionData as any;
+  const id = crypto.randomUUID();
+  const { error } = await supabase.from('submissions').insert({
+    id, user_id: authData.user.id, course_id: item.courseId || '', assignment_id: item.assignmentId || null,
+    content: submissionData, submitted_at: new Date().toISOString(),
+  });
+  if (error) throw error;
+  return id;
 }
 
 export async function getSubmissionsByUserId(userId: string): Promise<Submission[]> {
-    const submissionsRef = query(ref(db, 'submissions'), orderByChild('userId'), equalTo(userId));
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const submissionsData = snapshot.val();
-        return Object.keys(submissionsData).map(key => ({
-            id: key,
-            ...submissionsData[key],
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('submissions').select('*').eq('user_id', userId).order('submitted_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, userId: row.user_id, courseId: row.course_id, submittedAt: row.submitted_at })) as Submission[];
 }
 
 export async function getUserSubmissionsForCourse(userId: string, courseId: string): Promise<Submission[]> {
-    const submissionsRef = query(ref(db, 'submissions'), orderByChild('userId'), equalTo(userId));
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const submissionsData = snapshot.val();
-        return Object.keys(submissionsData)
-            .map(key => ({
-                id: key,
-                ...submissionsData[key],
-            }))
-            .filter(submission => submission.courseId === courseId);
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('submissions').select('*').eq('user_id', userId).eq('course_id', courseId).order('submitted_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, userId: row.user_id, courseId: row.course_id, submittedAt: row.submitted_at })) as Submission[];
 }
 
 export async function getAllSubmissions(): Promise<Submission[]> {
-    const submissionsRef = ref(db, 'submissions');
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('submissions').select('*').order('submitted_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, userId: row.user_id, courseId: row.course_id, submittedAt: row.submitted_at })) as Submission[];
 }
 
 export async function getSubmissionById(id: string): Promise<Submission | null> {
-    const submissionRef = ref(db, `submissions/${id}`);
-    const snapshot = await get(submissionRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('submissions').select('*').eq('id', id).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.content || {}), id: data.id, userId: data.user_id, courseId: data.course_id, submittedAt: data.submitted_at } as Submission) : null;
 }
 
 export async function updateSubmission(id: string, data: Partial<Submission>): Promise<void> {
-    const submissionRef = ref(db, `submissions/${id}`);
-    await update(submissionRef, data);
+  const supabase = getSupabaseBrowserClient();
+  const { data: current, error: readError } = await supabase.from('submissions').select('content').eq('id', id).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Submission not found.');
+  const { error } = await supabase.from('submissions').update({
+    content: { ...(current.content || {}), ...data }, updated_at: new Date().toISOString(),
+  }).eq('id', id);
+  if (error) throw error;
 }
 
-// Tutor History Functions
-export async function saveTutorHistory(
-  userId: string,
-  courseId: string,
-  lessonId: string,
-  messages: TutorMessage[]
-): Promise<void> {
-  const historyRef = ref(db, `tutorHistory/${userId}/${courseId}/${lessonId}`);
-  await set(historyRef, messages);
+export async function saveTutorHistory(userId: string, courseId: string, lessonId: string, messages: TutorMessage[]): Promise<void> {
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) throw new Error('You can only save your own tutor history.');
+  const { error } = await supabase.from('tutor_history').upsert({
+    user_id: userId, course_id: courseId, lesson_id: lessonId, messages, updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id,course_id,lesson_id' });
+  if (error) throw error;
 }
 
-export async function getTutorHistory(
-  userId: string,
-  courseId: string,
-  lessonId: string
-): Promise<TutorMessage[]> {
-  const historyRef = ref(db, `tutorHistory/${userId}/${courseId}/${lessonId}`);
-  const snapshot = await get(historyRef);
-  if (snapshot.exists()) {
-    return snapshot.val();
-  }
-  return [];
+export async function getTutorHistory(userId: string, courseId: string, lessonId: string): Promise<TutorMessage[]> {
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) throw new Error('You can only read your own tutor history.');
+  const { data, error } = await supabase.from('tutor_history').select('messages').eq('user_id', userId).eq('course_id', courseId).eq('lesson_id', lessonId).maybeSingle();
+  if (error) throw error;
+  return (data?.messages || []) as TutorMessage[];
 }
 
-// Tutor Settings Functions
 export async function saveTutorSettings(settings: TutorSettings): Promise<void> {
-    const settingsRef = ref(db, 'tutorSettings');
-    await set(settingsRef, settings);
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData } = await supabase.auth.getUser();
+  const { error } = await supabase.from('app_settings').upsert({ key: 'tutor_settings', value: settings, updated_by: authData.user?.id || null, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+  if (error) throw error;
 }
 
 export async function getTutorSettings(): Promise<TutorSettings> {
-    const settingsRef = ref(db, 'tutorSettings');
-    const snapshot = await get(settingsRef);
-    const defaults: TutorSettings = {
-        voice: 'algenib',
-        speed: 1.0,
-        prompts: "Welcome! To talk with me, your virtual tutor, just click the chat button.\nHow can I help you with this lesson?",
-        avatarUrl: '/gina-avatar.png',
-    };
-    if (snapshot.exists()) {
-        return { ...defaults, ...snapshot.val() };
-    }
-    return defaults;
+  const defaults: TutorSettings = { voice: 'algenib', speed: 1.0, prompts: "Welcome! To talk with me, your virtual tutor, just click the chat button.\nHow can I help you with this lesson?", avatarUrl: '/gina-avatar.png' };
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('app_settings').select('value').eq('key','tutor_settings').maybeSingle();
+  if (error) throw error;
+  return { ...defaults, ...(data?.value || {}) } as TutorSettings;
 }
 
-// Certificate Settings Functions
 export async function saveCertificateSettings(settings: CertificateSettings): Promise<void> {
-    const settingsRef = ref(db, 'certificateSettings');
-    await set(settingsRef, settings);
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData } = await supabase.auth.getUser();
+  const { error } = await supabase.from('app_settings').upsert({ key: 'certificate_settings', value: settings, updated_by: authData.user?.id || null, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+  if (error) throw error;
 }
 
 export async function getCertificateSettings(): Promise<CertificateSettings> {
-    const settingsRef = ref(db, 'certificateSettings');
-    const snapshot = await get(settingsRef);
-    const defaults: CertificateSettings = {
-        academicDirector: 'Dr. Emily Carter',
-    };
-    if (snapshot.exists()) {
-        return { ...defaults, ...snapshot.val() };
-    }
-    return defaults;
+  const defaults: CertificateSettings = { academicDirector: 'Dr. Emily Carter' };
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('app_settings').select('value').eq('key','certificate_settings').maybeSingle();
+  if (error) throw error;
+  return { ...defaults, ...(data?.value || {}) } as CertificateSettings;
 }
 
-
-// Remote Config Functions
 export async function getRemoteConfigValues(keys: string[]): Promise<Record<string, string>> {
-    const remoteConfig = getRemoteConfig(app);
-    if (typeof window !== 'undefined') {
-        await fetchAndActivate(remoteConfig);
-    }
-    
-    const configValues: Record<string, string> = {};
-    keys.forEach(key => {
-        configValues[key] = getString(remoteConfig, key);
-    });
-    return configValues;
+  const hero = await getHeroData();
+  const values: Record<string, string> = {};
+  keys.forEach(key => {
+    if (key === 'hero_title') values[key] = String(hero.title || '');
+    else if (key === 'hero_subtitle') values[key] = String(hero.subtitle || '');
+    else values[key] = '';
+  });
+  return values;
 }
-
 
 export async function saveRemoteConfigValues(data: Record<string, string>): Promise<void> {
-    // This function can't actually save to remote config from the client.
-    // It will write to the Realtime Database instead as a mock.
-    const heroRef = ref(db, 'hero');
-    await update(heroRef, {
-        title: data.hero_title,
-        subtitle: data.hero_subtitle
-    });
-    console.log("Remote config values saved to RTDB for demo purposes:", data);
+  await saveHeroData({
+    ...(data.hero_title !== undefined ? { title: data.hero_title } : {}),
+    ...(data.hero_subtitle !== undefined ? { subtitle: data.hero_subtitle } : {}),
+  });
 }
 
-
-// Notification Functions
 export async function createNotification(notificationData: Partial<Omit<Notification, 'id'>>): Promise<string> {
-    const notificationsRef = ref(db, 'notifications');
-    const newNotificationRef = push(notificationsRef);
-    const dataToSave = {
-        read: false,
-        archived: false,
-        ...notificationData,
-        createdAt: new Date().toISOString(),
-    };
-    await set(newNotificationRef, dataToSave);
-    return newNotificationRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Sign in is required to send notifications.');
+  const item = notificationData as any;
+  const id = crypto.randomUUID();
+  const content = { ...(item.cohort ? { cohort: item.cohort } : {}), link: item.link || null, read: false, archived: false };
+  const { error } = await supabase.from('notifications').insert({
+    id, user_id: item.userId || null, title: String(item.title || 'Notification'),
+    body: item.body || '', content, created_at: new Date().toISOString(),
+  });
+  if (error) throw error;
+  return id;
 }
 
 export async function getAllNotifications(userId: string, cohort?: string): Promise<Notification[]> {
-    if (!userId) throw new Error('A signed-in user is required to load notifications.');
-    const userQuery = query(ref(db, 'notifications'), orderByChild('userId'), equalTo(userId));
-    const requests = [get(userQuery)];
-    if (cohort) {
-        const cohortQuery = query(ref(db, 'notifications'), orderByChild('cohort'), equalTo(cohort));
-        requests.push(get(cohortQuery));
-    }
-    const snapshots = await Promise.all(requests);
-    const notificationsById = new Map<string, Notification>();
-    for (const snapshot of snapshots) {
-        if (!snapshot.exists()) continue;
-        const data = snapshot.val();
-        for (const key of Object.keys(data)) {
-            notificationsById.set(key, { id: key, ...data[key] });
-        }
-    }
-    return Array.from(notificationsById.values())
-        .sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) throw new Error('You can only load notifications for your own account.');
+  const [ownResult, cohortResult] = await Promise.all([
+    supabase.from('notifications').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
+    cohort ? supabase.from('notifications').select('*').contains('content', { cohort }).order('created_at', { ascending: false }).limit(100) : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (ownResult.error) throw ownResult.error;
+  if (cohortResult.error) throw cohortResult.error;
+  const rows = new Map<string, any>();
+  [...(ownResult.data || []), ...(cohortResult.data || [])].forEach((row: any) => rows.set(row.id, row));
+  return Array.from(rows.values()).map((row: any) => ({
+    id: row.id, userId: row.user_id, title: row.title, body: typeof row.body === 'string' ? row.body : JSON.stringify(row.body || ''),
+    link: row.content?.link || undefined, cohort: row.content?.cohort || undefined,
+    read: Boolean(row.read_at), archived: Boolean(row.content?.archived), createdAt: row.created_at,
+  })) as Notification[];
 }
 
-// User Notes Functions
 export async function saveUserNotes(userId: string, courseId: string, notes: string): Promise<void> {
-    const notesRef = ref(db, `userNotes/${userId}/${courseId}`);
-    await set(notesRef, { notes });
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) throw new Error('You can only save your own notes.');
+  const { error } = await supabase.from('user_notes').upsert({ user_id: userId, course_id: courseId, notes, updated_at: new Date().toISOString() }, { onConflict: 'user_id,course_id' });
+  if (error) throw error;
 }
 
 export async function getUserNotes(userId: string, courseId: string): Promise<string> {
-    const notesRef = ref(db, `userNotes/${userId}/${courseId}/notes`);
-    const snapshot = await get(notesRef);
-    if (snapshot.exists()) {
-        return snapshot.val();
-    }
-    return '';
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) throw new Error('You can only read your own notes.');
+  const { data, error } = await supabase.from('user_notes').select('notes').eq('user_id', userId).eq('course_id', courseId).maybeSingle();
+  if (error) throw error;
+  return data?.notes || '';
 }
 
-// Discussion Forum Functions
 export async function createThread(courseId: string, threadData: Omit<DiscussionThread, 'id'>): Promise<string> {
-    const threadsRef = ref(db, `discussions/threads/${courseId}`);
-    const newThreadRef = push(threadsRef);
-    await set(newThreadRef, threadData);
-    return newThreadRef.key!;
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError||!auth.user) throw new Error('Sign in to start a discussion.');
+  const id=crypto.randomUUID(); const {error}=await supabase.from('discussion_threads').insert({id,course_id:courseId,user_id:auth.user.id,content:threadData});
+  if(error) throw error; return id;
 }
 
 export async function getThreadsForCourse(courseId: string): Promise<DiscussionThread[]> {
-    const threadsRef = query(ref(db, `discussions/threads/${courseId}`), orderByChild('createdAt'));
-    const snapshot = await get(threadsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        const threads = Object.keys(data).map(key => ({ id: key, ...data[key] }));
-        return threads.reverse();
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('discussion_threads').select('*').eq('course_id',courseId).order('created_at',{ascending:false});
+  if(error) throw error; return (data||[]).map((row:any)=>({...row.content,id:row.id,courseId:row.course_id,userId:row.user_id,createdAt:row.created_at})) as DiscussionThread[];
 }
 
 export async function createReply(threadId: string, replyData: Omit<DiscussionReply, 'id'>): Promise<string> {
-    const repliesRef = ref(db, `discussions/replies/${threadId}`);
-    const newReplyRef = push(repliesRef);
-    await set(newReplyRef, replyData);
-    return newReplyRef.key!;
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError||!auth.user) throw new Error('Sign in to reply.');
+  const id=crypto.randomUUID(); const {error}=await supabase.from('discussion_replies').insert({id,thread_id:threadId,user_id:auth.user.id,content:replyData});
+  if(error) throw error; return id;
 }
 
 export async function getRepliesForThread(threadId: string): Promise<DiscussionReply[]> {
-    const repliesRef = query(ref(db, `discussions/replies/${threadId}`), orderByChild('createdAt'));
-    const snapshot = await get(repliesRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('discussion_replies').select('*').eq('thread_id',threadId).order('created_at');
+  if(error) throw error; return (data||[]).map((row:any)=>({...row.content,id:row.id,threadId:row.thread_id,userId:row.user_id,createdAt:row.created_at})) as DiscussionReply[];
 }
 
-
-// Live Session Functions
 export async function getLiveSession(): Promise<LiveSession | null> {
-    const sessionRef = ref(db, 'liveSession');
-    const snapshot = await get(sessionRef);
-    if(snapshot.exists()) {
-        return snapshot.val() as LiveSession;
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('live_sessions').select('*').eq('status','live').order('created_at',{ascending:false}).limit(1).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.metadata || {}), id: data.id, title: data.title, status: data.status, createdAt: data.created_at } as LiveSession) : null;
 }
 
 export async function updateLiveSession(data: Partial<LiveSession>): Promise<void> {
-    const sessionRef = ref(db, 'liveSession');
-    await update(sessionRef, data);
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Sign in is required to update a live session.');
+  const item = data as any;
+  const id = String(item.id || 'live-session');
+  const { data: current, error: readError } = await supabase.from('live_sessions').select('metadata').eq('id',id).maybeSingle();
+  if (readError) throw readError;
+  const { error } = await supabase.from('live_sessions').upsert({
+    id, host_id: authData.user.id, title: String(item.title || 'Live Session'),
+    status: item.status === 'ended' || item.isLive === false ? 'ended' : 'live',
+    metadata: { ...(current?.metadata || {}), ...item },
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'id' });
+  if (error) throw error;
 }
 
 export async function sendReaction(sessionId: string, emoji: string): Promise<void> {
-    const reactionsRef = ref(db, `liveReactions/${sessionId}`);
-    const newReactionRef = push(reactionsRef);
-    await set(newReactionRef, { emoji });
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Sign in to react to a live class.');
+  const { error } = await supabase.from('live_reactions').insert({ session_id: sessionId, user_id: authData.user.id, reaction: emoji });
+  if (error) throw error;
 }
 
+const mapProgram = (row: any): Program => ({ ...(row.content || {}), id: row.id, title: row.title, description: row.description || '', isPublished: row.is_published, createdAt: row.created_at, updatedAt: row.updated_at } as Program);
+const mapBootcamp = (row: any): Bootcamp => ({ ...(row.content || {}), id: row.id, title: row.title, description: row.description || '', startDate: row.start_date, isPublished: row.is_published, createdAt: row.created_at, updatedAt: row.updated_at } as Bootcamp);
 
-// Program Functions
 export async function createProgram(programData: Omit<Program, 'id'>): Promise<string> {
-    const programsRef = ref(db, 'programs');
-    const newProgramRef = push(programsRef);
-    await set(newProgramRef, programData);
-    return newProgramRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Administrator sign-in is required.');
+  const item = programData as any;
+  const id = crypto.randomUUID();
+  const { error } = await supabase.from('programs').insert({ id, title: item.title, description: item.description || null, is_published: Boolean(item.isPublished), content: item, created_by: authData.user.id });
+  if (error) throw error;
+  return id;
 }
 
 export async function getAllPrograms(): Promise<Program[]> {
-    const dbRef = ref(db, 'programs');
-    const snapshot = await get(dbRef);
-    if (snapshot.exists()) {
-        const programsData = snapshot.val();
-        return Object.keys(programsData).map(key => ({
-            id: key,
-            ...programsData[key]
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('programs').select('*').order('created_at',{ascending:false});
+  if (error) throw error;
+  return (data || []).map(mapProgram);
 }
 
 export async function getProgramById(id: string): Promise<Program | null> {
-    const programRef = ref(db, `programs/${id}`);
-    const snapshot = await get(programRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('programs').select('*').eq('id',id).maybeSingle();
+  if (error) throw error;
+  return data ? mapProgram(data) : null;
 }
 
 export async function updateProgram(id: string, programData: Partial<Program>): Promise<void> {
-    const programRef = ref(db, `programs/${id}`);
-    await update(programRef, programData);
+  const supabase = getSupabaseBrowserClient();
+  const { data: current, error: readError } = await supabase.from('programs').select('content').eq('id',id).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Program not found.');
+  const item = programData as any;
+  const { error } = await supabase.from('programs').update({
+    ...(item.title !== undefined ? { title: item.title } : {}),
+    ...(item.description !== undefined ? { description: item.description } : {}),
+    ...(item.isPublished !== undefined ? { is_published: item.isPublished } : {}),
+    content: { ...(current.content || {}), ...item }, updated_at: new Date().toISOString(),
+  }).eq('id',id);
+  if (error) throw error;
 }
 
 export async function deleteProgram(id: string): Promise<void> {
-    const programRef = ref(db, `programs/${id}`);
-    await remove(programRef);
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('programs').delete().eq('id',id);
+  if (error) throw error;
 }
 
-// Bundle Functions
 export async function createBundle(bundleData: Omit<Bundle, 'id'>): Promise<string> {
-    const bundlesRef = ref(db, 'bundles');
-    const newBundleRef = push(bundlesRef);
-    await set(newBundleRef, bundleData);
-    return newBundleRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Administrator sign-in is required.');
+  const item = bundleData as any; const id = crypto.randomUUID();
+  const { error } = await supabase.from('bundles').insert({ id, title: String(item.title || 'Bundle'), price: Number(item.price || 0), is_published: Boolean(item.isPublished), content: item, created_by: authData.user.id });
+  if (error) throw error;
+  return id;
 }
 
 export async function getAllBundles(): Promise<Bundle[]> {
-    const bundlesRef = ref(db, 'bundles');
-    const snapshot = await get(bundlesRef);
-    if (snapshot.exists()) {
-        const bundlesData = snapshot.val();
-        return Object.keys(bundlesData).map(key => ({
-            id: key,
-            ...bundlesData[key]
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('bundles').select('*').order('created_at',{ascending:false});
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, title: row.title, price: Number(row.price), isPublished: row.is_published })) as Bundle[];
 }
 
 export async function getBundleById(id: string): Promise<Bundle | null> {
-    const bundleRef = ref(db, `bundles/${id}`);
-    const snapshot = await get(bundleRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('bundles').select('*').eq('id',id).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.content || {}), id: data.id, title: data.title, price: Number(data.price), isPublished: data.is_published } as Bundle) : null;
 }
 
 export async function updateBundle(id: string, bundleData: Partial<Bundle>): Promise<void> {
-    const bundleRef = ref(db, `bundles/${id}`);
-    await update(bundleRef, bundleData);
+  const supabase = getSupabaseBrowserClient();
+  const { data: current, error: readError } = await supabase.from('bundles').select('content').eq('id',id).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Bundle not found.');
+  const item = bundleData as any;
+  const { error } = await supabase.from('bundles').update({
+    ...(item.title !== undefined ? { title: item.title } : {}), ...(item.price !== undefined ? { price: item.price } : {}),
+    ...(item.isPublished !== undefined ? { is_published: item.isPublished } : {}),
+    content: { ...(current.content || {}), ...item }, updated_at: new Date().toISOString(),
+  }).eq('id',id);
+  if (error) throw error;
 }
 
 export async function deleteBundle(id: string): Promise<void> {
-    const bundleRef = ref(db, `bundles/${id}`);
-    await remove(bundleRef);
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('bundles').delete().eq('id',id);
+  if (error) throw error;
 }
 
-
-// API Key and Usage Functions
 export async function createApiKey(userId: string, keyData: Omit<ApiKey, 'id'>): Promise<string> {
-    const keysRef = ref(db, `apiKeys/${userId}`);
-    const newKeyRef = push(keysRef);
-    await set(newKeyRef, keyData);
-    return newKeyRef.key!;
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser();
+  if(!auth.user || auth.user.id!==userId) throw new Error('You can only create API keys for your own account.');
+  const item=keyData as any; const rawKey=String(item.key||'');
+  if(rawKey.length<24) throw new Error('A securely generated API key is required.');
+  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(rawKey));
+  const hash=Array.from(new Uint8Array(digest)).map(byte=>byte.toString(16).padStart(2,'0')).join('');
+  const id=crypto.randomUUID();
+  const {error}=await supabase.from('user_api_keys').insert({id,user_id:userId,name:String(item.name||'API key'),key_hash:hash,key_prefix:rawKey.slice(-4)});
+  if(error) throw error; return id;
 }
 
 export async function getUserApiKeys(userId: string): Promise<ApiKey[]> {
-    const keysRef = ref(db, `apiKeys/${userId}`);
-    const snapshot = await get(keysRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser();
+  if(auth.user?.id!==userId) throw new Error('You can only view your own API keys.');
+  const {data,error}=await supabase.from('user_api_keys').select('id,name,key_prefix,created_at,revoked_at').eq('user_id',userId).order('created_at',{ascending:false});
+  if(error) throw error;
+  return (data||[]).map((row:any)=>({id:row.id,name:row.name,keyPreview:row.key_prefix,createdAt:row.created_at,revokedAt:row.revoked_at,userId:row.user_id})) as ApiKey[];
 }
 
 export async function deleteApiKey(userId: string, keyId: string): Promise<void> {
-    const keyRef = ref(db, `apiKeys/${userId}/${keyId}`);
-    await remove(keyRef);
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser();
+  if(auth.user?.id!==userId) throw new Error('You can only revoke your own API keys.');
+  const {error}=await supabase.from('user_api_keys').update({revoked_at:new Date().toISOString()}).eq('id',keyId).eq('user_id',userId);
+  if(error) throw error;
 }
 
 export async function logApiCall(userId: string, endpoint: string): Promise<void> {
-    const userRef = ref(db, `users/${userId}`);
-    await update(userRef, {
-        apiCallCount: increment(1)
-    });
-
-    const usageLogRef = ref(db, `apiUsage/${userId}`);
-    const newLogRef = push(usageLogRef);
-    await set(newLogRef, {
-        endpoint,
-        timestamp: new Date().toISOString(),
-    });
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser();
+  if(auth.user?.id!==userId) return;
+  await supabase.from('activity_logs').insert({user_id:userId,event_type:'api_call',content:{endpoint,timestamp:new Date().toISOString()}});
 }
 
-// Student social features
 export async function createCourseFeedback(courseId: string, feedbackData: Omit<CourseFeedback, 'id' | 'courseId' | 'createdAt'>): Promise<string> {
-    const feedbackRef = ref(db, `courseFeedback/${courseId}`);
-    const newFeedbackRef = push(feedbackRef);
-    await set(newFeedbackRef, {
-        ...feedbackData,
-        createdAt: new Date().toISOString(),
-    });
-    return newFeedbackRef.key!;
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError||!auth.user) throw new Error('Sign in to submit course feedback.');
+  const item=feedbackData as any,id=crypto.randomUUID();
+  const {error}=await supabase.from('course_feedback').insert({id,user_id:auth.user.id,course_id:courseId,rating:item.rating||null,content:feedbackData});
+  if(error) throw error; return id;
 }
 
-// Learning Goals
 export async function createLearningGoal(userId: string, text: string): Promise<string> {
-    const goalsRef = ref(db, `users/${userId}/learningGoals`);
-    const newGoalRef = push(goalsRef);
-    await set(newGoalRef, {
-        text,
-        completed: false,
-        createdAt: new Date().toISOString()
-    });
-    return newGoalRef.key!;
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError||auth.user?.id!==userId) throw new Error('You can only add your own learning goals.');
+  const id=crypto.randomUUID(); const {error}=await supabase.from('learning_goals').insert({id,user_id:userId,content:{text,completed:false},status:'active'});
+  if(error) throw error; return id;
 }
 
 export async function updateLearningGoal(userId: string, goalId: string, data: Partial<Omit<LearningGoal, 'id'>>): Promise<void> {
-    const goalRef = ref(db, `users/${userId}/learningGoals/${goalId}`);
-    await update(goalRef, data);
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser();
+  if(auth.user?.id!==userId) throw new Error('You can only update your own learning goals.');
+  const {data:current,error:readError}=await supabase.from('learning_goals').select('content,status').eq('id',goalId).eq('user_id',userId).maybeSingle();
+  if(readError) throw readError; if(!current) throw new Error('Learning goal not found.');
+  const item=data as any; const {error}=await supabase.from('learning_goals').update({content:{...(current.content||{}),...item},status:item.completed?'completed':current.status,updated_at:new Date().toISOString()}).eq('id',goalId).eq('user_id',userId);
+  if(error) throw error;
 }
 
 export async function deleteLearningGoal(userId: string, goalId: string): Promise<void> {
-    const goalRef = ref(db, `users/${userId}/learningGoals/${goalId}`);
-    await remove(goalRef);
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser();
+  if(auth.user?.id!==userId) throw new Error('You can only delete your own learning goals.');
+  const {error}=await supabase.from('learning_goals').delete().eq('id',goalId).eq('user_id',userId); if(error) throw error;
 }
 
-// Super Admin Permission Requests
 export async function createPermissionRequest(requestData: Omit<PermissionRequest, 'id' | 'createdAt' | 'status'>): Promise<string> {
-    const requestsRef = ref(db, 'permissionRequests');
-    const newRequestRef = push(requestsRef);
-    const dataToSave: Omit<PermissionRequest, 'id'> = {
-        ...requestData,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-    };
-    await set(newRequestRef, dataToSave);
-    return newRequestRef.key!;
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError||!auth.user) throw new Error('Sign in to request access.');
+  const item=requestData as any,id=crypto.randomUUID();
+  const {error}=await supabase.from('permission_requests').insert({id,user_id:auth.user.id,request_type:String(item.type||item.permission||'general'),status:'pending',content:requestData});
+  if(error) throw error; return id;
 }
 
 export async function getPermissionRequests(): Promise<PermissionRequest[]> {
-    const requestsRef = ref(db, 'permissionRequests');
-    const snapshot = await get(requestsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        const requests = Object.keys(data).map(key => ({ id: key, ...data[key] }));
-        return requests.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('permission_requests').select('*').order('created_at',{ascending:false});
+  if(error) throw error; return (data||[]).map((row:any)=>({...row.content,id:row.id,userId:row.user_id,status:row.status,createdAt:row.created_at})) as PermissionRequest[];
 }
 
 export async function updatePermissionRequestStatus(id: string, status: 'approved' | 'denied'): Promise<void> {
-    const requestRef = ref(db, `permissionRequests/${id}`);
-    await update(requestRef, {
-        status,
-        resolvedAt: new Date().toISOString(),
-    });
+  const supabase=getSupabaseBrowserClient(); const {error}=await supabase.from('permission_requests').update({status,updated_at:new Date().toISOString(),content:{resolvedAt:new Date().toISOString()}}).eq('id',id);
+  if(error) throw error;
 }
 
-// Organization Functions
 export async function createOrganization(orgData: Omit<Organization, 'id'>): Promise<string> {
-    const orgsRef = ref(db, 'organizations');
-    const newOrgRef = push(orgsRef);
-    await set(newOrgRef, orgData);
-    return newOrgRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Sign in is required to create an organization.');
+  const item = orgData as any; const id = crypto.randomUUID();
+  const { error } = await supabase.from('organizations').insert({ id, name: String(item.name || 'Organization'), owner_id: authData.user.id, content: item });
+  if (error) throw error;
+  const { error: memberError } = await supabase.from('organization_members').insert({ organization_id: id, user_id: authData.user.id, member_role: 'owner', status: 'active', joined_at: new Date().toISOString() });
+  if (memberError) throw memberError;
+  return id;
 }
 
 export async function getOrganizationMembers(orgId: string): Promise<RegisteredUser[]> {
-    const usersRef = query(ref(db, 'users'), orderByChild('organizationId'), equalTo(orgId));
-    const snapshot = await get(usersRef);
-    if (snapshot.exists()) {
-        const usersData = snapshot.val();
-        return Object.keys(usersData).map(uid => ({
-            uid,
-            ...usersData[uid],
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data: memberships, error } = await supabase.from('organization_members').select('user_id,member_role,status,joined_at').eq('organization_id',orgId).eq('status','active');
+  if (error) throw error;
+  const ids = (memberships || []).map((row: any) => row.user_id);
+  if (!ids.length) return [];
+  const { data: profiles, error: profilesError } = await supabase.from('profiles').select('id,email,display_name,avatar_path,metadata').in('id',ids);
+  if (profilesError) throw profilesError;
+  const membershipMap = new Map((memberships || []).map((row: any) => [row.user_id,row]));
+  return (profiles || []).map((profile: any) => {
+    const membership: any = membershipMap.get(profile.id);
+    return { ...(profile.metadata || {}), uid: profile.id, email: profile.email, displayName: profile.display_name, photoURL: profile.avatar_path, organizationRole: membership?.member_role, organizationStatus: membership?.status } as RegisteredUser;
+  });
 }
 
 export async function getAllOrganizations(): Promise<Organization[]> {
-    const orgsRef = ref(db, 'organizations');
-    const snapshot = await get(orgsRef);
-    if (snapshot.exists()) {
-        const orgsData = snapshot.val();
-        return Object.keys(orgsData).map(key => ({
-            id: key,
-            ...orgsData[key]
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('organizations').select('*').order('created_at',{ascending:false});
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, name: row.name, ownerId: row.owner_id, createdAt: row.created_at, updatedAt: row.updated_at })) as Organization[];
 }
 
 export async function getOrganizationByOwnerId(ownerId: string): Promise<Organization | null> {
-  const orgsRef = query(ref(db, 'organizations'), orderByChild('ownerId'), equalTo(ownerId));
-  const snapshot = await get(orgsRef);
-  if (snapshot.exists()) {
-    const orgsData = snapshot.val();
-    const orgId = Object.keys(orgsData)[0];
-    return { id: orgId, ...orgsData[orgId] };
-  }
-  return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== ownerId) throw new Error('You can only load your own organization.');
+  const { data, error } = await supabase.from('organizations').select('*').eq('owner_id',ownerId).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.content || {}), id: data.id, name: data.name, ownerId: data.owner_id, createdAt: data.created_at, updatedAt: data.updated_at } as Organization) : null;
 }
 
 export async function updateOrganization(orgId: string, orgData: Partial<Organization>): Promise<void> {
-    const orgRef = ref(db, `organizations/${orgId}`);
-    await update(orgRef, orgData);
+  const supabase = getSupabaseBrowserClient();
+  const { data: current, error: readError } = await supabase.from('organizations').select('content').eq('id',orgId).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Organization not found.');
+  const item = orgData as any;
+  const { error } = await supabase.from('organizations').update({ ...(item.name !== undefined ? { name: item.name } : {}), content: { ...(current.content || {}), ...item }, updated_at: new Date().toISOString() }).eq('id',orgId);
+  if (error) throw error;
 }
 
 export async function deleteOrganization(orgId: string): Promise<void> {
-    const orgRef = ref(db, `organizations/${orgId}`);
-    // You might also want to handle members associated with this org
-    await remove(orgRef);
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('organizations').delete().eq('id',orgId);
+  if (error) throw error;
 }
 
-
-// Invitation Functions
 export async function createInvitation(inviteData: Omit<Invitation, 'id'>): Promise<string> {
-    const invitesRef = ref(db, 'invitations');
-    const newInviteRef = push(invitesRef);
-    
-    if (inviteData.userId) {
-        await createNotification({
-            userId: inviteData.userId,
-            title: 'Organization Invitation',
-            body: `You have been invited to join ${inviteData.organizationName}.`,
-            actions: [{
-                title: 'Accept',
-                action: 'accept_org_invite',
-                payload: {
-                    inviteId: newInviteRef.key!,
-                    organizationId: inviteData.organizationId,
-                }
-            }]
-        });
-    }
-
-    await set(newInviteRef, inviteData);
-    return newInviteRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Sign in is required to invite organization members.');
+  const item = inviteData as any; const id = crypto.randomUUID();
+  const { error } = await supabase.from('organization_invitations').insert({
+    id, organization_id: item.organizationId, email: String(item.email || '').toLowerCase(),
+    invited_user_id: item.userId || null, member_role: item.role || 'member',
+    status: item.status || 'pending', invited_by: authData.user.id,
+    expires_at: item.expiresAt || new Date(Date.now()+7*86400000).toISOString(), content: item,
+  });
+  if (error) throw error;
+  return id;
 }
 
 export async function getInvitation(inviteId: string): Promise<Invitation | null> {
-    const inviteRef = ref(db, `invitations/${inviteId}`);
-    const snapshot = await get(inviteRef);
-    if (snapshot.exists()) {
-        return { id: inviteId, ...snapshot.val() };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('organization_invitations').select('*').eq('id',inviteId).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.content || {}), id: data.id, organizationId: data.organization_id, userId: data.invited_user_id, email: data.email, role: data.member_role, status: data.status, expiresAt: data.expires_at } as Invitation) : null;
 }
 
 export async function updateInvitationStatus(inviteId: string, status: 'accepted'): Promise<void> {
-    const inviteRef = ref(db, `invitations/${inviteId}`);
-    await update(inviteRef, { status });
+  if (status !== 'accepted') throw new Error('Unsupported invitation status.');
+  const response = await fetch('/api/auth/accept-invitation', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ inviteId }),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || 'This invitation could not be accepted.');
 }
 
 export async function deleteInvitation(inviteId: string): Promise<void> {
-    const inviteRef = ref(db, `invitations/${inviteId}`);
-    await remove(inviteRef);
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('organization_invitations').delete().eq('id',inviteId);
+  if (error) throw error;
 }
 
-// Pricing Plan Functions
 export async function createPlan(planData: Omit<PricingPlan, 'id'>): Promise<string> {
-    const plansRef = ref(db, 'pricingPlans');
-    const newPlanRef = push(plansRef);
-    await set(newPlanRef, planData);
-    return newPlanRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Administrator sign-in is required.');
+  const item = planData as any; const id = crypto.randomUUID();
+  const { error } = await supabase.from('pricing_plans').insert({
+    id, name: String(item.name || 'Plan'), price: Number(item.price || 0),
+    interval: item.interval || item.billingCycle || null, is_active: item.isActive !== false, content: item, created_by: authData.user.id,
+  });
+  if (error) throw error;
+  return id;
 }
 
 export async function getAllPlans(): Promise<PricingPlan[]> {
-    const plansRef = ref(db, 'pricingPlans');
-    const snapshot = await get(plansRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('pricing_plans').select('*').order('price');
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, name: row.name, price: Number(row.price), interval: row.interval, isActive: row.is_active })) as PricingPlan[];
 }
 
 export async function getPlanById(id: string): Promise<PricingPlan | null> {
-    const planRef = ref(db, `pricingPlans/${id}`);
-    const snapshot = await get(planRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('pricing_plans').select('*').eq('id',id).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.content || {}), id: data.id, name: data.name, price: Number(data.price), interval: data.interval, isActive: data.is_active } as PricingPlan) : null;
 }
 
 export async function updatePlan(id: string, planData: Partial<PricingPlan>): Promise<void> {
-    const planRef = ref(db, `pricingPlans/${id}`);
-    await update(planRef, planData);
+  const supabase = getSupabaseBrowserClient();
+  const { data: current, error: readError } = await supabase.from('pricing_plans').select('content').eq('id',id).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Pricing plan not found.');
+  const item = planData as any;
+  const { error } = await supabase.from('pricing_plans').update({
+    ...(item.name !== undefined ? { name: item.name } : {}), ...(item.price !== undefined ? { price: item.price } : {}),
+    ...(item.interval !== undefined ? { interval: item.interval } : {}), ...(item.isActive !== undefined ? { is_active: item.isActive } : {}),
+    content: { ...(current.content || {}), ...item }, updated_at: new Date().toISOString(),
+  }).eq('id',id);
+  if (error) throw error;
 }
 
 export async function deletePlan(id: string): Promise<void> {
-    const planRef = ref(db, `pricingPlans/${id}`);
-    await remove(planRef);
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('pricing_plans').delete().eq('id',id);
+  if (error) throw error;
 }
 
-// Document Management Functions
 export async function saveDocument(docType: string, content: string): Promise<void> {
-    const docRef = ref(db, `documents/${docType}`);
-    await set(docRef, { content });
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError||!auth.user) throw new Error('Sign in to save this document.');
+  const {error}=await supabase.from('documents').upsert({id:docType,user_id:auth.user.id,visibility:'private',content:{content}},{onConflict:'id'});
+  if(error) throw error;
 }
 
 export async function getDocument(docType: string): Promise<string> {
-    const docRef = ref(db, `documents/${docType}/content`);
-    const snapshot = await get(docRef);
-    return snapshot.exists() ? snapshot.val() : '';
-}
-
-
-// Certificate Verification
-export interface PublicCertificateRecord {
-    certificateId: string;
-    studentName: string;
-    studentPhotoURL?: string;
-    courseId: string;
-    courseTitle: string;
-    issuedAt: string;
-    status: 'valid' | 'revoked';
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('documents').select('content').eq('id',docType).maybeSingle();
+  if(error) throw error; return String(data?.content?.content||'');
 }
 
 export async function publishCertificateRecord(record: PublicCertificateRecord): Promise<void> {
-    if (!record.certificateId || !record.studentName || !record.courseId || !record.courseTitle) {
-        throw new Error('Certificate verification record is incomplete.');
-    }
-    await set(ref(db, `publicCertificates/${record.certificateId}`), { ...record, status: 'valid' });
+  if(!record.certificateId||!record.studentName||!record.courseId||!record.courseTitle) throw new Error('Certificate verification record is incomplete.');
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError||!auth.user) throw new Error('Administrator sign-in is required.');
+  const {data:allowed,error:roleError}=await supabase.rpc('has_role',{check_user_id:auth.user.id,allowed_roles:['admin','super_admin']});
+  if(roleError||!allowed) throw new Error('Administrator access is required.');
+  const {error}=await supabase.from('certificate_records').upsert({id:record.certificateId,user_id:auth.user.id,course_id:record.courseId,certificate_code:record.certificateId,content:{...record,status:'valid'}},{onConflict:'id'});
+  if(error) throw error;
 }
 
-export async function getVerifiedCertificateData(certificateId: string): Promise<{
-    isValid: boolean;
-    student?: Pick<RegisteredUser, 'displayName' | 'photoURL'>;
-    course?: Pick<Course, 'id' | 'title'>;
-}> {
-    if (!certificateId) return { isValid: false };
-    const snapshot = await get(ref(db, `publicCertificates/${certificateId}`));
-    if (!snapshot.exists()) return { isValid: false };
-    const record = snapshot.val() as PublicCertificateRecord;
-    if (record.status !== 'valid' || record.certificateId !== certificateId) return { isValid: false };
-    return {
-        isValid: true,
-        student: { displayName: record.studentName, photoURL: record.studentPhotoURL || '' },
-        course: { id: record.courseId, title: record.courseTitle },
-    };
+export async function getVerifiedCertificateData(certificateId: string): Promise<{ isValid: boolean; student?: Pick<RegisteredUser, 'displayName' | 'photoURL'>; course?: Pick<Course, 'id' | 'title'> }> {
+  if(!certificateId) return {isValid:false};
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('certificate_records').select('content').eq('certificate_code',certificateId).maybeSingle();
+  if(error) throw error; const record=data?.content as PublicCertificateRecord|undefined;
+  if(!record||record.status!=='valid'||record.certificateId!==certificateId) return {isValid:false};
+  return {isValid:true,student:{displayName:record.studentName,photoURL:record.studentPhotoURL||''},course:{id:record.courseId,title:record.courseTitle}};
 }
 
-
-// Bootcamp Functions
 export async function createBootcamp(bootcampData: Omit<Bootcamp, 'id'>): Promise<string> {
-    const bootcampsRef = ref(db, 'bootcamps');
-    const newBootcampRef = push(bootcampsRef);
-    await set(newBootcampRef, bootcampData);
-    return newBootcampRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Administrator sign-in is required.');
+  const item = bootcampData as any; const id = crypto.randomUUID();
+  const { error } = await supabase.from('bootcamps').insert({ id, title: item.title, description: item.description || null, start_date: item.startDate || null, is_published: Boolean(item.isPublished), content: item, created_by: authData.user.id });
+  if (error) throw error;
+  return id;
 }
 
 export async function getAllBootcamps(): Promise<Bootcamp[]> {
-    const dbRef = ref(db, 'bootcamps');
-    const snapshot = await get(dbRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('bootcamps').select('*').order('created_at',{ascending:false});
+  if (error) throw error;
+  return (data || []).map(mapBootcamp);
 }
 
 export async function getBootcampById(id: string): Promise<Bootcamp | null> {
-    const bootcampRef = ref(db, `bootcamps/${id}`);
-    const snapshot = await get(bootcampRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('bootcamps').select('*').eq('id',id).maybeSingle();
+  if (error) throw error;
+  return data ? mapBootcamp(data) : null;
 }
 
 export async function updateBootcamp(id: string, bootcampData: Partial<Bootcamp>): Promise<void> {
-    const bootcampRef = ref(db, `bootcamps/${id}`);
-    await update(bootcampRef, bootcampData);
+  const supabase = getSupabaseBrowserClient();
+  const { data: current, error: readError } = await supabase.from('bootcamps').select('content').eq('id',id).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Bootcamp not found.');
+  const item = bootcampData as any;
+  const { error } = await supabase.from('bootcamps').update({
+    ...(item.title !== undefined ? { title: item.title } : {}),
+    ...(item.description !== undefined ? { description: item.description } : {}),
+    ...(item.startDate !== undefined ? { start_date: item.startDate } : {}),
+    ...(item.isPublished !== undefined ? { is_published: item.isPublished } : {}),
+    content: { ...(current.content || {}), ...item }, updated_at: new Date().toISOString(),
+  }).eq('id',id);
+  if (error) throw error;
 }
 
 export async function deleteBootcamp(id: string): Promise<void> {
-    const bootcampRef = ref(db, `bootcamps/${id}`);
-    await remove(bootcampRef);
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('bootcamps').delete().eq('id',id);
+  if (error) throw error;
 }
 
 export async function registerUserForBootcamp(bootcampId: string, userId: string): Promise<void> {
-    const bootcampRef = ref(db, `bootcamps/${bootcampId}/participants/${userId}`);
-    await set(bootcampRef, true);
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError||auth.user?.id!==userId) throw new Error('You can only register your own account.');
+  const {error}=await supabase.from('bootcamp_registrations').upsert({bootcamp_id:bootcampId,user_id:userId},{onConflict:'bootcamp_id,user_id'});
+  if(error) throw error;
 }
 
 export async function getHackathonParticipants(hackathonId: string): Promise<RegisteredUser[]> {
-    const dataRef = ref(db, `hackathons/${hackathonId}/participants`);
-    const snapshot = await get(dataRef);
-    if (snapshot.exists()) {
-        const participantIds = Object.keys(snapshot.val());
-        const userPromises = participantIds.map(uid => getUserById(uid));
-        const users = (await Promise.all(userPromises)).filter(Boolean) as RegisteredUser[];
-        return users;
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('hackathon_participants').select('*').eq('hackathon_id',hackathonId).order('created_at');
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ uid: row.user_id, displayName: row.display_name, photoURL: row.avatar_path || '' })) as RegisteredUser[];
 }
 
-
-// Hackathon Functions
 export async function createHackathon(hackathonData: Omit<Hackathon, 'id'>): Promise<string> {
-    const refPath = ref(db, 'hackathons');
-    const newRef = push(refPath);
-    await set(newRef, hackathonData);
-    return newRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Administrator sign-in is required.');
+  const item = hackathonData as any; const id = crypto.randomUUID();
+  const { error } = await supabase.from('hackathons').insert({ id, title: item.title, description: item.description || null, is_published: Boolean(item.isPublished), content: item, created_by: authData.user.id });
+  if (error) throw error;
+  return id;
 }
 
 export async function getAllHackathons(): Promise<Hackathon[]> {
-    const dataRef = ref(db, 'hackathons');
-    const snapshot = await get(dataRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('hackathons').select('*').order('created_at',{ascending:false});
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, title: row.title, description: row.description, isPublished: row.is_published, createdAt: row.created_at, updatedAt: row.updated_at })) as Hackathon[];
 }
 
 export async function getHackathonById(id: string): Promise<Hackathon | null> {
-    const dataRef = ref(db, `hackathons/${id}`);
-    const snapshot = await get(dataRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('hackathons').select('*').eq('id',id).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.content || {}), id: data.id, title: data.title, description: data.description, isPublished: data.is_published, createdAt: data.created_at, updatedAt: data.updated_at } as Hackathon) : null;
 }
 
 export async function updateHackathon(id: string, hackathonData: Partial<Hackathon>): Promise<void> {
-    const dataRef = ref(db, `hackathons/${id}`);
-    await update(dataRef, hackathonData);
+  const supabase = getSupabaseBrowserClient();
+  const { data: current, error: readError } = await supabase.from('hackathons').select('content').eq('id',id).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Hackathon not found.');
+  const item = hackathonData as any;
+  const { error } = await supabase.from('hackathons').update({
+    ...(item.title !== undefined ? { title: item.title } : {}),
+    ...(item.description !== undefined ? { description: item.description } : {}),
+    ...(item.isPublished !== undefined ? { is_published: item.isPublished } : {}),
+    content: { ...(current.content || {}), ...item }, updated_at: new Date().toISOString(),
+  }).eq('id',id);
+  if (error) throw error;
 }
 
 export async function deleteHackathon(id: string): Promise<void> {
-    const dataRef = ref(db, `hackathons/${id}`);
-    await remove(dataRef);
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('hackathons').delete().eq('id',id);
+  if (error) throw error;
 }
 
 export async function registerForHackathon(hackathonId: string, userId: string): Promise<void> {
-    const dataRef = ref(db, `hackathons/${hackathonId}/participants/${userId}`);
-    await set(dataRef, true);
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) throw new Error('You can only register your own account.');
+  const { data: profile } = await supabase.from('profiles').select('display_name,avatar_path').eq('id',userId).maybeSingle();
+  const { error } = await supabase.from('hackathon_participants').upsert({
+    hackathon_id: hackathonId, user_id: userId,
+    display_name: profile?.display_name || authData.user.email || 'Learner',
+    avatar_path: profile?.avatar_path || null,
+  }, { onConflict: 'hackathon_id,user_id' });
+  if (error) throw error;
 }
 
 export async function getHackathonSubmissions(hackathonId: string): Promise<HackathonSubmission[]> {
-    const submissionsRef = query(ref(db, 'hackathonSubmissions'), orderByChild('hackathonId'), equalTo(hackathonId));
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('hackathon_submissions').select('*').eq('hackathon_id',hackathonId).order('created_at',{ascending:false});
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, hackathonId: row.hackathon_id, userId: row.user_id, createdAt: row.created_at })) as HackathonSubmission[];
 }
 
 export async function createHackathonSubmission(submissionData: Omit<HackathonSubmission, 'id'>): Promise<string> {
-  const userSubmissionsRef = query(
-    ref(db, 'hackathonSubmissions'),
-    orderByChild('userId'),
-    equalTo(submissionData.userId)
-  );
-  const snapshot = await get(userSubmissionsRef);
-  let userSubmissionsForThisHackathon = 0;
-  if (snapshot.exists()) {
-    snapshot.forEach((childSnapshot) => {
-      if (childSnapshot.val().hackathonId === submissionData.hackathonId) {
-        userSubmissionsForThisHackathon++;
-      }
-    });
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== (submissionData as any).userId) throw new Error('You can only submit work for your own account.');
+  const item = submissionData as any;
+  const id = crypto.randomUUID();
+  const { error } = await supabase.from('hackathon_submissions').insert({
+    id, hackathon_id: item.hackathonId, user_id: authData.user.id, content: item,
+  });
+  if (error) {
+    if (error.message.includes('maximum of 3 submissions')) throw new Error('You have reached the maximum of 3 submissions for this hackathon.');
+    throw error;
   }
-
-  if (userSubmissionsForThisHackathon >= 3) {
-    throw new Error("You have reached the maximum of 3 submissions for this hackathon.");
-  }
-  
-  const refPath = ref(db, 'hackathonSubmissions');
-  const newRef = push(refPath);
-  await set(newRef, submissionData);
-
-  // Leaderboard logic
-  const leaderboardRef = ref(db, `leaderboard/${submissionData.userId}`);
-  const leaderboardSnapshot = await get(leaderboardRef);
-  if (leaderboardSnapshot.exists()) {
-    await update(leaderboardRef, {
-      score: increment(10), // +10 points for submission
-      hackathonCount: increment(1)
-    });
-  } else {
-    const user = await getUserById(submissionData.userId);
-    await set(leaderboardRef, {
-      userId: submissionData.userId,
-      userName: user?.displayName || 'Anonymous',
-      userAvatar: user?.photoURL || '',
-      score: 10,
-      hackathonCount: 1,
-    });
-  }
-
-  return newRef.key!;
+  return id;
 }
 
-export async function awardLeaderboardPoints(userId: string, points: number): Promise<void> {
-    const leaderboardRef = ref(db, `leaderboard/${userId}`);
-    const leaderboardSnapshot = await get(leaderboardRef);
-    if (leaderboardSnapshot.exists()) {
-        await update(leaderboardRef, {
-            score: increment(points),
-        });
-    } else {
-        // If user is not on leaderboard, create an entry for them
-         const user = await getUserById(userId);
-        await set(leaderboardRef, {
-            userId: userId,
-            userName: user?.displayName || 'Anonymous',
-            userAvatar: user?.photoURL || '',
-            score: points,
-            hackathonCount: 0, // Assume 0 if they weren't on the board before
-        });
-    }
+export async function awardLeaderboardPoints(_userId: string, _points: number): Promise<void> {
+  throw new Error('Leaderboard points are awarded automatically when a hackathon submission is saved.');
 }
-
 
 export async function getHackathonSubmissionsByUser(userId: string): Promise<HackathonSubmission[]> {
-    const submissionsRef = query(ref(db, 'hackathonSubmissions'), orderByChild('userId'), equalTo(userId));
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) throw new Error('You can only view your own submissions.');
+  const { data, error } = await supabase.from('hackathon_submissions').select('*').eq('user_id',userId).order('created_at',{ascending:false});
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, hackathonId: row.hackathon_id, userId: row.user_id, createdAt: row.created_at })) as HackathonSubmission[];
 }
 
 export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
-    const leaderboardRef = query(ref(db, 'leaderboard'), orderByChild('score'));
-    const snapshot = await get(leaderboardRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        const entries: LeaderboardEntry[] = Object.values(data);
-        return entries.sort((a,b) => b.score - a.score);
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('leaderboard').select('*').order('score',{ascending:false}).limit(100);
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ userId: row.user_id, userName: row.user_name, userAvatar: row.user_avatar, score: row.score, hackathonCount: row.hackathon_count })) as LeaderboardEntry[];
 }
 
 export async function getAllBlogPosts(): Promise<BlogPost[]> {
-    const dbRef = ref(db, 'blog');
-    const snapshot = await get(dbRef);
-    if (snapshot.exists()) {
-        const postsData = snapshot.val();
-        const posts = Object.keys(postsData).map(key => ({
-            id: key,
-            ...postsData[key]
-        }));
-        return posts.reverse();
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('blog_posts').select('*').order('created_at',{ascending:false});
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, slug: row.slug, title: row.title, isPublished: row.is_published, createdAt: row.created_at, updatedAt: row.updated_at })) as BlogPost[];
 }
 
-// Activity Logging
 export async function logPageVisit(userId: string, path: string): Promise<void> {
-    const user = await getUserById(userId);
-    if (!user) return;
-    const logRef = ref(db, 'userActivity');
-    const newLogRef = push(logRef);
-    await set(newLogRef, {
-        userId,
-        userName: user.displayName || 'Unknown',
-        userAvatar: user.photoURL || '',
-        type: 'page_visit',
-        path,
-        timestamp: new Date().toISOString(),
-    });
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser(); if(auth.user?.id!==userId) return;
+  await supabase.from('activity_logs').insert({user_id:userId,event_type:'page_visit',content:{path,timestamp:new Date().toISOString()}});
 }
-
 
 export async function logActivity(userId: string, data: { type: 'signup' | 'enrollment'; details: any }): Promise<void> {
-    const user = await getUserById(userId);
-    const logRef = ref(db, 'userActivity');
-    const newLogRef = push(logRef);
-    await set(newLogRef, {
-        userId,
-        userName: user?.displayName || 'Unknown',
-        userAvatar: user?.photoURL || '',
-        path: window.location.pathname,
-        ...data,
-        timestamp: new Date().toISOString(),
-    });
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser(); if(auth.user?.id!==userId) return;
+  await supabase.from('activity_logs').insert({user_id:userId,event_type:data.type,content:data.details||{}});
 }
 
 export async function clearActivityData(): Promise<void> {
-    const logRef = ref(db, 'userActivity');
-    await remove(logRef);
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError||!auth.user) throw new Error('Administrator sign-in is required.');
+  const {data:allowed,error:roleError}=await supabase.rpc('has_role',{check_user_id:auth.user.id,allowed_roles:['admin','super_admin']});
+  if(roleError||!allowed) throw new Error('Administrator access is required.');
+  const {error}=await supabase.from('activity_logs').delete().not('id','is',null); if(error) throw error;
 }
 
 export async function getActivityLogs(limit: number): Promise<UserActivity[]> {
-    const logRef = query(ref(db, 'userActivity'), limitToLast(limit));
-    const snapshot = await get(logRef);
-    if(snapshot.exists()) {
-        const data = snapshot.val();
-        const logs = Object.keys(data).map(key => ({ id: key, ...data[key] }));
-        return logs.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('activity_logs').select('*').order('created_at',{ascending:false}).limit(Math.min(Math.max(limit,1),500));
+  if(error) throw error; return (data||[]).map((row:any)=>({id:row.id,userId:row.user_id,type:row.event_type,timestamp:row.created_at,...row.content})) as UserActivity[];
 }
 
-// Blog
 export async function createBlogPost(postData: Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
-  const postsRef = ref(db, 'blog');
-  const newPostRef = push(postsRef);
-  const now = new Date().toISOString();
-  const dataToSave = {
-    ...postData,
-    slug: slugify(postData.title),
-    createdAt: now,
-    updatedAt: now,
-  };
-  await set(newPostRef, dataToSave);
-  return newPostRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Administrator sign-in is required.');
+  const id = crypto.randomUUID(); const now = new Date().toISOString();
+  const item = { ...postData, slug: slugify(postData.title), createdAt: now, updatedAt: now };
+  const { error } = await supabase.from('blog_posts').insert({ id, slug: item.slug, title: item.title, is_published: Boolean((item as any).isPublished), content: item, author_id: authData.user.id, created_at: now, updated_at: now });
+  if (error) throw error;
+  return id;
 }
 
 export async function updateBlogPost(postId: string, postData: Partial<Omit<BlogPost, 'id' | 'createdAt'>>): Promise<void> {
-  const postRef = ref(db, `blog/${postId}`);
-  const dataToUpdate = {
-    ...postData,
-    slug: slugify(postData.title!),
-    updatedAt: new Date().toISOString(),
-  };
-  await update(postRef, dataToUpdate);
+  const supabase = getSupabaseBrowserClient();
+  const { data: current, error: readError } = await supabase.from('blog_posts').select('content').eq('id',postId).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Blog post not found.');
+  const item = postData as any;
+  const now = new Date().toISOString();
+  const { error } = await supabase.from('blog_posts').update({
+    ...(item.title !== undefined ? { title: item.title, slug: slugify(item.title) } : {}),
+    ...(item.isPublished !== undefined ? { is_published: item.isPublished } : {}),
+    content: { ...(current.content || {}), ...item, updatedAt: now }, updated_at: now,
+  }).eq('id',postId);
+  if (error) throw error;
 }
 
 export async function getBlogPostById(id: string): Promise<BlogPost | null> {
-    const postRef = ref(db, `blog/${id}`);
-    const snapshot = await get(postRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('blog_posts').select('*').eq('id',id).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.content || {}), id: data.id, slug: data.slug, title: data.title, isPublished: data.is_published, createdAt: data.created_at, updatedAt: data.updated_at } as BlogPost) : null;
 }
 
 export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> {
-    const blogRef = query(ref(db, 'blog'), orderByChild('slug'), equalTo(slug));
-    const snapshot = await get(blogRef);
-    if (snapshot.exists()) {
-        const postsData = snapshot.val();
-        const postId = Object.keys(postsData)[0];
-        return { id: postId, ...postsData[postId] };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('blog_posts').select('*').eq('slug',slug).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.content || {}), id: data.id, slug: data.slug, title: data.title, isPublished: data.is_published, createdAt: data.created_at, updatedAt: data.updated_at } as BlogPost) : null;
 }
 
 export async function deleteBlogPost(postId: string): Promise<void> {
-    const postRef = ref(db, `blog/${postId}`);
-    await remove(postRef);
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('blog_posts').delete().eq('id',postId);
+  if (error) throw error;
 }
 
-
-// Advertisements
 export async function createAdvertisement(adData: Omit<Advertisement, 'id'>): Promise<string> {
-    const adsRef = ref(db, 'advertisements');
-    const newAdRef = push(adsRef);
-    await set(newAdRef, adData);
-    return newAdRef.key!;
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser();
+  if(!auth.user) throw new Error('Administrator sign-in is required.');
+  const item=adData as any, id=crypto.randomUUID();
+  const {error}=await supabase.from('advertisements').insert({id,title:String(item.title||'Advertisement'),is_active:Boolean(item.isActive),content:item,created_by:auth.user.id});
+  if(error) throw error; return id;
 }
 
 export async function getAllAdvertisements(): Promise<Advertisement[]> {
-    const adsRef = ref(db, 'advertisements');
-    const snapshot = await get(adsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('advertisements').select('*').order('created_at',{ascending:false});
+  if(error) throw error; return (data||[]).map((row:any)=>({...row.content,id:row.id,title:row.title,isActive:row.is_active})) as Advertisement[];
 }
 
 export async function getActiveAdvertisements(): Promise<Advertisement[]> {
@@ -1303,270 +1129,165 @@ export async function getActiveAdvertisements(): Promise<Advertisement[]> {
 
 
 export async function getAdvertisementById(id: string): Promise<Advertisement | null> {
-    const adRef = ref(db, `advertisements/${id}`);
-    const snapshot = await get(adRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('advertisements').select('*').eq('id',id).maybeSingle();
+  if(error) throw error; return data?({...data.content,id:data.id,title:data.title,isActive:data.is_active} as Advertisement):null;
 }
 
 export async function updateAdvertisement(id: string, adData: Partial<Advertisement>): Promise<void> {
-    const adRef = ref(db, `advertisements/${id}`);
-    await update(adRef, adData);
+  const supabase=getSupabaseBrowserClient(); const {data:current,error:readError}=await supabase.from('advertisements').select('content').eq('id',id).maybeSingle();
+  if(readError) throw readError; if(!current) throw new Error('Advertisement not found.');
+  const item=adData as any; const {error}=await supabase.from('advertisements').update({...item.title!==undefined?{title:item.title}:{},...item.isActive!==undefined?{is_active:item.isActive}:{},content:{...(current.content||{}),...item},updated_at:new Date().toISOString()}).eq('id',id);
+  if(error) throw error;
 }
 
 export async function deleteAdvertisement(id: string): Promise<void> {
-    const adRef = ref(db, `advertisements/${id}`);
-    await remove(adRef);
+  const supabase=getSupabaseBrowserClient(); const {error}=await supabase.from('advertisements').delete().eq('id',id); if(error) throw error;
 }
 
-
 export async function getTeamMembers(): Promise<TeamMember[]> {
-    const teamRef = ref(db, 'teamMembers');
-    const snapshot = await get(teamRef);
-    if (!snapshot.exists()) return [];
-    const value = snapshot.val();
-    if (Array.isArray(value)) return value.filter(Boolean);
-    if (value && typeof value === 'object') {
-        return Object.entries(value).map(([id, member]) => ({ id, ...(member as Omit<TeamMember, 'id'>) }));
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('team_members').select('*').order('sort_order');
+  if(error) throw error; return (data||[]).map((row:any)=>({...row.content,id:row.id})) as TeamMember[];
 }
 
 export async function updateTeamMembers(members: TeamMember[]): Promise<void> {
-    const teamRef = ref(db, 'teamMembers');
-    await set(teamRef, members);
+  const supabase=getSupabaseBrowserClient();
+  const rows=members.map((member,index)=>({id:String((member as any).id||crypto.randomUUID()),content:member,sort_order:index,updated_at:new Date().toISOString()}));
+  const {error}=await supabase.from('team_members').upsert(rows,{onConflict:'id'}); if(error) throw error;
 }
 
-// Contact Messages
 export async function createContactMessage(message: Omit<ContactMessage, 'id' | 'createdAt' | 'read'>): Promise<void> {
-    const messagesRef = ref(db, 'contactMessages');
-    const newMessageRef = push(messagesRef);
-    await set(newMessageRef, {
-        ...message,
-        createdAt: new Date().toISOString(),
-        read: false,
-    });
+  const supabase=getSupabaseBrowserClient(); const item=message as any;
+  const {error}=await supabase.from('contact_messages').insert({name:String(item.name||''),email:String(item.email||''),message:String(item.message||''),content:item});
+  if(error) throw error;
 }
 
 export async function getContactMessages(): Promise<ContactMessage[]> {
-    const messagesRef = query(ref(db, 'contactMessages'), orderByChild('createdAt'));
-    const snapshot = await get(messagesRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        const messages = Object.keys(data).map(key => ({ id: key, ...data[key] }));
-        return messages.reverse();
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('contact_messages').select('*').order('created_at',{ascending:false});
+  if(error) throw error; return (data||[]).map((row:any)=>({...row.content,id:row.id,name:row.name,email:row.email,message:row.message,read:Boolean(row.read_at),createdAt:row.created_at})) as ContactMessage[];
 }
 
 export async function markContactMessageAsRead(id: string): Promise<void> {
-    const messageRef = ref(db, `contactMessages/${id}`);
-    await update(messageRef, { read: true });
+  const supabase=getSupabaseBrowserClient(); const {error}=await supabase.from('contact_messages').update({read_at:new Date().toISOString()}).eq('id',id); if(error) throw error;
 }
 
 export async function deleteContactMessage(id: string): Promise<void> {
-    const messageRef = ref(db, `contactMessages/${id}`);
-    await remove(messageRef);
+  const supabase=getSupabaseBrowserClient(); const {error}=await supabase.from('contact_messages').delete().eq('id',id); if(error) throw error;
 }
 
-
-// Forms & Surveys
 export async function createForm(formData: Omit<FormType, 'id'>): Promise<string> {
-  const formsRef = ref(db, 'forms');
-  const newFormRef = push(formsRef);
-  const dataToSave = {
-    ...formData,
-    slug: slugify(formData.title),
-  };
-  await set(newFormRef, dataToSave);
-
-  // If it's a general survey, create a notification for it
-  if (!formData.organizationId) {
-    await createNotification({
-      title: 'New Survey Available',
-      body: `We'd love your feedback! Please take a moment to complete the "${formData.title}" survey.`,
-      actions: [{
-        title: 'Start Survey',
-        action: 'open_form_dialog' as any,
-        payload: {
-          formId: newFormRef.key!,
-        }
-      }]
-    });
-  }
-
-  return newFormRef.key!;
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser();
+  if(!auth.user) throw new Error('Administrator sign-in is required.');
+  const id=crypto.randomUUID(), item=formData as any;
+  const {error}=await supabase.from('forms').insert({id,slug:slugify(formData.title),title:formData.title,is_published:Boolean(item.isPublished),content:item,created_by:auth.user.id});
+  if(error) throw error; return id;
 }
 
 export async function updateForm(id: string, formData: Omit<FormType, 'id'>): Promise<void> {
-    const formRef = ref(db, `forms/${id}`);
-    const dataToSave = {
-        ...formData,
-        slug: slugify(formData.title),
-    };
-    await update(formRef, dataToSave);
+  const supabase=getSupabaseBrowserClient(); const item=formData as any;
+  const {error}=await supabase.from('forms').update({slug:slugify(formData.title),title:formData.title,is_published:Boolean(item.isPublished),content:item,updated_at:new Date().toISOString()}).eq('id',id);
+  if(error) throw error;
 }
 
 export async function getAllForms(): Promise<FormType[]> {
-    const formsRef = ref(db, 'forms');
-    const snapshot = await get(formsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('forms').select('*').order('created_at',{ascending:false});
+  if(error) throw error; return (data||[]).map((row:any)=>({...row.content,id:row.id,slug:row.slug,title:row.title,isPublished:row.is_published})) as FormType[];
 }
 
 export async function getFormById(id: string): Promise<FormType | null> {
-    const formRef = ref(db, `forms/${id}`);
-    const snapshot = await get(formRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('forms').select('*').eq('id',id).maybeSingle();
+  if(error) throw error; return data?({...data.content,id:data.id,slug:data.slug,title:data.title,isPublished:data.is_published} as FormType):null;
 }
 
 export async function getFormBySlug(slug: string): Promise<FormType | null> {
-    const formsRef = query(ref(db, 'forms'), orderByChild('slug'), equalTo(slug));
-    const snapshot = await get(formsRef);
-    if (snapshot.exists()) {
-        const formsData = snapshot.val();
-        const formId = Object.keys(formsData)[0];
-        return { id: formId, ...formsData[formId] };
-    }
-    return null;
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('forms').select('*').eq('slug',slug).maybeSingle();
+  if(error) throw error; return data?({...data.content,id:data.id,slug:data.slug,title:data.title,isPublished:data.is_published} as FormType):null;
 }
 
 export async function deleteForm(id: string): Promise<void> {
-    const formRef = ref(db, `forms/${id}`);
-    await remove(formRef);
-    // Also delete submissions
-    const submissionsRef = query(ref(db, 'formSubmissions'), orderByChild('formId'), equalTo(id));
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const updates: Record<string, null> = {};
-        snapshot.forEach((child) => {
-            updates[child.key!] = null;
-        });
-        await update(ref(db, 'formSubmissions'), updates);
-    }
+  const supabase=getSupabaseBrowserClient(); const {error}=await supabase.from('forms').delete().eq('id',id); if(error) throw error;
 }
 
 export async function createFormSubmission(submissionData: Omit<FormSubmission, 'id'>): Promise<string> {
-    const submissionsRef = ref(db, 'formSubmissions');
-    const newSubmissionRef = push(submissionsRef);
-    await set(newSubmissionRef, submissionData);
-    return newSubmissionRef.key!;
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser(); const item=submissionData as any;
+  const id=crypto.randomUUID();
+  const {error}=await supabase.from('form_submissions').insert({id,form_id:item.formId,user_id:auth.user?.id||null,content:submissionData});
+  if(error) throw error; return id;
 }
 
 export async function getFormSubmissions(formId: string): Promise<FormSubmission[]> {
-    const submissionsRef = query(ref(db, 'formSubmissions'), orderByChild('formId'), equalTo(formId));
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('form_submissions').select('*').eq('form_id',formId).order('created_at',{ascending:false});
+  if(error) throw error; return (data||[]).map((row:any)=>({...row.content,id:row.id,formId:row.form_id,userId:row.user_id,createdAt:row.created_at})) as FormSubmission[];
 }
 
 export async function getFormSubmissionsByUserId(userId: string): Promise<FormSubmission[]> {
-    const submissionsRef = query(ref(db, 'formSubmissions'), orderByChild('userId'), equalTo(userId));
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser();
+  if(auth.user?.id!==userId) throw new Error('You can only view your own form submissions.');
+  const {data,error}=await supabase.from('form_submissions').select('*').eq('user_id',userId).order('created_at',{ascending:false});
+  if(error) throw error; return (data||[]).map((row:any)=>({...row.content,id:row.id,formId:row.form_id,userId:row.user_id,createdAt:row.created_at})) as FormSubmission[];
 }
 
-// Affiliate Program
 export async function createReferral(referralData: Omit<Referral, 'id'>): Promise<void> {
-    const referralsRef = ref(db, 'referrals');
-    const newRef = push(referralsRef);
-    await set(newRef, referralData);
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser(); const item=referralData as any;
+  if(!auth.user || auth.user.id!==item.affiliateId) throw new Error('You can only create referrals for your own affiliate account.');
+  const {error}=await supabase.from('referrals').insert({affiliate_id:auth.user.id,referred_user_id:item.referredUserId||null,content:referralData});
+  if(error) throw error;
 }
 
 export async function getReferralsByAffiliate(affiliateId: string): Promise<Referral[]> {
-    const referralsRef = query(ref(db, 'referrals'), orderByChild('affiliateId'), equalTo(affiliateId));
-    const snapshot = await get(referralsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser();
+  if(auth.user?.id!==affiliateId) throw new Error('You can only view your own referrals.');
+  const {data,error}=await supabase.from('referrals').select('*').eq('affiliate_id',affiliateId).order('created_at',{ascending:false});
+  if(error) throw error; return (data||[]).map((row:any)=>({...row.content,id:row.id,affiliateId:row.affiliate_id,referredUserId:row.referred_user_id,createdAt:row.created_at})) as Referral[];
 }
 
 export async function createOrUpdateConversation(conversation: Partial<any>): Promise<void> {
-  const conversationRef = ref(db, `conversations/${conversation.studentId}`);
-  const snapshot = await get(conversationRef);
-  if (snapshot.exists()) {
-    const existingMessages = snapshot.val().messages || [];
-    const newMessages = [...existingMessages, {
-      senderId: 'employer', // Assuming employer starts or replies
-      text: conversation.initialMessage,
-      timestamp: new Date().toISOString(),
-    }];
-    await update(conversationRef, { messages: newMessages, lastMessageAt: new Date().toISOString() });
-  } else {
-    await set(conversationRef, {
-      studentId: conversation.studentId,
-      studentName: conversation.studentName,
-      employerName: conversation.employerName,
-      employerPhotoUrl: conversation.employerPhotoUrl,
-      organizationName: conversation.organizationName,
-      lastMessageAt: new Date().toISOString(),
-      messages: [{
-        senderId: 'employer',
-        text: conversation.initialMessage,
-        timestamp: new Date().toISOString(),
-      }]
-    });
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError || !auth.user) throw new Error('Sign in to start this conversation.');
+  const studentId=String(conversation.studentId||'');
+  if(!studentId) throw new Error('A student account is required.');
+  const participants=[...new Set([studentId,auth.user.id])];
+  const {data:existing,error:readError}=await supabase.from('conversations').select('id,content,participant_ids').eq('id',studentId).maybeSingle();
+  if(readError) throw readError;
+  const now=new Date().toISOString();
+  const content={...(existing?.content||{}),studentId,studentName:conversation.studentName,employerName:conversation.employerName,employerPhotoUrl:conversation.employerPhotoUrl,organizationName:conversation.organizationName,lastMessageAt:now};
+  const {error}=await supabase.from('conversations').upsert({id:studentId,user_id:studentId,participant_ids:participants,content,updated_at:now},{onConflict:'id'});
+  if(error) throw error;
+  if(conversation.initialMessage) {
+    const {error:messageError}=await supabase.from('conversation_messages').insert({conversation_id:studentId,user_id:auth.user.id,content:{senderId:auth.user.id,text:String(conversation.initialMessage),timestamp:now}});
+    if(messageError) throw messageError;
   }
 }
 
 export async function saveMessage(conversationId: string, message: { senderId: string; text: string; timestamp: string }): Promise<void> {
-  const messagesRef = ref(db, `conversations/${conversationId}/messages`);
-  const newMessageRef = push(messagesRef);
-  await set(newMessageRef, message);
-  await update(ref(db, `conversations/${conversationId}`), { lastMessageAt: new Date().toISOString() });
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError || !auth.user) throw new Error('Sign in to send a message.');
+  const {error}=await supabase.from('conversation_messages').insert({conversation_id:conversationId,user_id:auth.user.id,content:{...message,senderId:auth.user.id}});
+  if(error) throw error;
+  await supabase.from('conversations').update({updated_at:new Date().toISOString(),content:{lastMessageAt:new Date().toISOString()}}).eq('id',conversationId);
 }
 
-/**
- * Creates an assignment for a course. Database rules restrict writes to admins.
- */
-export async function createAssignment(
-    courseId: string,
-    data: Omit<Assignment, 'id' | 'courseId' | 'createdAt' | 'updatedAt'>
-): Promise<string> {
-    const assignmentRef = push(ref(db, `assignments/${courseId}`));
-    if (!assignmentRef.key) throw new Error('Could not allocate an assignment ID.');
-    await set(assignmentRef, {
-        ...data,
-        courseId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    });
-    return assignmentRef.key;
+export async function createAssignment(courseId: string, data: Omit<Assignment, 'id' | 'courseId' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Administrator sign-in is required.');
+  const id = crypto.randomUUID(); const now = new Date().toISOString();
+  const { error } = await supabase.from('assignments').insert({ id, course_id: courseId, created_by: authData.user.id, title: data.title, due_at: (data as any).dueDate || null, content: { ...data, courseId, createdAt: now, updatedAt: now }, created_at: now, updated_at: now });
+  if (error) throw error;
+  return id;
 }
 
-export async function updateAssignment(
-    courseId: string,
-    assignmentId: string,
-    data: Partial<Pick<Assignment, 'title' | 'description' | 'dueDate' | 'courseTitle'>>
-): Promise<void> {
-    await update(ref(db, `assignments/${courseId}/${assignmentId}`), {
-        ...data,
-        updatedAt: new Date().toISOString(),
-    });
+export async function updateAssignment(courseId: string, assignmentId: string, data: Partial<Pick<Assignment, 'title' | 'description' | 'dueDate' | 'courseTitle'>>): Promise<void> {
+  const supabase = getSupabaseBrowserClient();
+  const { data: current, error: readError } = await supabase.from('assignments').select('content').eq('id',assignmentId).eq('course_id',courseId).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Assignment not found.');
+  const { error } = await supabase.from('assignments').update({ ...(data.title !== undefined ? { title: data.title } : {}), ...(data.dueDate !== undefined ? { due_at: data.dueDate } : {}), content: { ...(current.content || {}), ...data }, updated_at: new Date().toISOString() }).eq('id',assignmentId);
+  if (error) throw error;
 }
 
 export async function getAssignments(courseId: string): Promise<Assignment[]> {
-    const snapshot = await get(ref(db, `assignments/${courseId}`));
-    if (!snapshot.exists()) return [];
-    return Object.entries(snapshot.val()).map(([id, value]) => ({
-        id,
-        ...(value as Omit<Assignment, 'id'>),
-    })).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('assignments').select('*').eq('course_id',courseId).order('due_at',{ascending:true});
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, courseId: row.course_id, title: row.title, dueDate: row.due_at, createdAt: row.created_at, updatedAt: row.updated_at })) as Assignment[];
 }

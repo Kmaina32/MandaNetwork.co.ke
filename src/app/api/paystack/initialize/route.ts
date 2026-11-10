@@ -1,162 +1,99 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth, adminDb } from '@/lib/firebase-admin';
-import { createPaystackPlan, initializePaystackTransaction, newPaystackReference } from '@/lib/paystack';
+import { createSupabaseUserClient } from '@/lib/supabase/user-client';
+import { initializePaystackTransaction, newPaystackReference } from '@/lib/paystack';
 
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
+  if (!process.env.PAYSTACK_SECRET_KEY || !process.env.PAYSTACK_CALLBACK_URL) {
+    return NextResponse.json({
+      error: 'Paystack checkout is disabled until PAYSTACK_SECRET_KEY and PAYSTACK_CALLBACK_URL are configured for this deployment.',
+    }, { status: 503 });
+  }
   try {
     const authorization = request.headers.get('authorization') || '';
     if (!authorization.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Please sign in before making a payment.' }, { status: 401 });
     }
-    const decoded = await adminAuth.verifyIdToken(authorization.slice(7), true);
-    const body = await request.json().catch(() => ({}));
-    const itemId = typeof body.itemId === 'string' ? body.itemId.trim() : '';
-    const requestedType = body.purchaseType === 'organization_plan' || itemId.startsWith('org-upgrade-')
-      ? 'organization_plan'
-      : body.purchaseType === 'hackathon' ? 'hackathon' : 'course';
-    if (!/^[A-Za-z0-9_-]{1,160}$/.test(itemId)) {
-      return NextResponse.json({ error: 'Select a valid item to purchase.' }, { status: 400 });
-    }
-    if (!decoded.email || !decoded.email_verified) {
+    const { user, client } = await createSupabaseUserClient(authorization.slice(7));
+    if (!user.email || !user.email_confirmed_at) {
       return NextResponse.json({ error: 'Verify your email address before making a payment.' }, { status: 403 });
     }
 
-    const profileSnapshot = await adminDb.ref(`users/${decoded.uid}`).get();
-    const profile = profileSnapshot.val() || {};
-    let itemType: 'course' | 'hackathon' | 'organization_plan';
-    let itemName: string;
-    let amount: number;
-    let organizationId: string | undefined;
-    let pricingPlanId: string | undefined;
-    let recurringPlanCode: string | undefined;
-
-    if (requestedType === 'organization_plan') {
-      itemType = 'organization_plan';
-      const planId = itemId.slice('org-upgrade-'.length);
-      if (!/^[A-Za-z0-9_-]{1,128}$/.test(planId) || !profile.organizationId) {
-        return NextResponse.json({ error: 'An organization account is required for this upgrade.' }, { status: 403 });
-      }
-      organizationId = profile.organizationId;
-      const [organizationSnapshot, planSnapshot] = await Promise.all([
-        adminDb.ref(`organizations/${organizationId}`).get(),
-        adminDb.ref(`pricingPlans/${planId}`).get(),
-      ]);
-      if (!organizationSnapshot.exists() || organizationSnapshot.val()?.ownerId !== decoded.uid) {
-        return NextResponse.json({ error: 'Only the organization owner can purchase this plan.' }, { status: 403 });
-      }
-      if (!planSnapshot.exists()) return NextResponse.json({ error: 'This plan is no longer available.' }, { status: 404 });
-      const plan = planSnapshot.val();
-      pricingPlanId = planId;
-      itemName = String(plan.name || '').trim();
-      amount = Number(plan.price);
-      if (!['basic', 'pro'].includes(itemName.toLowerCase())) {
-        return NextResponse.json({ error: 'This organization plan is not available for online activation.' }, { status: 409 });
-      }
-    } else if (requestedType === 'hackathon') {
-      itemType = 'hackathon';
-      const hackathonSnapshot = await adminDb.ref(`hackathons/${itemId}`).get();
-      if (!hackathonSnapshot.exists()) return NextResponse.json({ error: 'This hackathon is no longer available.' }, { status: 404 });
-      const hackathon = hackathonSnapshot.val();
-      itemName = String(hackathon.title || 'Hackathon').slice(0, 120);
-      amount = Number(hackathon.entryFee);
-      const existing = await adminDb.ref(`hackathons/${itemId}/participants/${decoded.uid}`).get();
-      if (existing.exists() && existing.val() === true) return NextResponse.json({ error: 'You are already registered for this hackathon.' }, { status: 409 });
-    } else {
-      itemType = 'course';
-      const courseSnapshot = await adminDb.ref(`courses/${itemId}`).get();
-      if (!courseSnapshot.exists()) return NextResponse.json({ error: 'This course is no longer available.' }, { status: 404 });
-      const course = courseSnapshot.val();
-      itemName = String(course.title || 'Course').slice(0, 120);
-      amount = Number(course.price);
-      const existing = await adminDb.ref(`users/${decoded.uid}/purchasedCourses/${itemId}`).get();
-      if (existing.exists()) return NextResponse.json({ error: 'You already have access to this course.' }, { status: 409 });
+    const body = await request.json().catch(() => ({}));
+    const itemId = typeof body.itemId === 'string' ? body.itemId.trim() : '';
+    const purchaseType = typeof body.purchaseType === 'string' ? body.purchaseType : 'course';
+    if (!/^[A-Za-z0-9_-]{1,160}$/.test(itemId)) {
+      return NextResponse.json({ error: 'Select a valid item to purchase.' }, { status: 400 });
+    }
+    // Other purchase types are deliberately blocked until their first-class Supabase
+    // catalogs and fulfillment flows are in place. Never fall back to Firebase.
+    if (purchaseType !== 'course') {
+      return NextResponse.json({ error: 'This payment type is not yet available on the new secure checkout. Please contact support.' }, { status: 409 });
     }
 
-    if (!Number.isSafeInteger(amount) || amount <= 0 || amount > 10000000) {
-      return NextResponse.json({ error: 'This item has an invalid payment amount. Contact support.' }, { status: 409 });
+    const { data: course, error: courseError } = await client.from('courses')
+      .select('id,title,price,is_published').eq('id', itemId).eq('is_published', true).maybeSingle();
+    if (courseError) throw courseError;
+    if (!course) return NextResponse.json({ error: 'This course is no longer available.' }, { status: 404 });
+
+    const amount = Number(course.price);
+    if (!Number.isSafeInteger(amount) || amount <= 0 || amount > 10_000_000) {
+      return NextResponse.json({ error: 'This course has an invalid payment amount. Contact support.' }, { status: 409 });
     }
+
+    const { data: existingEnrollment, error: enrollmentError } = await client.from('enrollments')
+      .select('id').eq('user_id', user.id).eq('course_id', itemId).maybeSingle();
+    if (enrollmentError) throw enrollmentError;
+    if (existingEnrollment) return NextResponse.json({ error: 'You already have access to this course.' }, { status: 409 });
+
+    const { data: activePayments, error: activeError } = await client.from('payment_transactions')
+      .select('reference,status,created_at').eq('user_id', user.id).eq('item_type', 'course')
+      .eq('item_id', itemId).in('status', ['initialized', 'pending'])
+      .order('created_at', { ascending: false }).limit(5);
+    if (activeError) throw activeError;
+    const recent = (activePayments || []).find((payment: any) =>
+      Date.now() - new Date(payment.created_at).getTime() < 20 * 60 * 1000);
+    if (recent) return NextResponse.json({ error: 'A checkout for this course is already in progress. Complete it or wait before retrying.' }, { status: 409 });
 
     const callbackUrl = process.env.PAYSTACK_CALLBACK_URL;
-    if (!callbackUrl) {
-      return NextResponse.json({ error: 'Paystack callback URL has not been configured.' }, { status: 503 });
-    }
+    if (!callbackUrl) return NextResponse.json({ error: 'Paystack callback URL has not been configured.' }, { status: 503 });
     const parsedCallback = new URL(callbackUrl);
     if (parsedCallback.protocol !== 'https:' || !parsedCallback.pathname.endsWith('/api/paystack/callback')) {
       return NextResponse.json({ error: 'Paystack callback URL must be a valid HTTPS callback endpoint.' }, { status: 503 });
     }
 
     const reference = newPaystackReference();
-    const now = Date.now();
-    const lockRef = adminDb.ref(`paymentCheckoutLocks/${decoded.uid}/${itemType}-${itemId}`);
-    const lock = await lockRef.transaction((current) => {
-      if (current && Number(current.expiresAt) > now) return;
-      return { reference, expiresAt: now + 20 * 60 * 1000 };
+    const now = new Date().toISOString();
+    const { error: insertError } = await client.from('payment_transactions').insert({
+      id: reference, user_id: user.id, provider: 'paystack', reference,
+      item_type: 'course', item_id: itemId, amount_kes: amount,
+      currency: 'KES', status: 'initialized',
+      provider_payload: { email: user.email.toLowerCase(), itemName: String(course.title || 'Course').slice(0, 120) },
+      created_at: now, updated_at: now,
     });
-    if (!lock.committed) {
-      return NextResponse.json({ error: 'A checkout for this item is already in progress. Complete it or wait 20 minutes before retrying.' }, { status: 409 });
-    }
-
-    if (itemType === 'organization_plan' && pricingPlanId) {
-      try {
-      const cachedPlan = await adminDb.ref(`paystackPlanCodes/${pricingPlanId}`).get();
-      const cached = cachedPlan.val();
-      if (cached?.amount === amount && cached?.currency === 'KES' && cached?.interval === 'monthly' && typeof cached?.planCode === 'string') {
-        recurringPlanCode = cached.planCode;
-      } else {
-        const createdPlan = await createPaystackPlan({ name: `Varban ${itemName} monthly`, amount, currency: 'KES', interval: 'monthly' });
-        recurringPlanCode = createdPlan.planCode;
-        const planRecord = { planId: pricingPlanId, planCode: recurringPlanCode, amount, currency: 'KES', interval: 'monthly', updatedAt: Date.now() };
-        await Promise.all([
-          adminDb.ref(`paystackPlanCodes/${pricingPlanId}`).set(planRecord),
-          adminDb.ref(`paystackPlanCodeLookup/${recurringPlanCode}`).set(planRecord),
-        ]);
-      }
-      await adminDb.ref(`paystackPlanCodeLookup/${recurringPlanCode}`).set({ planId: pricingPlanId, planCode: recurringPlanCode, amount, currency: 'KES', interval: 'monthly', updatedAt: Date.now() });
-      } catch (error) {
-        await lockRef.transaction((current) => current?.reference === reference ? null : current);
-        throw error;
-      }
-    }
-
-    const transaction = {
-      uid: decoded.uid,
-      email: decoded.email.toLowerCase(),
-      itemType,
-      itemId,
-      itemName,
-      organizationId: organizationId || null,
-      pricingPlanId: pricingPlanId || null,
-      recurring: itemType === 'organization_plan',
-      billingInterval: itemType === 'organization_plan' ? 'monthly' : null,
-      amount,
-      currency: 'KES',
-      reference,
-      status: 'initializing',
-      createdAt: now,
-      updatedAt: now,
-    };
-    await adminDb.ref(`paystackTransactions/${reference}`).set(transaction);
+    if (insertError) throw insertError;
 
     try {
       const checkout = await initializePaystackTransaction({
-        email: transaction.email,
-        amount,
-        reference,
+        email: user.email.toLowerCase(), amount, reference,
         callbackUrl: parsedCallback.toString(),
-        metadata: { uid: decoded.uid, itemType, itemId, itemName },
-        ...(recurringPlanCode ? { planCode: recurringPlanCode } : {}),
+        metadata: { uid: user.id, itemType: 'course', itemId, itemName: String(course.title || 'Course').slice(0, 120) },
       });
-      await adminDb.ref(`paystackTransactions/${reference}`).update({ status: 'pending', updatedAt: Date.now() });
+      const { data: statusUpdated, error: updateError } = await client.rpc('set_paystack_checkout_status', {
+        p_reference: reference, p_status: 'pending',
+      });
+      if (updateError || !statusUpdated) throw updateError || new Error('Could not finalize checkout status.');
       return NextResponse.json({ authorizationUrl: checkout.authorizationUrl, reference });
     } catch (error) {
-      await adminDb.ref(`paystackTransactions/${reference}`).update({ status: 'failed', updatedAt: Date.now() });
-      await lockRef.transaction((current) => current?.reference === reference ? null : current);
+      await client.rpc('set_paystack_checkout_status', { p_reference: reference, p_status: 'failed' });
       throw error;
     }
   } catch (error) {
-    console.error('Paystack initialization failed:', error instanceof Error ? error.message : 'Unknown error');
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unable to start Paystack checkout.' }, { status: 500 });
+    console.error('Supabase Paystack initialization failed:', error instanceof Error ? error.message : 'Unknown error');
+    const message = error instanceof Error && /session/i.test(error.message)
+      ? 'Your sign-in session has expired. Please sign in again.'
+      : 'Unable to start Paystack checkout. Please try again.';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

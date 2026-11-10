@@ -8,7 +8,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { ArrowLeft, Calendar, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAllBlogPosts, getAllAdvertisements } from '@/lib/firebase-server';
 import type { BlogPost, Advertisement } from "@/lib/types";
 import { BlogPostContent } from "@/components/BlogPostContent";
 import type { Metadata } from "next";
@@ -18,29 +18,13 @@ export const dynamic = "force-dynamic";
 type PageProps = { params: Promise<{ slug: string }> };
 
 async function getPublishedPost(slug: string): Promise<BlogPost | null> {
-  try {
-    const snapshot = await adminDb.ref("blog").orderByChild("slug").equalTo(slug).get();
-    if (!snapshot.exists()) return null;
-    const [id, value] = Object.entries(snapshot.val())[0] as [string, Omit<BlogPost, "id">];
-    const post = { id, ...value };
-    return post.isPublished ? post : null;
-  } catch (error) {
-    console.error("Failed to load blog post:", error);
-    return null;
-  }
+  try { return (await getAllBlogPosts()).find(post => post.slug===slug && post.isPublished) || null; }
+  catch(error){ console.error('Failed to load blog post:',error); return null; }
 }
 
 async function getActivePromotions(): Promise<Advertisement[]> {
-  try {
-    const snapshot = await adminDb.ref("advertisements").get();
-    if (!snapshot.exists()) return [];
-    return Object.entries(snapshot.val())
-      .map(([id, value]) => ({ id, ...(value as Omit<Advertisement, "id">) }))
-      .filter((item) => item.isActive);
-  } catch (error) {
-    console.error("Failed to load blog promotions:", error);
-    return [];
-  }
+  try { return (await getAllAdvertisements()).filter(item=>item.isActive); }
+  catch(error){ console.error('Failed to load blog promotions:',error); return []; }
 }
 
 function formatDate(value: string) {
