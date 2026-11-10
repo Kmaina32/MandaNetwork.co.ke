@@ -56,42 +56,39 @@ export async function verifyAndFulfillPaystackPayment(reference: string) {
   const { data: payment, error } = await supabase.from('payment_transactions').select('*').eq('reference', reference).maybeSingle();
   if (error) throw error;
   if (!payment) throw new Error('Unknown payment reference.');
-  const payload = (payment.provider_payload || {}) as Record<string, unknown>;
 
-  if (provider.reference !== reference || Number(provider.amount) !== Math.round(Number(payment.amount_kes) * 100)
+  const payload = (payment.provider_payload || {}) as Record<string, unknown>;
+  if (provider.reference !== reference
+    || Number(provider.amount) !== Math.round(Number(payment.amount_kes) * 100)
     || provider.currency !== payment.currency
     || (provider.customer?.email && String(payload.email || '').toLowerCase() !== provider.customer.email.toLowerCase())) {
-    await supabase.from('payment_transactions').update({ status: 'review_required', updated_at: new Date().toISOString() }).eq('reference', reference);
+    await supabase.from('payment_transactions').update({ status: 'review_required', updated_at: new Date().toISOString() })
+      .eq('reference', reference).in('status', ['initialized', 'pending']);
     throw new Error('Payment details did not match the expected order.');
   }
   if (provider.status !== 'success') {
     const failed = ['failed', 'abandoned', 'reversed'].includes(provider.status);
-    await supabase.from('payment_transactions').update({ status: failed ? 'failed' : 'pending', updated_at: new Date().toISOString() }).eq('reference', reference);
+    await supabase.from('payment_transactions').update({
+      status: failed ? 'failed' : 'pending', updated_at: new Date().toISOString(),
+    }).eq('reference', reference).in('status', ['initialized', 'pending']);
     throw new Error(failed ? 'Paystack reports that this payment was not completed.' : 'Payment has not been confirmed yet.');
   }
-  if (payment.status === 'success') return { ...payment, itemType: payment.item_type, itemId: payment.item_id };
 
-  const { data: course, error: courseError } = await supabase.from('courses').select('id,title,is_published').eq('id', payment.item_id).eq('is_published', true).maybeSingle();
-  if (courseError) throw courseError;
-  if (!course) throw new Error('The purchased course is no longer available.');
+  const { data: fulfilled, error: fulfillmentError } = await supabase.rpc('fulfill_verified_course_payment', {
+    p_reference: reference,
+    p_provider: 'paystack',
+    p_confirmed_amount: Number(provider.amount) / 100,
+    p_confirmed_currency: provider.currency,
+    p_customer_email: provider.customer?.email || null,
+    p_provider_payload: {
+      providerChannel: provider.channel || null,
+      gatewayResponse: provider.gateway_response || null,
+      paidAt: provider.paid_at || new Date().toISOString(),
+    },
+  });
+  if (fulfillmentError) throw fulfillmentError;
+  if (fulfilled !== true) throw new Error('Payment was verified but fulfillment did not complete.');
 
-  const now = new Date().toISOString();
-  const { error: enrollmentError } = await supabase.from('enrollments').upsert({
-    user_id: payment.user_id, course_id: payment.item_id, progress: 0, completed: false,
-    content: { enrollmentDate: now, paymentMethod: 'paystack', paymentReceipt: reference, completedLessons: [] },
-  }, { onConflict: 'user_id,course_id', ignoreDuplicates: true });
-  if (enrollmentError) throw enrollmentError;
-
-  const { error: updateError } = await supabase.from('payment_transactions').update({
-    status: 'success',
-    provider_payload: {
-      ...payload, providerStatus: provider.status, providerChannel: provider.channel || null,
-      gatewayResponse: provider.gateway_response || null, paidAt: provider.paid_at || now,
-      courseTitle: course.title,
-    } as any,
-    updated_at: now,
-  }).eq('reference', reference).neq('status', 'success');
-  if (updateError) throw updateError;
   return { ...payment, status: 'success', itemType: 'course', itemId: payment.item_id };
 }
 
