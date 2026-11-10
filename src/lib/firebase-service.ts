@@ -87,49 +87,30 @@ export async function deleteCourse(courseId: string): Promise<void> {
 
 // User Functions
 export async function saveUser(uid: string, dataToSave: Partial<Omit<RegisteredUser, 'uid'>>): Promise<void> {
-    const userRef = ref(db, `users/${uid}`);
-    await update(userRef, dataToSave);
-    const userSnapshot = await get(userRef);
-    const fullUser = userSnapshot.val() || {};
-
-    // Minimal email lookup index for organization invitations. Rules bind the
-    // email to the caller's verified Firebase Auth token.
-    const directoryEmail = fullUser.email || null;
-    if (directoryEmail) {
-        await set(ref(db, `userDirectory/${uid}`), {
-            uid,
-            email: String(directoryEmail).trim(),
-            organizationId: fullUser.organizationId || null,
-        });
-    } else {
-        await remove(ref(db, `userDirectory/${uid}`));
-    }
-
-    if (dataToSave.portfolio || dataToSave.displayName || dataToSave.photoURL) {
-        const publicProfileRef = ref(db, `publicProfiles/${uid}`);
-        if (fullUser.portfolio?.public) {
-            const portfolio = fullUser.portfolio;
-            // Deliberately exclude phone, postal address, wallet and all account fields.
-            const publicPortfolio = {
-                public: true,
-                aboutMe: portfolio.aboutMe || '',
-                socialLinks: portfolio.socialLinks || {},
-                projects: portfolio.projects || [],
-                workExperience: portfolio.workExperience || [],
-                education: portfolio.education || [],
-            };
-            await set(publicProfileRef, {
-                uid,
-                displayName: fullUser.displayName || '',
-                photoURL: fullUser.photoURL || '',
-                portfolio: publicPortfolio,
-            });
-        } else {
-            await remove(publicProfileRef);
-        }
-    }
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('A signed-in account is required.');
+  const isSelf = authData.user.id === uid;
+  if (!isSelf) {
+    const { data: isAdmin, error: roleError } = await supabase.rpc('has_role', {
+      check_user_id: authData.user.id, allowed_roles: ['admin', 'super_admin'],
+    });
+    if (roleError || !isAdmin) throw new Error('You are not allowed to update this profile.');
+  }
+  const { displayName, photoURL, email, ...metadata } = dataToSave as any;
+  const { data: current, error: readError } = await supabase.from('profiles').select('metadata').eq('id', uid).maybeSingle();
+  if (readError) throw readError;
+  const safeMetadata = { ...(current?.metadata || {}) };
+  for (const [key, value] of Object.entries(metadata)) {
+    if (!['isAdmin','isSuperAdmin','role','roles','isOrganizationAdmin'].includes(key) && value !== undefined) safeMetadata[key] = value;
+  }
+  const patch: Record<string, unknown> = { metadata: safeMetadata, updated_at: new Date().toISOString() };
+  if (displayName !== undefined) patch.display_name = displayName;
+  if (photoURL !== undefined) patch.avatar_path = photoURL;
+  if (email !== undefined && isSelf) patch.email = email;
+  const { error } = await supabase.from('profiles').upsert({ id: uid, ...patch }, { onConflict: 'id' });
+  if (error) throw error;
 }
-
 export async function getUserById(uid: string): Promise<RegisteredUser | null> {
     const userRef = ref(db, `users/${uid}`);
     const snapshot = await get(userRef);
@@ -213,18 +194,29 @@ export async function updateUserCourseProgress(userId: string, courseId: string,
 }
 
 export async function getAllUsers(): Promise<RegisteredUser[]> {
-    const usersRef = ref(db, 'users');
-    const snapshot = await get(usersRef);
-    if (snapshot.exists()) {
-        const usersData = snapshot.val();
-        return Object.keys(usersData).map(uid => ({
-            uid,
-            ...usersData[uid],
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data: current } = await supabase.auth.getUser();
+  if (!current.user) throw new Error('Administrator sign-in is required.');
+  const { data: allowed, error: roleError } = await supabase.rpc('has_role', {
+    check_user_id: current.user.id, allowed_roles: ['admin', 'super_admin'],
+  });
+  if (roleError || !allowed) throw new Error('Administrator access is required.');
+  const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+  if (error) throw error;
+  const ids = (data || []).map((row: any) => row.id);
+  const { data: roleRows, error: rolesError } = ids.length
+    ? await supabase.from('user_roles').select('user_id,role').in('user_id', ids)
+    : { data: [], error: null };
+  if (rolesError) throw rolesError;
+  const roles = new Map<string, string[]>();
+  (roleRows || []).forEach((row: any) => roles.set(row.user_id, [...(roles.get(row.user_id) || []), row.role]));
+  return (data || []).map((row: any) => ({
+    ...(row.metadata || {}), uid: row.id, email: row.email || null,
+    displayName: row.display_name || row.email || 'Learner', photoURL: row.avatar_path || '',
+    createdAt: row.created_at, isAdmin: (roles.get(row.id) || []).some(role => ['admin','super_admin'].includes(role)),
+    isSuperAdmin: (roles.get(row.id) || []).includes('super_admin'),
+  })) as RegisteredUser[];
 }
-
 export async function getPublicProfiles(): Promise<RegisteredUser[]> {
   const dbRef = ref(db, 'publicProfiles');
   const snapshot = await get(dbRef);
