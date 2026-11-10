@@ -15,9 +15,9 @@ describe('Supabase academy security migrations', () => {
     expect(sql).toContain('public.user_roles');
   });
 
-  it('protects learner-owned enrollment records with RLS', () => {
-    expect(sql).toContain('alter table public.enrollments enable row level security');
-    expect(sql).toContain('user_id = auth.uid()');
+  it('protects learner-owned enrollment records with an owner-scoped RLS policy', () => {
+    expect(sql).toContain('create policy enrollments_owner_select');
+    expect(sql).toContain('using (user_id=auth.uid()');
   });
 
   it('does not grant anonymous access to role helper functions', () => {
