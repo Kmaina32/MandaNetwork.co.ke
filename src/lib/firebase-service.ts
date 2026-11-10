@@ -423,40 +423,39 @@ export async function saveRemoteConfigValues(data: Record<string, string>): Prom
 }
 
 export async function createNotification(notificationData: Partial<Omit<Notification, 'id'>>): Promise<string> {
-    const notificationsRef = ref(db, 'notifications');
-    const newNotificationRef = push(notificationsRef);
-    const dataToSave = {
-        read: false,
-        archived: false,
-        ...notificationData,
-        createdAt: new Date().toISOString(),
-    };
-    await set(newNotificationRef, dataToSave);
-    return newNotificationRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Sign in is required to send notifications.');
+  const item = notificationData as any;
+  const id = crypto.randomUUID();
+  const content = { ...(item.cohort ? { cohort: item.cohort } : {}), link: item.link || null, read: false, archived: false };
+  const { error } = await supabase.from('notifications').insert({
+    id, user_id: item.userId || null, title: String(item.title || 'Notification'),
+    body: item.body || '', content, created_at: new Date().toISOString(),
+  });
+  if (error) throw error;
+  return id;
 }
 
 export async function getAllNotifications(userId: string, cohort?: string): Promise<Notification[]> {
-    if (!userId) throw new Error('A signed-in user is required to load notifications.');
-    const userQuery = query(ref(db, 'notifications'), orderByChild('userId'), equalTo(userId));
-    const requests = [get(userQuery)];
-    if (cohort) {
-        const cohortQuery = query(ref(db, 'notifications'), orderByChild('cohort'), equalTo(cohort));
-        requests.push(get(cohortQuery));
-    }
-    const snapshots = await Promise.all(requests);
-    const notificationsById = new Map<string, Notification>();
-    for (const snapshot of snapshots) {
-        if (!snapshot.exists()) continue;
-        const data = snapshot.val();
-        for (const key of Object.keys(data)) {
-            notificationsById.set(key, { id: key, ...data[key] });
-        }
-    }
-    return Array.from(notificationsById.values())
-        .sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) throw new Error('You can only load notifications for your own account.');
+  const [ownResult, cohortResult] = await Promise.all([
+    supabase.from('notifications').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
+    cohort ? supabase.from('notifications').select('*').contains('content', { cohort }).order('created_at', { ascending: false }).limit(100) : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (ownResult.error) throw ownResult.error;
+  if (cohortResult.error) throw cohortResult.error;
+  const rows = new Map<string, any>();
+  [...(ownResult.data || []), ...(cohortResult.data || [])].forEach((row: any) => rows.set(row.id, row));
+  return Array.from(rows.values()).map((row: any) => ({
+    id: row.id, userId: row.user_id, title: row.title, body: typeof row.body === 'string' ? row.body : JSON.stringify(row.body || ''),
+    link: row.content?.link || undefined, cohort: row.content?.cohort || undefined,
+    read: Boolean(row.read_at), archived: Boolean(row.content?.archived), createdAt: row.created_at,
+  })) as Notification[];
 }
 
-// User Notes Functions
 export async function saveUserNotes(userId: string, courseId: string, notes: string): Promise<void> {
   const supabase = getSupabaseBrowserClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
