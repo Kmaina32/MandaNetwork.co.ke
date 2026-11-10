@@ -90,7 +90,7 @@ export async function verifyAndFulfillPaystackPayment(reference: string) {
       courseTitle: course.title,
     } as any,
     updated_at: now,
-  }).eq('reference', reference).neq('status', 'completed');
+  }).eq('reference', reference).neq('status', 'success');
   if (updateError) throw updateError;
   return { ...payment, status: 'success', itemType: 'course', itemId: payment.item_id };
 }
