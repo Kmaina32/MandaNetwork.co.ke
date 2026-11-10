@@ -221,9 +221,14 @@ export async function getPublicProfiles(): Promise<RegisteredUser[]> {
 }
 
 export async function deleteUser(userId: string): Promise<void> {
-  const response = await fetch('/api/admin/users/' + encodeURIComponent(userId), { method: 'DELETE' });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error || 'Unable to delete this account.');
+  const supabase = getSupabaseBrowserClient();
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError || !sessionData.session) throw new Error('Administrator sign-in is required.');
+  const response = await fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+    method: 'DELETE', headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || 'Could not delete this account.');
 }
 
 export async function getHeroData(): Promise<HeroData> {
