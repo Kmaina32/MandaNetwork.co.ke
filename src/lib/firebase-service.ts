@@ -7,6 +7,7 @@ import type { Assignment, TutorSettings, Course, UserCourse, CalendarEvent, Subm
 import { getRemoteConfig, fetchAndActivate, getString } from 'firebase/remote-config';
 import { app } from './firebase';
 import { slugify } from './utils';
+import { uploadAcademyAsset } from './supabase/storage';
 
 export type { Assignment, Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, TeamMember, ContactMessage, Form, FormSubmission, Referral, Bootcamp, BlogPost, HeroData, TutorSettings } from './types';
 
@@ -19,10 +20,8 @@ export interface CertificateSettings {
 
 // Image Upload Service
 export async function uploadImage(path: string, file: File): Promise<string> {
-    const imageRef = storageRef(storage, path);
-    await uploadBytes(imageRef, file);
-    const downloadURL = await getDownloadURL(imageRef);
-    return downloadURL;
+    const folder = path.split('/').filter(Boolean).slice(0, 2).join('-') || 'images';
+    return uploadAcademyAsset(file, folder);
 }
 
 // Course Functions
