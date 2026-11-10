@@ -770,10 +770,10 @@ export async function getInvitation(inviteId: string): Promise<Invitation | null
   return data ? ({ ...(data.content || {}), id: data.id, organizationId: data.organization_id, userId: data.invited_user_id, email: data.email, role: data.member_role, status: data.status, expiresAt: data.expires_at } as Invitation) : null;
 }
 
-export async function updateInvitationStatus(inviteId: string, status: 'accepted'): Promise<void> {
+export async function updateInvitationStatus(inviteId: string, status: 'accepted' | 'declined'): Promise<void> {
   const supabase = getSupabaseBrowserClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError || !authData.user) throw new Error('Sign in to accept this invitation.');
+  if (authError || !authData.user) throw new Error('Sign in to respond to this invitation.');
   const { data: invite, error: readError } = await supabase.from('organization_invitations').select('*').eq('id',inviteId).maybeSingle();
   if (readError) throw readError;
   if (!invite || invite.status !== 'pending' || (invite.expires_at && new Date(invite.expires_at) < new Date())) throw new Error('This invitation is no longer valid.');
@@ -781,11 +781,13 @@ export async function updateInvitationStatus(inviteId: string, status: 'accepted
   if (!invite.invited_user_id && invite.email.toLowerCase() !== (authData.user.email || '').toLowerCase()) throw new Error('Sign in with the email address that received this invitation.');
   const { error } = await supabase.from('organization_invitations').update({ status, invited_user_id: authData.user.id }).eq('id',inviteId);
   if (error) throw error;
-  const { error: memberError } = await supabase.from('organization_members').upsert({
-    organization_id: invite.organization_id, user_id: authData.user.id, member_role: invite.member_role,
-    status: 'active', joined_at: new Date().toISOString(),
-  }, { onConflict: 'organization_id,user_id' });
-  if (memberError) throw memberError;
+  if (status === 'accepted') {
+    const { error: memberError } = await supabase.from('organization_members').upsert({
+      organization_id: invite.organization_id, user_id: authData.user.id, member_role: invite.member_role,
+      status: 'active', joined_at: new Date().toISOString(),
+    }, { onConflict: 'organization_id,user_id' });
+    if (memberError) throw memberError;
+  }
 }
 
 export async function deleteInvitation(inviteId: string): Promise<void> {
