@@ -1,30 +1,24 @@
-import databaseRules from '@/database.rules.json';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
-const rules = databaseRules.rules as Record<string, any>;
+const migrationFiles = [
+  '202611100001_supabase_only_identity_foundation.sql',
+  '202611100004_database_role_rls_alignment.sql',
+  '202611100006_role_based_rls_policies.sql',
+  '202611100018_supabase_server_actions.sql',
+];
+const sql = migrationFiles.map(file => readFileSync(join(process.cwd(), 'supabase', 'migrations', file), 'utf8')).join('\n');
 
-describe('Firebase Realtime Database security rules', () => {
-  it('does not grant blanket access to unlisted database paths', () => {
-    expect(rules).not.toHaveProperty('$other');
+describe('Supabase academy security migrations', () => {
+  it('uses database-backed role checks', () => {
+    expect(sql).toContain('public.has_role');
+    expect(sql).toContain('public.user_roles');
   });
-
-  it('prevents users from editing their own privileged role fields', () => {
-    const userRules = rules.users.$userId;
-    expect(userRules['.validate']).toContain("newData.child('isAdmin').val() === data.child('isAdmin').val()");
-    expect(userRules['.validate']).toContain("newData.child('isSuperAdmin').val() === data.child('isSuperAdmin').val()");
+  it('protects learner-owned enrollment records with RLS', () => {
+    expect(sql).toContain('alter table public.enrollments enable row level security');
+    expect(sql).toContain('user_id=auth.uid()');
   });
-
-  it('restricts leaderboard writes to administrators', () => {
-    expect(rules.leaderboard.$userId['.write']).toContain("child('isAdmin')");
-    expect(rules.leaderboard.$userId['.write']).not.toContain("auth.uid === $userId");
-  });
-
-  it('requires ownership for user-generated submissions', () => {
-    expect(rules.submissions.$submissionId['.write']).toContain("!data.exists()");
-    expect(rules.submissions.$submissionId['.write']).toContain("newData.child('userId').val() === auth.uid");
-    expect(rules.formSubmissions.$submissionId['.write']).toContain("!data.exists()");
-  });
-
-  it('does not expose payment transaction records to browser clients', () => {
-    expect(rules).not.toHaveProperty('mpesaTransactions');
+  it('does not grant anonymous access to role helper functions', () => {
+    expect(sql).toContain('from public, anon');
   });
 });
