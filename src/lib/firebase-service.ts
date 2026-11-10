@@ -1250,128 +1250,69 @@ export async function deleteContactMessage(id: string): Promise<void> {
 }
 
 export async function createForm(formData: Omit<FormType, 'id'>): Promise<string> {
-  const formsRef = ref(db, 'forms');
-  const newFormRef = push(formsRef);
-  const dataToSave = {
-    ...formData,
-    slug: slugify(formData.title),
-  };
-  await set(newFormRef, dataToSave);
-
-  // If it's a general survey, create a notification for it
-  if (!formData.organizationId) {
-    await createNotification({
-      title: 'New Survey Available',
-      body: `We'd love your feedback! Please take a moment to complete the "${formData.title}" survey.`,
-      actions: [{
-        title: 'Start Survey',
-        action: 'open_form_dialog' as any,
-        payload: {
-          formId: newFormRef.key!,
-        }
-      }]
-    });
-  }
-
-  return newFormRef.key!;
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser();
+  if(!auth.user) throw new Error('Administrator sign-in is required.');
+  const id=crypto.randomUUID(), item=formData as any;
+  const {error}=await supabase.from('forms').insert({id,slug:slugify(formData.title),title:formData.title,is_published:Boolean(item.isPublished),content:item,created_by:auth.user.id});
+  if(error) throw error; return id;
 }
 
 export async function updateForm(id: string, formData: Omit<FormType, 'id'>): Promise<void> {
-    const formRef = ref(db, `forms/${id}`);
-    const dataToSave = {
-        ...formData,
-        slug: slugify(formData.title),
-    };
-    await update(formRef, dataToSave);
+  const supabase=getSupabaseBrowserClient(); const item=formData as any;
+  const {error}=await supabase.from('forms').update({slug:slugify(formData.title),title:formData.title,is_published:Boolean(item.isPublished),content:item,updated_at:new Date().toISOString()}).eq('id',id);
+  if(error) throw error;
 }
 
 export async function getAllForms(): Promise<FormType[]> {
-    const formsRef = ref(db, 'forms');
-    const snapshot = await get(formsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('forms').select('*').order('created_at',{ascending:false});
+  if(error) throw error; return (data||[]).map((row:any)=>({...row.content,id:row.id,slug:row.slug,title:row.title,isPublished:row.is_published})) as FormType[];
 }
 
 export async function getFormById(id: string): Promise<FormType | null> {
-    const formRef = ref(db, `forms/${id}`);
-    const snapshot = await get(formRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('forms').select('*').eq('id',id).maybeSingle();
+  if(error) throw error; return data?({...data.content,id:data.id,slug:data.slug,title:data.title,isPublished:data.is_published} as FormType):null;
 }
 
 export async function getFormBySlug(slug: string): Promise<FormType | null> {
-    const formsRef = query(ref(db, 'forms'), orderByChild('slug'), equalTo(slug));
-    const snapshot = await get(formsRef);
-    if (snapshot.exists()) {
-        const formsData = snapshot.val();
-        const formId = Object.keys(formsData)[0];
-        return { id: formId, ...formsData[formId] };
-    }
-    return null;
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('forms').select('*').eq('slug',slug).maybeSingle();
+  if(error) throw error; return data?({...data.content,id:data.id,slug:data.slug,title:data.title,isPublished:data.is_published} as FormType):null;
 }
 
 export async function deleteForm(id: string): Promise<void> {
-    const formRef = ref(db, `forms/${id}`);
-    await remove(formRef);
-    // Also delete submissions
-    const submissionsRef = query(ref(db, 'formSubmissions'), orderByChild('formId'), equalTo(id));
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const updates: Record<string, null> = {};
-        snapshot.forEach((child) => {
-            updates[child.key!] = null;
-        });
-        await update(ref(db, 'formSubmissions'), updates);
-    }
+  const supabase=getSupabaseBrowserClient(); const {error}=await supabase.from('forms').delete().eq('id',id); if(error) throw error;
 }
 
 export async function createFormSubmission(submissionData: Omit<FormSubmission, 'id'>): Promise<string> {
-    const submissionsRef = ref(db, 'formSubmissions');
-    const newSubmissionRef = push(submissionsRef);
-    await set(newSubmissionRef, submissionData);
-    return newSubmissionRef.key!;
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser(); const item=submissionData as any;
+  const id=crypto.randomUUID();
+  const {error}=await supabase.from('form_submissions').insert({id,form_id:item.formId,user_id:auth.user?.id||null,content:submissionData});
+  if(error) throw error; return id;
 }
 
 export async function getFormSubmissions(formId: string): Promise<FormSubmission[]> {
-    const submissionsRef = query(ref(db, 'formSubmissions'), orderByChild('formId'), equalTo(formId));
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('form_submissions').select('*').eq('form_id',formId).order('created_at',{ascending:false});
+  if(error) throw error; return (data||[]).map((row:any)=>({...row.content,id:row.id,formId:row.form_id,userId:row.user_id,createdAt:row.created_at})) as FormSubmission[];
 }
 
 export async function getFormSubmissionsByUserId(userId: string): Promise<FormSubmission[]> {
-    const submissionsRef = query(ref(db, 'formSubmissions'), orderByChild('userId'), equalTo(userId));
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser();
+  if(auth.user?.id!==userId) throw new Error('You can only view your own form submissions.');
+  const {data,error}=await supabase.from('form_submissions').select('*').eq('user_id',userId).order('created_at',{ascending:false});
+  if(error) throw error; return (data||[]).map((row:any)=>({...row.content,id:row.id,formId:row.form_id,userId:row.user_id,createdAt:row.created_at})) as FormSubmission[];
 }
 
-// Affiliate Program
 export async function createReferral(referralData: Omit<Referral, 'id'>): Promise<void> {
-    const referralsRef = ref(db, 'referrals');
-    const newRef = push(referralsRef);
-    await set(newRef, referralData);
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser(); const item=referralData as any;
+  if(!auth.user || auth.user.id!==item.affiliateId) throw new Error('You can only create referrals for your own affiliate account.');
+  const {error}=await supabase.from('referrals').insert({affiliate_id:auth.user.id,referred_user_id:item.referredUserId||null,content:referralData});
+  if(error) throw error;
 }
 
 export async function getReferralsByAffiliate(affiliateId: string): Promise<Referral[]> {
-    const referralsRef = query(ref(db, 'referrals'), orderByChild('affiliateId'), equalTo(affiliateId));
-    const snapshot = await get(referralsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser();
+  if(auth.user?.id!==affiliateId) throw new Error('You can only view your own referrals.');
+  const {data,error}=await supabase.from('referrals').select('*').eq('affiliate_id',affiliateId).order('created_at',{ascending:false});
+  if(error) throw error; return (data||[]).map((row:any)=>({...row.content,id:row.id,affiliateId:row.affiliate_id,referredUserId:row.referred_user_id,createdAt:row.created_at})) as Referral[];
 }
 
 export async function createOrUpdateConversation(conversation: Partial<any>): Promise<void> {
