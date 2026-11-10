@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (itemType === 'organization_plan' && pricingPlanId) {
+      try {
       const cachedPlan = await adminDb.ref(`paystackPlanCodes/${pricingPlanId}`).get();
       const cached = cachedPlan.val();
       if (cached?.amount === amount && cached?.currency === 'KES' && cached?.interval === 'monthly' && typeof cached?.planCode === 'string') {
@@ -107,6 +108,10 @@ export async function POST(request: NextRequest) {
         const createdPlan = await createPaystackPlan({ name: `Varban ${itemName} monthly`, amount, currency: 'KES', interval: 'monthly' });
         recurringPlanCode = createdPlan.planCode;
         await adminDb.ref(`paystackPlanCodes/${pricingPlanId}`).set({ planCode: recurringPlanCode, amount, currency: 'KES', interval: 'monthly', updatedAt: Date.now() });
+      }
+      } catch (error) {
+        await lockRef.transaction((current) => current?.reference === reference ? null : current);
+        throw error;
       }
     }
 
