@@ -18,7 +18,7 @@ export async function generateApiKey(input: GenerateApiKeyInput): Promise<ApiKey
   const { data, error } = await client.from('user_api_keys').insert({
     user_id: user.id, name: parsed.keyName,
     key_hash: createHash('sha256').update(key).digest('hex'),
-    key_prefix: key.slice(0,8),
+    key_prefix: key.slice(-4),
   }).select('id,name,key_prefix,created_at,user_id').single();
   if (error) throw error;
   return { id: data.id, name: data.name, keyPreview: data.key_prefix, createdAt: data.created_at, userId: data.user_id, key } as ApiKey;
