@@ -200,3 +200,24 @@ end;
 $$;
 revoke all on function public.set_paystack_checkout_status(text,text) from public,anon;
 grant execute on function public.set_paystack_checkout_status(text,text) to authenticated;
+
+-- Public image uploads use a separate public bucket; documents remain in private academy-assets.
+drop policy if exists "Academy admins delete media" on storage.objects;
+drop policy if exists "Academy admins update media" on storage.objects;
+drop policy if exists "Academy admins upload media" on storage.objects;
+drop policy if exists "Academy media is publicly readable" on storage.objects;
+drop policy if exists academy_media_public_read on storage.objects;
+drop policy if exists academy_media_owner_insert on storage.objects;
+drop policy if exists academy_media_owner_update on storage.objects;
+drop policy if exists academy_media_owner_delete on storage.objects;
+create policy academy_media_public_read on storage.objects for select to anon,authenticated using(bucket_id='academy-media');
+create policy academy_media_owner_insert on storage.objects for insert to authenticated with check(bucket_id='academy-media' and (
+  (storage.foldername(name))[1]=(select auth.uid())::text or public.has_role((select auth.uid()),array['admin','super_admin'])
+));
+create policy academy_media_owner_update on storage.objects for update to authenticated
+using(bucket_id='academy-media' and ((storage.foldername(name))[1]=(select auth.uid())::text or public.has_role((select auth.uid()),array['admin','super_admin'])))
+with check(bucket_id='academy-media' and ((storage.foldername(name))[1]=(select auth.uid())::text or public.has_role((select auth.uid()),array['admin','super_admin'])));
+create policy academy_media_owner_delete on storage.objects for delete to authenticated
+using(bucket_id='academy-media' and ((storage.foldername(name))[1]=(select auth.uid())::text or public.has_role((select auth.uid()),array['admin','super_admin'])));
+update storage.buckets set file_size_limit=10485760,allowed_mime_types=array['image/jpeg','image/png','image/webp','image/gif'] where id='academy-media';
+update storage.buckets set file_size_limit=52428800 where id='academy-assets';
