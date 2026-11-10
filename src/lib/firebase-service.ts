@@ -541,45 +541,51 @@ export async function sendReaction(sessionId: string, emoji: string): Promise<vo
 }
 
 export async function createProgram(programData: Omit<Program, 'id'>): Promise<string> {
-    const programsRef = ref(db, 'programs');
-    const newProgramRef = push(programsRef);
-    await set(newProgramRef, programData);
-    return newProgramRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Administrator sign-in is required.');
+  const item = programData as any;
+  const id = crypto.randomUUID();
+  const { error } = await supabase.from('programs').insert({ id, title: item.title, description: item.description || null, is_published: Boolean(item.isPublished), content: item, created_by: authData.user.id });
+  if (error) throw error;
+  return id;
 }
 
 export async function getAllPrograms(): Promise<Program[]> {
-    const dbRef = ref(db, 'programs');
-    const snapshot = await get(dbRef);
-    if (snapshot.exists()) {
-        const programsData = snapshot.val();
-        return Object.keys(programsData).map(key => ({
-            id: key,
-            ...programsData[key]
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('programs').select('*').order('created_at',{ascending:false});
+  if (error) throw error;
+  return (data || []).map(mapProgram);
 }
 
 export async function getProgramById(id: string): Promise<Program | null> {
-    const programRef = ref(db, `programs/${id}`);
-    const snapshot = await get(programRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('programs').select('*').eq('id',id).maybeSingle();
+  if (error) throw error;
+  return data ? mapProgram(data) : null;
 }
 
 export async function updateProgram(id: string, programData: Partial<Program>): Promise<void> {
-    const programRef = ref(db, `programs/${id}`);
-    await update(programRef, programData);
+  const supabase = getSupabaseBrowserClient();
+  const { data: current, error: readError } = await supabase.from('programs').select('content').eq('id',id).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Program not found.');
+  const item = programData as any;
+  const { error } = await supabase.from('programs').update({
+    ...(item.title !== undefined ? { title: item.title } : {}),
+    ...(item.description !== undefined ? { description: item.description } : {}),
+    ...(item.isPublished !== undefined ? { is_published: item.isPublished } : {}),
+    content: { ...(current.content || {}), ...item }, updated_at: new Date().toISOString(),
+  }).eq('id',id);
+  if (error) throw error;
 }
 
 export async function deleteProgram(id: string): Promise<void> {
-    const programRef = ref(db, `programs/${id}`);
-    await remove(programRef);
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('programs').delete().eq('id',id);
+  if (error) throw error;
 }
 
-// Bundle Functions
 export async function createBundle(bundleData: Omit<Bundle, 'id'>): Promise<string> {
     const bundlesRef = ref(db, 'bundles');
     const newBundleRef = push(bundlesRef);
@@ -724,62 +730,64 @@ export async function updatePermissionRequestStatus(id: string, status: 'approve
 
 // Organization Functions
 export async function createOrganization(orgData: Omit<Organization, 'id'>): Promise<string> {
-    const orgsRef = ref(db, 'organizations');
-    const newOrgRef = push(orgsRef);
-    await set(newOrgRef, orgData);
-    return newOrgRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Sign in is required to create an organization.');
+  const item = orgData as any; const id = crypto.randomUUID();
+  const { error } = await supabase.from('organizations').insert({ id, name: String(item.name || 'Organization'), owner_id: authData.user.id, content: item });
+  if (error) throw error;
+  const { error: memberError } = await supabase.from('organization_members').insert({ organization_id: id, user_id: authData.user.id, member_role: 'owner', status: 'active', joined_at: new Date().toISOString() });
+  if (memberError) throw memberError;
+  return id;
 }
 
 export async function getOrganizationMembers(orgId: string): Promise<RegisteredUser[]> {
-    const usersRef = query(ref(db, 'users'), orderByChild('organizationId'), equalTo(orgId));
-    const snapshot = await get(usersRef);
-    if (snapshot.exists()) {
-        const usersData = snapshot.val();
-        return Object.keys(usersData).map(uid => ({
-            uid,
-            ...usersData[uid],
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data: memberships, error } = await supabase.from('organization_members').select('user_id,member_role,status,joined_at').eq('organization_id',orgId).eq('status','active');
+  if (error) throw error;
+  const ids = (memberships || []).map((row: any) => row.user_id);
+  if (!ids.length) return [];
+  const { data: profiles, error: profilesError } = await supabase.from('profiles').select('id,email,display_name,avatar_path,metadata').in('id',ids);
+  if (profilesError) throw profilesError;
+  const membershipMap = new Map((memberships || []).map((row: any) => [row.user_id,row]));
+  return (profiles || []).map((profile: any) => {
+    const membership: any = membershipMap.get(profile.id);
+    return { ...(profile.metadata || {}), uid: profile.id, email: profile.email, displayName: profile.display_name, photoURL: profile.avatar_path, organizationRole: membership?.member_role, organizationStatus: membership?.status } as RegisteredUser;
+  });
 }
 
 export async function getAllOrganizations(): Promise<Organization[]> {
-    const orgsRef = ref(db, 'organizations');
-    const snapshot = await get(orgsRef);
-    if (snapshot.exists()) {
-        const orgsData = snapshot.val();
-        return Object.keys(orgsData).map(key => ({
-            id: key,
-            ...orgsData[key]
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('organizations').select('*').order('created_at',{ascending:false});
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, name: row.name, ownerId: row.owner_id, createdAt: row.created_at, updatedAt: row.updated_at })) as Organization[];
 }
 
 export async function getOrganizationByOwnerId(ownerId: string): Promise<Organization | null> {
-  const orgsRef = query(ref(db, 'organizations'), orderByChild('ownerId'), equalTo(ownerId));
-  const snapshot = await get(orgsRef);
-  if (snapshot.exists()) {
-    const orgsData = snapshot.val();
-    const orgId = Object.keys(orgsData)[0];
-    return { id: orgId, ...orgsData[orgId] };
-  }
-  return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== ownerId) throw new Error('You can only load your own organization.');
+  const { data, error } = await supabase.from('organizations').select('*').eq('owner_id',ownerId).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.content || {}), id: data.id, name: data.name, ownerId: data.owner_id, createdAt: data.created_at, updatedAt: data.updated_at } as Organization) : null;
 }
 
 export async function updateOrganization(orgId: string, orgData: Partial<Organization>): Promise<void> {
-    const orgRef = ref(db, `organizations/${orgId}`);
-    await update(orgRef, orgData);
+  const supabase = getSupabaseBrowserClient();
+  const { data: current, error: readError } = await supabase.from('organizations').select('content').eq('id',orgId).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Organization not found.');
+  const item = orgData as any;
+  const { error } = await supabase.from('organizations').update({ ...(item.name !== undefined ? { name: item.name } : {}), content: { ...(current.content || {}), ...item }, updated_at: new Date().toISOString() }).eq('id',orgId);
+  if (error) throw error;
 }
 
 export async function deleteOrganization(orgId: string): Promise<void> {
-    const orgRef = ref(db, `organizations/${orgId}`);
-    // You might also want to handle members associated with this org
-    await remove(orgRef);
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('organizations').delete().eq('id',orgId);
+  if (error) throw error;
 }
 
-
-// Invitation Functions
 export async function createInvitation(inviteData: Omit<Invitation, 'id'>): Promise<string> {
     const invitesRef = ref(db, 'invitations');
     const newInviteRef = push(invitesRef);
@@ -914,42 +922,49 @@ export async function getVerifiedCertificateData(certificateId: string): Promise
 
 // Bootcamp Functions
 export async function createBootcamp(bootcampData: Omit<Bootcamp, 'id'>): Promise<string> {
-    const bootcampsRef = ref(db, 'bootcamps');
-    const newBootcampRef = push(bootcampsRef);
-    await set(newBootcampRef, bootcampData);
-    return newBootcampRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Administrator sign-in is required.');
+  const item = bootcampData as any; const id = crypto.randomUUID();
+  const { error } = await supabase.from('bootcamps').insert({ id, title: item.title, description: item.description || null, start_date: item.startDate || null, is_published: Boolean(item.isPublished), content: item, created_by: authData.user.id });
+  if (error) throw error;
+  return id;
 }
 
 export async function getAllBootcamps(): Promise<Bootcamp[]> {
-    const dbRef = ref(db, 'bootcamps');
-    const snapshot = await get(dbRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('bootcamps').select('*').order('created_at',{ascending:false});
+  if (error) throw error;
+  return (data || []).map(mapBootcamp);
 }
 
 export async function getBootcampById(id: string): Promise<Bootcamp | null> {
-    const bootcampRef = ref(db, `bootcamps/${id}`);
-    const snapshot = await get(bootcampRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('bootcamps').select('*').eq('id',id).maybeSingle();
+  if (error) throw error;
+  return data ? mapBootcamp(data) : null;
 }
 
 export async function updateBootcamp(id: string, bootcampData: Partial<Bootcamp>): Promise<void> {
-    const bootcampRef = ref(db, `bootcamps/${id}`);
-    await update(bootcampRef, bootcampData);
+  const supabase = getSupabaseBrowserClient();
+  const { data: current, error: readError } = await supabase.from('bootcamps').select('content').eq('id',id).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Bootcamp not found.');
+  const item = bootcampData as any;
+  const { error } = await supabase.from('bootcamps').update({
+    ...(item.title !== undefined ? { title: item.title } : {}),
+    ...(item.description !== undefined ? { description: item.description } : {}),
+    ...(item.startDate !== undefined ? { start_date: item.startDate } : {}),
+    ...(item.isPublished !== undefined ? { is_published: item.isPublished } : {}),
+    content: { ...(current.content || {}), ...item }, updated_at: new Date().toISOString(),
+  }).eq('id',id);
+  if (error) throw error;
 }
 
 export async function deleteBootcamp(id: string): Promise<void> {
-    const bootcampRef = ref(db, `bootcamps/${id}`);
-    await remove(bootcampRef);
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('bootcamps').delete().eq('id',id);
+  if (error) throw error;
 }
 
 export async function registerUserForBootcamp(bootcampId: string, userId: string): Promise<void> {
@@ -1120,20 +1135,12 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
 }
 
 export async function getAllBlogPosts(): Promise<BlogPost[]> {
-    const dbRef = ref(db, 'blog');
-    const snapshot = await get(dbRef);
-    if (snapshot.exists()) {
-        const postsData = snapshot.val();
-        const posts = Object.keys(postsData).map(key => ({
-            id: key,
-            ...postsData[key]
-        }));
-        return posts.reverse();
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('blog_posts').select('*').order('created_at',{ascending:false});
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, slug: row.slug, title: row.title, isPublished: row.is_published, createdAt: row.created_at, updatedAt: row.updated_at })) as BlogPost[];
 }
 
-// Activity Logging
 export async function logPageVisit(userId: string, path: string): Promise<void> {
     const user = await getUserById(userId);
     if (!user) return;
@@ -1182,56 +1189,51 @@ export async function getActivityLogs(limit: number): Promise<UserActivity[]> {
 
 // Blog
 export async function createBlogPost(postData: Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
-  const postsRef = ref(db, 'blog');
-  const newPostRef = push(postsRef);
-  const now = new Date().toISOString();
-  const dataToSave = {
-    ...postData,
-    slug: slugify(postData.title),
-    createdAt: now,
-    updatedAt: now,
-  };
-  await set(newPostRef, dataToSave);
-  return newPostRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Administrator sign-in is required.');
+  const id = crypto.randomUUID(); const now = new Date().toISOString();
+  const item = { ...postData, slug: slugify(postData.title), createdAt: now, updatedAt: now };
+  const { error } = await supabase.from('blog_posts').insert({ id, slug: item.slug, title: item.title, is_published: Boolean((item as any).isPublished), content: item, author_id: authData.user.id, created_at: now, updated_at: now });
+  if (error) throw error;
+  return id;
 }
 
 export async function updateBlogPost(postId: string, postData: Partial<Omit<BlogPost, 'id' | 'createdAt'>>): Promise<void> {
-  const postRef = ref(db, `blog/${postId}`);
-  const dataToUpdate = {
-    ...postData,
-    slug: slugify(postData.title!),
-    updatedAt: new Date().toISOString(),
-  };
-  await update(postRef, dataToUpdate);
+  const supabase = getSupabaseBrowserClient();
+  const { data: current, error: readError } = await supabase.from('blog_posts').select('content').eq('id',postId).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Blog post not found.');
+  const item = postData as any;
+  const now = new Date().toISOString();
+  const { error } = await supabase.from('blog_posts').update({
+    ...(item.title !== undefined ? { title: item.title, slug: slugify(item.title) } : {}),
+    ...(item.isPublished !== undefined ? { is_published: item.isPublished } : {}),
+    content: { ...(current.content || {}), ...item, updatedAt: now }, updated_at: now,
+  }).eq('id',postId);
+  if (error) throw error;
 }
 
 export async function getBlogPostById(id: string): Promise<BlogPost | null> {
-    const postRef = ref(db, `blog/${id}`);
-    const snapshot = await get(postRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('blog_posts').select('*').eq('id',id).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.content || {}), id: data.id, slug: data.slug, title: data.title, isPublished: data.is_published, createdAt: data.created_at, updatedAt: data.updated_at } as BlogPost) : null;
 }
 
 export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> {
-    const blogRef = query(ref(db, 'blog'), orderByChild('slug'), equalTo(slug));
-    const snapshot = await get(blogRef);
-    if (snapshot.exists()) {
-        const postsData = snapshot.val();
-        const postId = Object.keys(postsData)[0];
-        return { id: postId, ...postsData[postId] };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('blog_posts').select('*').eq('slug',slug).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.content || {}), id: data.id, slug: data.slug, title: data.title, isPublished: data.is_published, createdAt: data.created_at, updatedAt: data.updated_at } as BlogPost) : null;
 }
 
 export async function deleteBlogPost(postId: string): Promise<void> {
-    const postRef = ref(db, `blog/${postId}`);
-    await remove(postRef);
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('blog_posts').delete().eq('id',postId);
+  if (error) throw error;
 }
 
-
-// Advertisements
 export async function createAdvertisement(adData: Omit<Advertisement, 'id'>): Promise<string> {
     const adsRef = ref(db, 'advertisements');
     const newAdRef = push(adsRef);
@@ -1489,37 +1491,28 @@ export async function saveMessage(conversationId: string, message: { senderId: s
 /**
  * Creates an assignment for a course. Database rules restrict writes to admins.
  */
-export async function createAssignment(
-    courseId: string,
-    data: Omit<Assignment, 'id' | 'courseId' | 'createdAt' | 'updatedAt'>
-): Promise<string> {
-    const assignmentRef = push(ref(db, `assignments/${courseId}`));
-    if (!assignmentRef.key) throw new Error('Could not allocate an assignment ID.');
-    await set(assignmentRef, {
-        ...data,
-        courseId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    });
-    return assignmentRef.key;
+export async function createAssignment(courseId: string, data: Omit<Assignment, 'id' | 'courseId' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Administrator sign-in is required.');
+  const id = crypto.randomUUID(); const now = new Date().toISOString();
+  const { error } = await supabase.from('assignments').insert({ id, course_id: courseId, created_by: authData.user.id, title: data.title, due_at: (data as any).dueDate || null, content: { ...data, courseId, createdAt: now, updatedAt: now }, created_at: now, updated_at: now });
+  if (error) throw error;
+  return id;
 }
 
-export async function updateAssignment(
-    courseId: string,
-    assignmentId: string,
-    data: Partial<Pick<Assignment, 'title' | 'description' | 'dueDate' | 'courseTitle'>>
-): Promise<void> {
-    await update(ref(db, `assignments/${courseId}/${assignmentId}`), {
-        ...data,
-        updatedAt: new Date().toISOString(),
-    });
+export async function updateAssignment(courseId: string, assignmentId: string, data: Partial<Pick<Assignment, 'title' | 'description' | 'dueDate' | 'courseTitle'>>): Promise<void> {
+  const supabase = getSupabaseBrowserClient();
+  const { data: current, error: readError } = await supabase.from('assignments').select('content').eq('id',assignmentId).eq('course_id',courseId).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Assignment not found.');
+  const { error } = await supabase.from('assignments').update({ ...(data.title !== undefined ? { title: data.title } : {}), ...(data.dueDate !== undefined ? { due_at: data.dueDate } : {}), content: { ...(current.content || {}), ...data }, updated_at: new Date().toISOString() }).eq('id',assignmentId);
+  if (error) throw error;
 }
 
 export async function getAssignments(courseId: string): Promise<Assignment[]> {
-    const snapshot = await get(ref(db, `assignments/${courseId}`));
-    if (!snapshot.exists()) return [];
-    return Object.entries(snapshot.val()).map(([id, value]) => ({
-        id,
-        ...(value as Omit<Assignment, 'id'>),
-    })).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('assignments').select('*').eq('course_id',courseId).order('due_at',{ascending:true});
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, courseId: row.course_id, title: row.title, dueDate: row.due_at, createdAt: row.created_at, updatedAt: row.updated_at })) as Assignment[];
 }
