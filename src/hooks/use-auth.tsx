@@ -15,6 +15,7 @@ type User = {
   uid: string; email: string | null; displayName: string; emailVerified: boolean; photoURL: string;
   metadata?: { creationTime?: string; lastSignInTime?: string };
   reload: () => Promise<User>;
+  getIdToken: () => Promise<string>;
 };
 type AppUser = User & {
   supabaseId: string;
