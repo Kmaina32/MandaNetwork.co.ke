@@ -36,7 +36,7 @@ const createOrganizationInviteFlow = ai.defineFlow({
     const isMemberAdmin = membership && ['owner','admin'].includes(membership.member_role);
     if (!isOwner && !isMemberAdmin) throw new Error('You are not authorized to invite members to this organization.');
 
-    const { data: existing, error: existingError } = await admin.from('organization_invitations')
+    const { data: existing, error: existingError } = await client.from('organization_invitations')
       .select('id,email,organization_id,status,expires_at').eq('organization_id',organizationId)
       .ilike('email',email).eq('status','pending').limit(20);
     if (existingError) throw existingError;
