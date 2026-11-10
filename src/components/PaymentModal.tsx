@@ -102,7 +102,7 @@ export function PaymentModal({
             </div>
           </div>
           <p className="text-sm text-muted-foreground text-center">
-            Pay securely in Kenyan Shillings using the payment channels enabled on our Paystack account, including supported cards and mobile money.
+            {purchaseType === 'organization_plan' ? 'This is a recurring monthly subscription charged to a bank card through Paystack. Mobile money is not available for recurring subscriptions.' : 'Pay securely in Kenyan Shillings using the payment channels enabled on our Paystack account, including supported cards and mobile money.'}
           </p>
           <Button
             type="button"
@@ -115,7 +115,7 @@ export function PaymentModal({
             {!isLoading ? <MoveRight className="ml-2 h-4 w-4" /> : null}
           </Button>
           <p className="text-xs text-center text-muted-foreground">
-            Your payment details are entered securely on Paystack. Varban Academy does not store your card details.
+            {purchaseType === 'organization_plan' ? 'By continuing, you authorize Paystack to charge your saved card monthly until you cancel. Manage or cancel your subscription from Organization Billing.' : 'Your payment details are entered securely on Paystack. Varban Academy does not store your card details.'}
           </p>
         </div>
 
