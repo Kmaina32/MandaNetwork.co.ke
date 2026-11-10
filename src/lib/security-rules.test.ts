@@ -17,7 +17,7 @@ describe('Supabase academy security migrations', () => {
 
   it('protects learner-owned enrollment records with an owner-scoped RLS policy', () => {
     expect(sql).toContain('create policy enrollments_owner_select');
-    expect(sql).toContain('using (user_id=auth.uid()');
+    expect(sql).toMatch(/using\\s*\\(\\s*user_id\\s*=\\s*auth\\.uid\\(\\)/);
   });
 
   it('does not grant anonymous access to role helper functions', () => {
