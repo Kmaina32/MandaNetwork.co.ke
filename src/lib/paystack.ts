@@ -2,7 +2,6 @@ import 'server-only';
 
 import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
-import type { Json } from '@/lib/supabase/types';
 
 const PAYSTACK_API = 'https://api.paystack.co';
 type ItemType = 'course';
@@ -89,7 +88,7 @@ export async function verifyAndFulfillPaystackPayment(reference: string) {
       ...payload, providerStatus: provider.status, providerChannel: provider.channel || null,
       gatewayResponse: provider.gateway_response || null, paidAt: provider.paid_at || now,
       courseTitle: course.title,
-    } as Json,
+    } as any,
     updated_at: now,
   }).eq('reference', reference).neq('status', 'completed');
   if (updateError) throw updateError;
