@@ -183,7 +183,8 @@ grant select,insert on public.payment_transactions to authenticated;
 revoke update,delete on public.payment_transactions from authenticated;
 drop policy if exists payment_transactions_owner_insert on public.payment_transactions;
 create policy payment_transactions_owner_insert on public.payment_transactions for insert to authenticated
-with check(user_id=(select auth.uid()) and provider='paystack' and item_type='course' and status='initialized'
+with check(user_id=(select auth.uid()) and item_type='course'
+  and ((provider='paystack' and status='initialized') or (provider='mpesa' and status='pending'))
   and exists(select 1 from public.courses c where c.id=item_id and c.is_published=true and c.price=amount_kes));
 create or replace function public.set_paystack_checkout_status(p_reference text,p_status text)
 returns boolean language plpgsql security definer set search_path=public
