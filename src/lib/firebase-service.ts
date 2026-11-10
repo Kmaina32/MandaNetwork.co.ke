@@ -182,7 +182,7 @@ export async function enrollUserInCourse(userId: string, courseId: string, payme
     content: { enrollmentDate: new Date().toISOString(), paymentMethod, completedLessons: [], certificateAvailable: false },
   }, { onConflict: 'user_id,course_id', ignoreDuplicates: true });
   if (error) throw error;
-  await logActivity(userId, { type: 'enrollment', details: { courseId } });
+  await supabase.from('activity_logs').insert({ user_id: userId, event_type: 'course_enrollment', content: { courseId } });
 }
 
 export async function getUserCourses(userId: string): Promise<UserCourse[]> {
