@@ -1185,20 +1185,16 @@ export async function deleteBlogPost(postId: string): Promise<void> {
 }
 
 export async function createAdvertisement(adData: Omit<Advertisement, 'id'>): Promise<string> {
-    const adsRef = ref(db, 'advertisements');
-    const newAdRef = push(adsRef);
-    await set(newAdRef, adData);
-    return newAdRef.key!;
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser();
+  if(!auth.user) throw new Error('Administrator sign-in is required.');
+  const item=adData as any, id=crypto.randomUUID();
+  const {error}=await supabase.from('advertisements').insert({id,title:String(item.title||'Advertisement'),is_active:Boolean(item.isActive),content:item,created_by:auth.user.id});
+  if(error) throw error; return id;
 }
 
 export async function getAllAdvertisements(): Promise<Advertisement[]> {
-    const adsRef = ref(db, 'advertisements');
-    const snapshot = await get(adsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('advertisements').select('*').order('created_at',{ascending:false});
+  if(error) throw error; return (data||[]).map((row:any)=>({...row.content,id:row.id,title:row.title,isActive:row.is_active})) as Advertisement[];
 }
 
 export async function getActiveAdvertisements(): Promise<Advertisement[]> {
@@ -1208,76 +1204,51 @@ export async function getActiveAdvertisements(): Promise<Advertisement[]> {
 
 
 export async function getAdvertisementById(id: string): Promise<Advertisement | null> {
-    const adRef = ref(db, `advertisements/${id}`);
-    const snapshot = await get(adRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('advertisements').select('*').eq('id',id).maybeSingle();
+  if(error) throw error; return data?({...data.content,id:data.id,title:data.title,isActive:data.is_active} as Advertisement):null;
 }
 
 export async function updateAdvertisement(id: string, adData: Partial<Advertisement>): Promise<void> {
-    const adRef = ref(db, `advertisements/${id}`);
-    await update(adRef, adData);
+  const supabase=getSupabaseBrowserClient(); const {data:current,error:readError}=await supabase.from('advertisements').select('content').eq('id',id).maybeSingle();
+  if(readError) throw readError; if(!current) throw new Error('Advertisement not found.');
+  const item=adData as any; const {error}=await supabase.from('advertisements').update({...item.title!==undefined?{title:item.title}:{},...item.isActive!==undefined?{is_active:item.isActive}:{},content:{...(current.content||{}),...item},updated_at:new Date().toISOString()}).eq('id',id);
+  if(error) throw error;
 }
 
 export async function deleteAdvertisement(id: string): Promise<void> {
-    const adRef = ref(db, `advertisements/${id}`);
-    await remove(adRef);
+  const supabase=getSupabaseBrowserClient(); const {error}=await supabase.from('advertisements').delete().eq('id',id); if(error) throw error;
 }
 
-
 export async function getTeamMembers(): Promise<TeamMember[]> {
-    const teamRef = ref(db, 'teamMembers');
-    const snapshot = await get(teamRef);
-    if (!snapshot.exists()) return [];
-    const value = snapshot.val();
-    if (Array.isArray(value)) return value.filter(Boolean);
-    if (value && typeof value === 'object') {
-        return Object.entries(value).map(([id, member]) => ({ id, ...(member as Omit<TeamMember, 'id'>) }));
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('team_members').select('*').order('sort_order');
+  if(error) throw error; return (data||[]).map((row:any)=>({...row.content,id:row.id})) as TeamMember[];
 }
 
 export async function updateTeamMembers(members: TeamMember[]): Promise<void> {
-    const teamRef = ref(db, 'teamMembers');
-    await set(teamRef, members);
+  const supabase=getSupabaseBrowserClient();
+  const rows=members.map((member,index)=>({id:String((member as any).id||crypto.randomUUID()),content:member,sort_order:index,updated_at:new Date().toISOString()}));
+  const {error}=await supabase.from('team_members').upsert(rows,{onConflict:'id'}); if(error) throw error;
 }
 
-// Contact Messages
 export async function createContactMessage(message: Omit<ContactMessage, 'id' | 'createdAt' | 'read'>): Promise<void> {
-    const messagesRef = ref(db, 'contactMessages');
-    const newMessageRef = push(messagesRef);
-    await set(newMessageRef, {
-        ...message,
-        createdAt: new Date().toISOString(),
-        read: false,
-    });
+  const supabase=getSupabaseBrowserClient(); const item=message as any;
+  const {error}=await supabase.from('contact_messages').insert({name:String(item.name||''),email:String(item.email||''),message:String(item.message||''),content:item});
+  if(error) throw error;
 }
 
 export async function getContactMessages(): Promise<ContactMessage[]> {
-    const messagesRef = query(ref(db, 'contactMessages'), orderByChild('createdAt'));
-    const snapshot = await get(messagesRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        const messages = Object.keys(data).map(key => ({ id: key, ...data[key] }));
-        return messages.reverse();
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('contact_messages').select('*').order('created_at',{ascending:false});
+  if(error) throw error; return (data||[]).map((row:any)=>({...row.content,id:row.id,name:row.name,email:row.email,message:row.message,read:Boolean(row.read_at),createdAt:row.created_at})) as ContactMessage[];
 }
 
 export async function markContactMessageAsRead(id: string): Promise<void> {
-    const messageRef = ref(db, `contactMessages/${id}`);
-    await update(messageRef, { read: true });
+  const supabase=getSupabaseBrowserClient(); const {error}=await supabase.from('contact_messages').update({read_at:new Date().toISOString()}).eq('id',id); if(error) throw error;
 }
 
 export async function deleteContactMessage(id: string): Promise<void> {
-    const messageRef = ref(db, `contactMessages/${id}`);
-    await remove(messageRef);
+  const supabase=getSupabaseBrowserClient(); const {error}=await supabase.from('contact_messages').delete().eq('id',id); if(error) throw error;
 }
 
-
-// Forms & Surveys
 export async function createForm(formData: Omit<FormType, 'id'>): Promise<string> {
   const formsRef = ref(db, 'forms');
   const newFormRef = push(formsRef);
