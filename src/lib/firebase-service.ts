@@ -461,42 +461,29 @@ export async function getUserNotes(userId: string, courseId: string): Promise<st
 }
 
 export async function createThread(courseId: string, threadData: Omit<DiscussionThread, 'id'>): Promise<string> {
-    const threadsRef = ref(db, `discussions/threads/${courseId}`);
-    const newThreadRef = push(threadsRef);
-    await set(newThreadRef, threadData);
-    return newThreadRef.key!;
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError||!auth.user) throw new Error('Sign in to start a discussion.');
+  const id=crypto.randomUUID(); const {error}=await supabase.from('discussion_threads').insert({id,course_id:courseId,user_id:auth.user.id,content:threadData});
+  if(error) throw error; return id;
 }
 
 export async function getThreadsForCourse(courseId: string): Promise<DiscussionThread[]> {
-    const threadsRef = query(ref(db, `discussions/threads/${courseId}`), orderByChild('createdAt'));
-    const snapshot = await get(threadsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        const threads = Object.keys(data).map(key => ({ id: key, ...data[key] }));
-        return threads.reverse();
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('discussion_threads').select('*').eq('course_id',courseId).order('created_at',{ascending:false});
+  if(error) throw error; return (data||[]).map((row:any)=>({...row.content,id:row.id,courseId:row.course_id,userId:row.user_id,createdAt:row.created_at})) as DiscussionThread[];
 }
 
 export async function createReply(threadId: string, replyData: Omit<DiscussionReply, 'id'>): Promise<string> {
-    const repliesRef = ref(db, `discussions/replies/${threadId}`);
-    const newReplyRef = push(repliesRef);
-    await set(newReplyRef, replyData);
-    return newReplyRef.key!;
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError||!auth.user) throw new Error('Sign in to reply.');
+  const id=crypto.randomUUID(); const {error}=await supabase.from('discussion_replies').insert({id,thread_id:threadId,user_id:auth.user.id,content:replyData});
+  if(error) throw error; return id;
 }
 
 export async function getRepliesForThread(threadId: string): Promise<DiscussionReply[]> {
-    const repliesRef = query(ref(db, `discussions/replies/${threadId}`), orderByChild('createdAt'));
-    const snapshot = await get(repliesRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('discussion_replies').select('*').eq('thread_id',threadId).order('created_at');
+  if(error) throw error; return (data||[]).map((row:any)=>({...row.content,id:row.id,threadId:row.thread_id,userId:row.user_id,createdAt:row.created_at})) as DiscussionReply[];
 }
 
-
-// Live Session Functions
 export async function getLiveSession(): Promise<LiveSession | null> {
   const supabase = getSupabaseBrowserClient();
   const { data, error } = await supabase.from('live_sessions').select('*').eq('status','live').order('created_at',{ascending:false}).limit(1).maybeSingle();
@@ -656,70 +643,53 @@ export async function logApiCall(userId: string, endpoint: string): Promise<void
 }
 
 export async function createCourseFeedback(courseId: string, feedbackData: Omit<CourseFeedback, 'id' | 'courseId' | 'createdAt'>): Promise<string> {
-    const feedbackRef = ref(db, `courseFeedback/${courseId}`);
-    const newFeedbackRef = push(feedbackRef);
-    await set(newFeedbackRef, {
-        ...feedbackData,
-        createdAt: new Date().toISOString(),
-    });
-    return newFeedbackRef.key!;
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError||!auth.user) throw new Error('Sign in to submit course feedback.');
+  const item=feedbackData as any,id=crypto.randomUUID();
+  const {error}=await supabase.from('course_feedback').insert({id,user_id:auth.user.id,course_id:courseId,rating:item.rating||null,content:feedbackData});
+  if(error) throw error; return id;
 }
 
-// Learning Goals
 export async function createLearningGoal(userId: string, text: string): Promise<string> {
-    const goalsRef = ref(db, `users/${userId}/learningGoals`);
-    const newGoalRef = push(goalsRef);
-    await set(newGoalRef, {
-        text,
-        completed: false,
-        createdAt: new Date().toISOString()
-    });
-    return newGoalRef.key!;
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError||auth.user?.id!==userId) throw new Error('You can only add your own learning goals.');
+  const id=crypto.randomUUID(); const {error}=await supabase.from('learning_goals').insert({id,user_id:userId,content:{text,completed:false},status:'active'});
+  if(error) throw error; return id;
 }
 
 export async function updateLearningGoal(userId: string, goalId: string, data: Partial<Omit<LearningGoal, 'id'>>): Promise<void> {
-    const goalRef = ref(db, `users/${userId}/learningGoals/${goalId}`);
-    await update(goalRef, data);
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser();
+  if(auth.user?.id!==userId) throw new Error('You can only update your own learning goals.');
+  const {data:current,error:readError}=await supabase.from('learning_goals').select('content,status').eq('id',goalId).eq('user_id',userId).maybeSingle();
+  if(readError) throw readError; if(!current) throw new Error('Learning goal not found.');
+  const item=data as any; const {error}=await supabase.from('learning_goals').update({content:{...(current.content||{}),...item},status:item.completed?'completed':current.status,updated_at:new Date().toISOString()}).eq('id',goalId).eq('user_id',userId);
+  if(error) throw error;
 }
 
 export async function deleteLearningGoal(userId: string, goalId: string): Promise<void> {
-    const goalRef = ref(db, `users/${userId}/learningGoals/${goalId}`);
-    await remove(goalRef);
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser();
+  if(auth.user?.id!==userId) throw new Error('You can only delete your own learning goals.');
+  const {error}=await supabase.from('learning_goals').delete().eq('id',goalId).eq('user_id',userId); if(error) throw error;
 }
 
-// Super Admin Permission Requests
 export async function createPermissionRequest(requestData: Omit<PermissionRequest, 'id' | 'createdAt' | 'status'>): Promise<string> {
-    const requestsRef = ref(db, 'permissionRequests');
-    const newRequestRef = push(requestsRef);
-    const dataToSave: Omit<PermissionRequest, 'id'> = {
-        ...requestData,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-    };
-    await set(newRequestRef, dataToSave);
-    return newRequestRef.key!;
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError||!auth.user) throw new Error('Sign in to request access.');
+  const item=requestData as any,id=crypto.randomUUID();
+  const {error}=await supabase.from('permission_requests').insert({id,user_id:auth.user.id,request_type:String(item.type||item.permission||'general'),status:'pending',content:requestData});
+  if(error) throw error; return id;
 }
 
 export async function getPermissionRequests(): Promise<PermissionRequest[]> {
-    const requestsRef = ref(db, 'permissionRequests');
-    const snapshot = await get(requestsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        const requests = Object.keys(data).map(key => ({ id: key, ...data[key] }));
-        return requests.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('permission_requests').select('*').order('created_at',{ascending:false});
+  if(error) throw error; return (data||[]).map((row:any)=>({...row.content,id:row.id,userId:row.user_id,status:row.status,createdAt:row.created_at})) as PermissionRequest[];
 }
 
 export async function updatePermissionRequestStatus(id: string, status: 'approved' | 'denied'): Promise<void> {
-    const requestRef = ref(db, `permissionRequests/${id}`);
-    await update(requestRef, {
-        status,
-        resolvedAt: new Date().toISOString(),
-    });
+  const supabase=getSupabaseBrowserClient(); const {error}=await supabase.from('permission_requests').update({status,updated_at:new Date().toISOString(),content:{resolvedAt:new Date().toISOString()}}).eq('id',id);
+  if(error) throw error;
 }
 
-// Organization Functions
 export async function createOrganization(orgData: Omit<Organization, 'id'>): Promise<string> {
   const supabase = getSupabaseBrowserClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -873,54 +843,35 @@ export async function deletePlan(id: string): Promise<void> {
 }
 
 export async function saveDocument(docType: string, content: string): Promise<void> {
-    const docRef = ref(db, `documents/${docType}`);
-    await set(docRef, { content });
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError||!auth.user) throw new Error('Sign in to save this document.');
+  const {error}=await supabase.from('documents').upsert({id:docType,user_id:auth.user.id,visibility:'private',content:{content}},{onConflict:'id'});
+  if(error) throw error;
 }
 
 export async function getDocument(docType: string): Promise<string> {
-    const docRef = ref(db, `documents/${docType}/content`);
-    const snapshot = await get(docRef);
-    return snapshot.exists() ? snapshot.val() : '';
-}
-
-
-// Certificate Verification
-export interface PublicCertificateRecord {
-    certificateId: string;
-    studentName: string;
-    studentPhotoURL?: string;
-    courseId: string;
-    courseTitle: string;
-    issuedAt: string;
-    status: 'valid' | 'revoked';
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('documents').select('content').eq('id',docType).maybeSingle();
+  if(error) throw error; return String(data?.content?.content||'');
 }
 
 export async function publishCertificateRecord(record: PublicCertificateRecord): Promise<void> {
-    if (!record.certificateId || !record.studentName || !record.courseId || !record.courseTitle) {
-        throw new Error('Certificate verification record is incomplete.');
-    }
-    await set(ref(db, `publicCertificates/${record.certificateId}`), { ...record, status: 'valid' });
+  if(!record.certificateId||!record.studentName||!record.courseId||!record.courseTitle) throw new Error('Certificate verification record is incomplete.');
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError||!auth.user) throw new Error('Administrator sign-in is required.');
+  const {data:allowed,error:roleError}=await supabase.rpc('has_role',{check_user_id:auth.user.id,allowed_roles:['admin','super_admin']});
+  if(roleError||!allowed) throw new Error('Administrator access is required.');
+  const {error}=await supabase.from('certificate_records').upsert({id:record.certificateId,user_id:auth.user.id,course_id:record.courseId,certificate_code:record.certificateId,content:{...record,status:'valid'}},{onConflict:'id'});
+  if(error) throw error;
 }
 
-export async function getVerifiedCertificateData(certificateId: string): Promise<{
-    isValid: boolean;
-    student?: Pick<RegisteredUser, 'displayName' | 'photoURL'>;
-    course?: Pick<Course, 'id' | 'title'>;
-}> {
-    if (!certificateId) return { isValid: false };
-    const snapshot = await get(ref(db, `publicCertificates/${certificateId}`));
-    if (!snapshot.exists()) return { isValid: false };
-    const record = snapshot.val() as PublicCertificateRecord;
-    if (record.status !== 'valid' || record.certificateId !== certificateId) return { isValid: false };
-    return {
-        isValid: true,
-        student: { displayName: record.studentName, photoURL: record.studentPhotoURL || '' },
-        course: { id: record.courseId, title: record.courseTitle },
-    };
+export async function getVerifiedCertificateData(certificateId: string): Promise<{ isValid: boolean; student?: Pick<RegisteredUser, 'displayName' | 'photoURL'>; course?: Pick<Course, 'id' | 'title'> }> {
+  if(!certificateId) return {isValid:false};
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('certificate_records').select('content').eq('certificate_code',certificateId).maybeSingle();
+  if(error) throw error; const record=data?.content as PublicCertificateRecord|undefined;
+  if(!record||record.status!=='valid'||record.certificateId!==certificateId) return {isValid:false};
+  return {isValid:true,student:{displayName:record.studentName,photoURL:record.studentPhotoURL||''},course:{id:record.courseId,title:record.courseTitle}};
 }
 
-
-// Bootcamp Functions
 export async function createBootcamp(bootcampData: Omit<Bootcamp, 'id'>): Promise<string> {
   const supabase = getSupabaseBrowserClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -968,8 +919,10 @@ export async function deleteBootcamp(id: string): Promise<void> {
 }
 
 export async function registerUserForBootcamp(bootcampId: string, userId: string): Promise<void> {
-    const bootcampRef = ref(db, `bootcamps/${bootcampId}/participants/${userId}`);
-    await set(bootcampRef, true);
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError||auth.user?.id!==userId) throw new Error('You can only register your own account.');
+  const {error}=await supabase.from('bootcamp_registrations').upsert({bootcamp_id:bootcampId,user_id:userId},{onConflict:'bootcamp_id,user_id'});
+  if(error) throw error;
 }
 
 export async function getHackathonParticipants(hackathonId: string): Promise<RegisteredUser[]> {
@@ -1088,52 +1041,28 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
 }
 
 export async function logPageVisit(userId: string, path: string): Promise<void> {
-    const user = await getUserById(userId);
-    if (!user) return;
-    const logRef = ref(db, 'userActivity');
-    const newLogRef = push(logRef);
-    await set(newLogRef, {
-        userId,
-        userName: user.displayName || 'Unknown',
-        userAvatar: user.photoURL || '',
-        type: 'page_visit',
-        path,
-        timestamp: new Date().toISOString(),
-    });
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser(); if(auth.user?.id!==userId) return;
+  await supabase.from('activity_logs').insert({user_id:userId,event_type:'page_visit',content:{path,timestamp:new Date().toISOString()}});
 }
 
-
 export async function logActivity(userId: string, data: { type: 'signup' | 'enrollment'; details: any }): Promise<void> {
-    const user = await getUserById(userId);
-    const logRef = ref(db, 'userActivity');
-    const newLogRef = push(logRef);
-    await set(newLogRef, {
-        userId,
-        userName: user?.displayName || 'Unknown',
-        userAvatar: user?.photoURL || '',
-        path: window.location.pathname,
-        ...data,
-        timestamp: new Date().toISOString(),
-    });
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser(); if(auth.user?.id!==userId) return;
+  await supabase.from('activity_logs').insert({user_id:userId,event_type:data.type,content:data.details||{}});
 }
 
 export async function clearActivityData(): Promise<void> {
-    const logRef = ref(db, 'userActivity');
-    await remove(logRef);
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError||!auth.user) throw new Error('Administrator sign-in is required.');
+  const {data:allowed,error:roleError}=await supabase.rpc('has_role',{check_user_id:auth.user.id,allowed_roles:['admin','super_admin']});
+  if(roleError||!allowed) throw new Error('Administrator access is required.');
+  const {error}=await supabase.from('activity_logs').delete().not('id','is',null); if(error) throw error;
 }
 
 export async function getActivityLogs(limit: number): Promise<UserActivity[]> {
-    const logRef = query(ref(db, 'userActivity'), limitToLast(limit));
-    const snapshot = await get(logRef);
-    if(snapshot.exists()) {
-        const data = snapshot.val();
-        const logs = Object.keys(data).map(key => ({ id: key, ...data[key] }));
-        return logs.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data,error}=await supabase.from('activity_logs').select('*').order('created_at',{ascending:false}).limit(Math.min(Math.max(limit,1),500));
+  if(error) throw error; return (data||[]).map((row:any)=>({id:row.id,userId:row.user_id,type:row.event_type,timestamp:row.created_at,...row.content})) as UserActivity[];
 }
 
-// Blog
 export async function createBlogPost(postData: Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
   const supabase = getSupabaseBrowserClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
