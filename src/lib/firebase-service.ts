@@ -509,27 +509,37 @@ export async function getRepliesForThread(threadId: string): Promise<DiscussionR
 
 // Live Session Functions
 export async function getLiveSession(): Promise<LiveSession | null> {
-    const sessionRef = ref(db, 'liveSession');
-    const snapshot = await get(sessionRef);
-    if(snapshot.exists()) {
-        return snapshot.val() as LiveSession;
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('live_sessions').select('*').eq('status','live').order('created_at',{ascending:false}).limit(1).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.metadata || {}), id: data.id, title: data.title, status: data.status, createdAt: data.created_at } as LiveSession) : null;
 }
 
 export async function updateLiveSession(data: Partial<LiveSession>): Promise<void> {
-    const sessionRef = ref(db, 'liveSession');
-    await update(sessionRef, data);
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Sign in is required to update a live session.');
+  const item = data as any;
+  const id = String(item.id || 'live-session');
+  const { data: current, error: readError } = await supabase.from('live_sessions').select('metadata').eq('id',id).maybeSingle();
+  if (readError) throw readError;
+  const { error } = await supabase.from('live_sessions').upsert({
+    id, host_id: authData.user.id, title: String(item.title || 'Live Session'),
+    status: item.status === 'ended' || item.isLive === false ? 'ended' : 'live',
+    metadata: { ...(current?.metadata || {}), ...item },
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'id' });
+  if (error) throw error;
 }
 
 export async function sendReaction(sessionId: string, emoji: string): Promise<void> {
-    const reactionsRef = ref(db, `liveReactions/${sessionId}`);
-    const newReactionRef = push(reactionsRef);
-    await set(newReactionRef, { emoji });
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Sign in to react to a live class.');
+  const { error } = await supabase.from('live_reactions').insert({ session_id: sessionId, user_id: authData.user.id, reaction: emoji });
+  if (error) throw error;
 }
 
-
-// Program Functions
 export async function createProgram(programData: Omit<Program, 'id'>): Promise<string> {
     const programsRef = ref(db, 'programs');
     const newProgramRef = push(programsRef);
