@@ -540,6 +540,9 @@ export async function sendReaction(sessionId: string, emoji: string): Promise<vo
   if (error) throw error;
 }
 
+const mapProgram = (row: any): Program => ({ ...(row.content || {}), id: row.id, title: row.title, description: row.description || '', isPublished: row.is_published, createdAt: row.created_at, updatedAt: row.updated_at } as Program);
+const mapBootcamp = (row: any): Bootcamp => ({ ...(row.content || {}), id: row.id, title: row.title, description: row.description || '', startDate: row.start_date, isPublished: row.is_published, createdAt: row.created_at, updatedAt: row.updated_at } as Bootcamp);
+
 export async function createProgram(programData: Omit<Program, 'id'>): Promise<string> {
   const supabase = getSupabaseBrowserClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
