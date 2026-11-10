@@ -44,7 +44,7 @@ const createOrganizationInviteFlow = ai.defineFlow({
     if (duplicate) return { success:true, inviteId:duplicate.id, message:'A pending invitation already exists for this email.' };
 
     const inviteId = crypto.randomUUID();
-    const { error } = await admin.from('organization_invitations').insert({
+    const { error } = await client.from('organization_invitations').insert({
       id:inviteId, organization_id:organizationId, email, invited_user_id:null,
       member_role:'member', status:'pending', invited_by:user.id,
       expires_at:new Date(Date.now()+7*24*60*60*1000).toISOString(),
