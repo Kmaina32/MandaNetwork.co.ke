@@ -13,7 +13,7 @@ describe('database performance and policy alignment migration', () => {
 
   it('rewrites request-scoped auth calls to initplan-friendly scalar subqueries', () => {
     expect(sql).toContain("replace(policy_row.qual, 'auth.uid()', '(select auth.uid())')");
-    expect(sql).toContain("replace(policy_row.with_check, 'auth.jwt()', '(select auth.jwt())')");
+    expect(sql).toContain("check_expr := replace(replace(policy_row.with_check, 'auth.uid()', '(select auth.uid())'), 'auth.jwt()', '(select auth.jwt())')");
   });
 
   it('uses database-backed role checks for submission administration', () => {
