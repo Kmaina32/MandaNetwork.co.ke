@@ -14,10 +14,12 @@ describe('Supabase academy security migrations', () => {
     expect(sql).toContain('public.has_role');
     expect(sql).toContain('public.user_roles');
   });
+
   it('protects learner-owned enrollment records with RLS', () => {
     expect(sql).toContain('alter table public.enrollments enable row level security');
-    expect(sql).toContain('user_id=auth.uid()');
+    expect(sql).toContain('user_id = auth.uid()');
   });
+
   it('does not grant anonymous access to role helper functions', () => {
     expect(sql).toContain('from public, anon');
   });
