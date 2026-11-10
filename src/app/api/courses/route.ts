@@ -1,11 +1,11 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { createHash } from 'node:crypto';
-import { createClient } from '@supabase/supabase-js';
-import { getSupabaseConfig } from '@/lib/supabase/config';
+import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export const runtime='nodejs';
-const {url,publishableKey}=getSupabaseConfig();
-const supabase=createClient(url,publishableKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+// API-key validation and published-course reads run only on the trusted server.
+// The service-role credential never leaves this route.
+const supabase=getSupabaseAdminClient();
 
 export async function GET(req:NextRequest) {
   const authHeader=req.headers.get('Authorization');
