@@ -626,7 +626,7 @@ export async function createApiKey(userId: string, keyData: Omit<ApiKey, 'id'>):
   const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(rawKey));
   const hash=Array.from(new Uint8Array(digest)).map(byte=>byte.toString(16).padStart(2,'0')).join('');
   const id=crypto.randomUUID();
-  const {error}=await supabase.from('user_api_keys').insert({id,user_id:userId,name:String(item.name||'API key'),key_hash:hash,key_prefix:rawKey.slice(0,8)});
+  const {error}=await supabase.from('user_api_keys').insert({id,user_id:userId,name:String(item.name||'API key'),key_hash:hash,key_prefix:rawKey.slice(-4)});
   if(error) throw error; return id;
 }
 
