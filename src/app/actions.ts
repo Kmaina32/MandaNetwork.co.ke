@@ -22,13 +22,15 @@ import type { GetPortfolioFeedbackInput, GetPortfolioFeedbackOutput } from '@/ai
 
 import { checkHackathonParticipantAchievement } from '@/lib/achievements';
 import { assertNvidiaConfigured } from '@/lib/nvidia-models';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseUserClient } from '@/lib/supabase/user-client';
 
 
 const SERVER_ACTION_WINDOW_MS = 10 * 60 * 1000;
 const SERVER_ACTION_LIMIT = 12;
 
 /**
- * Bootstrap the single configured administrator from a verified Firebase identity.
+ * Bootstrap the single configured administrator from a verified Supabase identity.
  * The client cannot choose a target UID or email; both are derived from the verified token.
  */
 export async function ensureConfiguredAdmin(idToken: string): Promise<void> {
