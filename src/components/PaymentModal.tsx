@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -39,6 +40,7 @@ export function PaymentModal({
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [recurringConsent, setRecurringConsent] = useState(false);
 
   const startPaystackCheckout = async () => {
     if (!user) {
@@ -104,10 +106,18 @@ export function PaymentModal({
           <p className="text-sm text-muted-foreground text-center">
             {purchaseType === 'organization_plan' ? 'This is a recurring monthly subscription charged to a bank card through Paystack. Mobile money is not available for recurring subscriptions.' : 'Pay securely in Kenyan Shillings using the payment channels enabled on our Paystack account, including supported cards and mobile money.'}
           </p>
+          {purchaseType === 'organization_plan' && (
+            <div className="flex items-start gap-3 rounded-md border p-3">
+              <Checkbox id="recurring-payment-consent" checked={recurringConsent} onCheckedChange={(checked) => setRecurringConsent(checked === true)} />
+              <label htmlFor="recurring-payment-consent" className="text-sm leading-5 cursor-pointer">
+                I authorize monthly recurring card payments for this organization plan until I cancel the subscription.
+              </label>
+            </div>
+          )}
           <Button
             type="button"
             className="w-full"
-            disabled={isLoading || !user}
+            disabled={isLoading || !user || (purchaseType === 'organization_plan' && !recurringConsent)}
             onClick={startPaystackCheckout}
           >
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
