@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, CreditCard, Coins } from 'lucide-react';
+import { ArrowLeft, CreditCard } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
@@ -75,16 +75,8 @@ export default function AdminPaymentsPage() {
 
   const getPaymentIcon = (method?: UserCourse['paymentMethod']) => {
     switch (method) {
-        case 'mpesa':
-            return <Icon icon="simple-icons:mpesa" className="h-5 w-5 text-green-600" />;
         case 'paystack':
-            return <Icon icon="simple-icons:paystack" className="h-5 w-5" />;
-        case 'card':
-            return <CreditCard className="h-5 w-5 text-blue-500" />;
-        case 'paypal':
-            return <Icon icon="logos:paypal" className="h-5 w-5" />;
-        case 'crypto':
-            return <Coins className="h-5 w-5 text-yellow-500" />;
+            return <Icon icon="simple-icons:paystack" className="h-5 w-5" aria-hidden="true" />;
         default:
             return null;
     }
@@ -110,7 +102,7 @@ export default function AdminPaymentsPage() {
             <Card className="mb-8">
                 <CardHeader>
                     <CardTitle>Accepted Payment Methods</CardTitle>
-                    <CardDescription>To configure these, update your environment variables or smart contract settings.</CardDescription>
+                    <CardDescription>All paid checkouts are processed through Paystack. The payment channels shown at checkout are controlled by your Paystack account.</CardDescription>
                 </CardHeader>
                  <CardContent>
                    <PaymentIcons />

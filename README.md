@@ -10,7 +10,7 @@ Varban Academy is an AI-powered online learning platform designed to provide hig
 - **AI Career Coach**: Generates a personalized learning path of courses based on a student's career goals.
 - **AI Tutor "Gina"**: A 24/7 AI assistant available in each lesson to answer student questions, provide summaries, and offer quizzes.
 - **Personalized Student Dashboard**: Includes quick actions, a "Learning Goals" to-do list, a portfolio strength meter, a recent activity feed, and a community leaderboard.
-- **M-Pesa Integration**: Seamlessly handle course payments using Safaricom's M-Pesa STK Push API.
+- **Paystack Payments**: Secure hosted checkout for paid courses and organization plans, using the payment channels enabled on the merchant's Paystack account.
 - **Comprehensive Admin Dashboard**: Manage courses, users, payments, site content, and view platform analytics.
 - **User & Organization Management**: Supports both individual student accounts and B2B organization portals for team management.
 - **Dynamic Theming**: Easily change the look and feel of the application for holidays or special events.
@@ -26,7 +26,7 @@ Varban Academy is an AI-powered online learning platform designed to provide hig
 - **Backend & Database**: [Supabase](https://supabase.com/) PostgreSQL and Storage as the primary backend, with Firebase Realtime Database, Storage and Remote Config retained during the data migration.
 - **Generative AI**: [Genkit](https://genkit.dev/) routed through [NVIDIA NIM](https://build.nvidia.com/) for text generation.
 - **Speech**: NVIDIA Nemotron Speech / Magpie for text-to-speech and NVIDIA Parakeet ASR for speech-to-text.
-- **Payments**: [Safaricom Daraja API](https://developer.safaricom.co.ke/) for M-Pesa payments.
+- **Payments**: [Paystack API](https://paystack.com/docs/api/) for hosted checkout and verified payment callbacks.
 
 ## ⚙️ Getting Started
 
@@ -38,7 +38,7 @@ Follow these instructions to get a copy of the project up and running for develo
 - An active Supabase project with Auth email confirmation and Google OAuth configured.
 - An active Firebase project for the currently retained Realtime Database and Storage services.
 - An NVIDIA API Catalog API key with access to the selected text and speech NIM endpoints.
-- A Safaricom Daraja developer account with sandbox credentials.
+- A Paystack account with test keys for development and live keys only after merchant verification.
 
 ### Installation
 
@@ -77,7 +77,7 @@ Follow these instructions to get a copy of the project up and running for develo
    NVIDIA_ASR_FUNCTION_ID=1598d209-5e27-4d3c-8079-4751568b1081
    NVIDIA_SPEECH_LANGUAGE=en-US
 
-   # M-Pesa Daraja (sandbox)
+   # Paystack (server-side; begin with test keys)
    MPESA_CONSUMER_KEY=YOUR_MPESA_CONSUMER_KEY
    MPESA_CONSUMER_SECRET=YOUR_MPESA_CONSUMER_SECRET
    MPESA_PASSKEY=YOUR_MPESA_PASSKEY

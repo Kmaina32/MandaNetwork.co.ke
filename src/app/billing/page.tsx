@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, CreditCard, Loader2, Coins } from 'lucide-react';
+import { ArrowLeft, CreditCard } from 'lucide-react';
 import { AppSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
@@ -83,14 +83,8 @@ export default function PurchaseHistoryPage() {
 
   const getPaymentIcon = (method?: UserCourse['paymentMethod']) => {
     switch (method) {
-        case 'mpesa':
-            return <Icon icon="simple-icons:mpesa" className="h-5 w-5 text-green-600" />;
-        case 'card':
-            return <CreditCard className="h-5 w-5 text-blue-500" />;
-        case 'paypal':
-            return <Icon icon="logos:paypal" className="h-5 w-5" />;
-        case 'crypto':
-            return <Coins className="h-5 w-5 text-yellow-500" />;
+        case 'paystack':
+            return <Icon icon="simple-icons:paystack" className="h-5 w-5" aria-hidden="true" />;
         default:
             return null;
     }
@@ -138,7 +132,7 @@ export default function PurchaseHistoryPage() {
                                 <TableCell>
                                     <div className="flex items-center gap-2 capitalize">
                                         {getPaymentIcon(item.paymentMethod)}
-                                        <span>{item.paymentMethod === 'free' ? 'Free' : item.paymentMethod || 'Not recorded'}</span>
+                                        <span>{item.paymentMethod === 'free' ? 'Free' : item.paymentMethod === 'paystack' ? 'Paystack' : item.paymentMethod || 'Not recorded'}</span>
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-right">

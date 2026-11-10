@@ -37,7 +37,7 @@ export default function CreatePlanPage() {
     defaultValues: {
       name: '',
       price: 0,
-      priceDetail: 'per user / month',
+      priceDetail: 'per month',
       features: [{ value: 'Up to 5 users' }],
       isPrimary: false,
     },
@@ -122,9 +122,9 @@ export default function CreatePlanPage() {
                         name="priceDetail"
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Price Detail</FormLabel>
+                            <FormLabel>Billing Interval</FormLabel>
                             <FormControl>
-                            <Input placeholder="e.g., per user / month" {...field} />
+                            <Input placeholder="per month" readOnly {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>

@@ -17,13 +17,13 @@ Varban Academy is a Next.js 15 / TypeScript application using Firebase Authentic
 
 ## 3. Payments and enrollment
 
-- M-Pesa initiation verifies the Firebase ID token, loads the course price from the trusted database, and stores a pending transaction keyed by Safaricom's CheckoutRequestID.
+- Paystack checkout initiation verifies the signed-in user, loads the item price from the trusted database, and stores a pending transaction against a unique server-generated reference.
 - An STK push acceptance is not a completed payment. The client waits for the stored transaction to reach the completed state.
 - API keys are stored as SHA-256 hashes, shown only once at creation, and checked with constant-time comparison. Legacy plaintext keys are migrated to hashes on authenticated key-list access or first use.
 - The public courses API enforces a per-user daily request ceiling and records usage through the Admin SDK.
-- The callback is treated as a notification, not proof of payment. The server queries Safaricom directly and compares the amount, phone number, and checkout request against the pending transaction before granting course access.
+- The Paystack callback is treated as a notification, not proof of payment. The server independently verifies the transaction with Paystack and compares the reference, amount, currency, and customer email before granting course access.
 - Enrollment and the completed transaction record are written together.
-- Card, PayPal, and crypto checkout remain disabled until real provider settlement verification and server-side enrollment are implemented. Never tell users those methods are available or collect card details until an approved PCI-compliant provider integration exists.
+- Paystack is the only payment provider exposed in the customer checkout UI. Card and mobile-money options are presented only by Paystack-hosted checkout; the application does not collect or store card details.
 
 ## 4. Server credentials and configuration
 
@@ -32,7 +32,7 @@ The Firebase Admin SDK uses server-only environment variables:
 - `FIREBASE_CLIENT_EMAIL`
 - `FIREBASE_PRIVATE_KEY`
 
-M-Pesa credentials are server-only:
+Paystack credentials are server-only:
 - `MPESA_ENVIRONMENT`
 - `MPESA_CONSUMER_KEY`
 - `MPESA_CONSUMER_SECRET`
@@ -56,8 +56,8 @@ This is an evolving security record, not a certification or guarantee of securit
 - Review every exported server action and Genkit flow for caller authentication, role authorization, input validation, and abuse/rate limits.
 - Review organization-scoped access for conversations, invitations, live sessions, and media signaling.
 - Run Firebase Emulator tests against the deployed Realtime Database rules, including role escalation, cross-user reads/writes, and payment/enrollment cases.
-- Confirm the Firebase Admin and M-Pesa environment variables are configured in every Vercel environment that needs them.
-- Verify Safaricom production credentials, callback URL registration, till/paybill transaction type, and settlement-query behavior before switching `MPESA_ENVIRONMENT=production`.
+- Confirm the Paystack secret key, webhook secret, callback URL, and Firebase Admin environment variables are configured in every Vercel environment that needs them.
+- Start with Paystack test keys and test webhook events. Switch to live keys only after the Paystack merchant account is fully verified and the webhook endpoint is configured.
 - Run dependency scanning, TypeScript checks, unit tests, and a production build before merging.
 
 ## 7. Incident response
