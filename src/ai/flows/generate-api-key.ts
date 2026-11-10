@@ -1,7 +1,6 @@
 'use server';
 
 import { createSupabaseUserClient } from '@/lib/supabase/user-client';
-import { verifySupabaseAccessToken } from '@/lib/supabase/verify-access-token';
 import type { ApiKey } from '@/lib/types';
 import { createHash, randomBytes } from 'crypto';
 import { z } from 'zod';
