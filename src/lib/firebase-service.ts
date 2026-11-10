@@ -977,165 +977,111 @@ export async function registerUserForBootcamp(bootcampId: string, userId: string
 }
 
 export async function getHackathonParticipants(hackathonId: string): Promise<RegisteredUser[]> {
-    const dataRef = ref(db, `hackathons/${hackathonId}/participants`);
-    const snapshot = await get(dataRef);
-    if (snapshot.exists()) {
-        const participantIds = Object.keys(snapshot.val());
-        const userPromises = participantIds.map(uid => getUserById(uid));
-        const users = (await Promise.all(userPromises)).filter(Boolean) as RegisteredUser[];
-        return users;
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('hackathon_participants').select('*').eq('hackathon_id',hackathonId).order('created_at');
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ uid: row.user_id, displayName: row.display_name, photoURL: row.avatar_path || '' })) as RegisteredUser[];
 }
 
-
-// Hackathon Functions
 export async function createHackathon(hackathonData: Omit<Hackathon, 'id'>): Promise<string> {
-    const refPath = ref(db, 'hackathons');
-    const newRef = push(refPath);
-    await set(newRef, hackathonData);
-    return newRef.key!;
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('Administrator sign-in is required.');
+  const item = hackathonData as any; const id = crypto.randomUUID();
+  const { error } = await supabase.from('hackathons').insert({ id, title: item.title, description: item.description || null, is_published: Boolean(item.isPublished), content: item, created_by: authData.user.id });
+  if (error) throw error;
+  return id;
 }
 
 export async function getAllHackathons(): Promise<Hackathon[]> {
-    const dataRef = ref(db, 'hackathons');
-    const snapshot = await get(dataRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('hackathons').select('*').order('created_at',{ascending:false});
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, title: row.title, description: row.description, isPublished: row.is_published, createdAt: row.created_at, updatedAt: row.updated_at })) as Hackathon[];
 }
 
 export async function getHackathonById(id: string): Promise<Hackathon | null> {
-    const dataRef = ref(db, `hackathons/${id}`);
-    const snapshot = await get(dataRef);
-    if (snapshot.exists()) {
-        return { id, ...snapshot.val() };
-    }
-    return null;
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('hackathons').select('*').eq('id',id).maybeSingle();
+  if (error) throw error;
+  return data ? ({ ...(data.content || {}), id: data.id, title: data.title, description: data.description, isPublished: data.is_published, createdAt: data.created_at, updatedAt: data.updated_at } as Hackathon) : null;
 }
 
 export async function updateHackathon(id: string, hackathonData: Partial<Hackathon>): Promise<void> {
-    const dataRef = ref(db, `hackathons/${id}`);
-    await update(dataRef, hackathonData);
+  const supabase = getSupabaseBrowserClient();
+  const { data: current, error: readError } = await supabase.from('hackathons').select('content').eq('id',id).maybeSingle();
+  if (readError) throw readError;
+  if (!current) throw new Error('Hackathon not found.');
+  const item = hackathonData as any;
+  const { error } = await supabase.from('hackathons').update({
+    ...(item.title !== undefined ? { title: item.title } : {}),
+    ...(item.description !== undefined ? { description: item.description } : {}),
+    ...(item.isPublished !== undefined ? { is_published: item.isPublished } : {}),
+    content: { ...(current.content || {}), ...item }, updated_at: new Date().toISOString(),
+  }).eq('id',id);
+  if (error) throw error;
 }
 
 export async function deleteHackathon(id: string): Promise<void> {
-    const dataRef = ref(db, `hackathons/${id}`);
-    await remove(dataRef);
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from('hackathons').delete().eq('id',id);
+  if (error) throw error;
 }
 
 export async function registerForHackathon(hackathonId: string, userId: string): Promise<void> {
-    const dataRef = ref(db, `hackathons/${hackathonId}/participants/${userId}`);
-    await set(dataRef, true);
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) throw new Error('You can only register your own account.');
+  const { data: profile } = await supabase.from('profiles').select('display_name,avatar_path').eq('id',userId).maybeSingle();
+  const { error } = await supabase.from('hackathon_participants').upsert({
+    hackathon_id: hackathonId, user_id: userId,
+    display_name: profile?.display_name || authData.user.email || 'Learner',
+    avatar_path: profile?.avatar_path || null,
+  }, { onConflict: 'hackathon_id,user_id' });
+  if (error) throw error;
 }
 
 export async function getHackathonSubmissions(hackathonId: string): Promise<HackathonSubmission[]> {
-    const submissionsRef = query(ref(db, 'hackathonSubmissions'), orderByChild('hackathonId'), equalTo(hackathonId));
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('hackathon_submissions').select('*').eq('hackathon_id',hackathonId).order('created_at',{ascending:false});
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, hackathonId: row.hackathon_id, userId: row.user_id, createdAt: row.created_at })) as HackathonSubmission[];
 }
 
 export async function createHackathonSubmission(submissionData: Omit<HackathonSubmission, 'id'>): Promise<string> {
-  const userSubmissionsRef = query(
-    ref(db, 'hackathonSubmissions'),
-    orderByChild('userId'),
-    equalTo(submissionData.userId)
-  );
-  const snapshot = await get(userSubmissionsRef);
-  let userSubmissionsForThisHackathon = 0;
-  if (snapshot.exists()) {
-    snapshot.forEach((childSnapshot) => {
-      if (childSnapshot.val().hackathonId === submissionData.hackathonId) {
-        userSubmissionsForThisHackathon++;
-      }
-    });
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== (submissionData as any).userId) throw new Error('You can only submit work for your own account.');
+  const item = submissionData as any;
+  const id = crypto.randomUUID();
+  const { error } = await supabase.from('hackathon_submissions').insert({
+    id, hackathon_id: item.hackathonId, user_id: authData.user.id, content: item,
+  });
+  if (error) {
+    if (error.message.includes('maximum of 3 submissions')) throw new Error('You have reached the maximum of 3 submissions for this hackathon.');
+    throw error;
   }
-
-  if (userSubmissionsForThisHackathon >= 3) {
-    throw new Error("You have reached the maximum of 3 submissions for this hackathon.");
-  }
-  
-  const refPath = ref(db, 'hackathonSubmissions');
-  const newRef = push(refPath);
-  await set(newRef, submissionData);
-
-  // Leaderboard logic
-  const leaderboardRef = ref(db, `leaderboard/${submissionData.userId}`);
-  const leaderboardSnapshot = await get(leaderboardRef);
-  if (leaderboardSnapshot.exists()) {
-    await update(leaderboardRef, {
-      score: increment(10), // +10 points for submission
-      hackathonCount: increment(1)
-    });
-  } else {
-    const user = await getUserById(submissionData.userId);
-    await set(leaderboardRef, {
-      userId: submissionData.userId,
-      userName: user?.displayName || 'Anonymous',
-      userAvatar: user?.photoURL || '',
-      score: 10,
-      hackathonCount: 1,
-    });
-  }
-
-  return newRef.key!;
+  return id;
 }
 
-export async function awardLeaderboardPoints(userId: string, points: number): Promise<void> {
-    const leaderboardRef = ref(db, `leaderboard/${userId}`);
-    const leaderboardSnapshot = await get(leaderboardRef);
-    if (leaderboardSnapshot.exists()) {
-        await update(leaderboardRef, {
-            score: increment(points),
-        });
-    } else {
-        // If user is not on leaderboard, create an entry for them
-         const user = await getUserById(userId);
-        await set(leaderboardRef, {
-            userId: userId,
-            userName: user?.displayName || 'Anonymous',
-            userAvatar: user?.photoURL || '',
-            score: points,
-            hackathonCount: 0, // Assume 0 if they weren't on the board before
-        });
-    }
+export async function awardLeaderboardPoints(_userId: string, _points: number): Promise<void> {
+  throw new Error('Leaderboard points are awarded automatically when a hackathon submission is saved.');
 }
-
 
 export async function getHackathonSubmissionsByUser(userId: string): Promise<HackathonSubmission[]> {
-    const submissionsRef = query(ref(db, 'hackathonSubmissions'), orderByChild('userId'), equalTo(userId));
-    const snapshot = await get(submissionsRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
-        }));
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) throw new Error('You can only view your own submissions.');
+  const { data, error } = await supabase.from('hackathon_submissions').select('*').eq('user_id',userId).order('created_at',{ascending:false});
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ ...(row.content || {}), id: row.id, hackathonId: row.hackathon_id, userId: row.user_id, createdAt: row.created_at })) as HackathonSubmission[];
 }
 
 export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
-    const leaderboardRef = query(ref(db, 'leaderboard'), orderByChild('score'));
-    const snapshot = await get(leaderboardRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        const entries: LeaderboardEntry[] = Object.values(data);
-        return entries.sort((a,b) => b.score - a.score);
-    }
-    return [];
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.from('leaderboard').select('*').order('score',{ascending:false}).limit(100);
+  if (error) throw error;
+  return (data || []).map((row: any) => ({ userId: row.user_id, userName: row.user_name, userAvatar: row.user_avatar, score: row.score, hackathonCount: row.hackathon_count })) as LeaderboardEntry[];
 }
 
 export async function getAllBlogPosts(): Promise<BlogPost[]> {
