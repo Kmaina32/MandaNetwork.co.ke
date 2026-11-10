@@ -30,7 +30,7 @@ type ContactFormValues = z.infer<typeof contactFormSchema>;
 const faqItems = [
     {
         question: "What payment methods do you accept?",
-        answer: "We accept payments via M-Pesa, Credit/Debit Cards (Visa, Mastercard), PayPal, and our own MandaToken (MDT) cryptocurrency."
+        answer: "All payments are processed securely through Paystack. Available checkout channels depend on the payment methods enabled for our Paystack account."
     },
     {
         question: "How do I access a course after enrolling?",
