@@ -108,8 +108,14 @@ export async function saveUser(uid: string, dataToSave: Partial<Omit<RegisteredU
   if (displayName !== undefined) patch.display_name = displayName;
   if (photoURL !== undefined) patch.avatar_path = photoURL;
   if (email !== undefined && isSelf) patch.email = email;
-  const { error } = await supabase.from('profiles').upsert({ id: uid, ...patch }, { onConflict: 'id' });
-  if (error) throw error;
+  if (current) {
+    const { error } = await supabase.from('profiles').update(patch).eq('id', uid);
+    if (error) throw error;
+  } else {
+    if (!isSelf) throw new Error('The requested profile does not exist.');
+    const { error } = await supabase.from('profiles').insert({ id: uid, ...patch });
+    if (error) throw error;
+  }
 }
 export async function getUserById(uid: string): Promise<RegisteredUser | null> {
     const userRef = ref(db, `users/${uid}`);
