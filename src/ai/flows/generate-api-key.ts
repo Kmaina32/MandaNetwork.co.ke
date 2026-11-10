@@ -1,6 +1,6 @@
 'use server';
 
-import { getSupabaseAdminClient } from '@/lib/supabase/admin';
+import { createSupabaseUserClient } from '@/lib/supabase/user-client';
 import { verifySupabaseAccessToken } from '@/lib/supabase/verify-access-token';
 import type { ApiKey } from '@/lib/types';
 import { createHash, randomBytes } from 'crypto';
@@ -14,24 +14,22 @@ export type GenerateApiKeyInput = z.infer<typeof GenerateApiKeyInputSchema>;
 
 export async function generateApiKey(input: GenerateApiKeyInput): Promise<ApiKey> {
   const parsed = GenerateApiKeyInputSchema.parse(input);
-  const user = await verifySupabaseAccessToken(parsed.idToken);
+  const { user, client } = await createSupabaseUserClient(parsed.idToken);
   const key = 'sk_live_' + randomBytes(24).toString('hex');
-  const admin = getSupabaseAdminClient();
-  const { data, error } = await admin.from('user_api_keys').insert({
+  const { data, error } = await client.from('user_api_keys').insert({
     user_id: user.id, name: parsed.keyName,
     key_hash: createHash('sha256').update(key).digest('hex'),
-    key_preview: key.slice(-4),
-  }).select('id,name,key_preview,created_at,user_id').single();
+    key_prefix: key.slice(0,8),
+  }).select('id,name,key_prefix,created_at,user_id').single();
   if (error) throw error;
-  return { id: data.id, name: data.name, keyPreview: data.key_preview, createdAt: data.created_at, userId: data.user_id, key } as ApiKey;
+  return { id: data.id, name: data.name, keyPreview: data.key_prefix, createdAt: data.created_at, userId: data.user_id, key } as ApiKey;
 }
 
 export async function listUserApiKeys(idToken: string): Promise<Array<Omit<ApiKey, 'key'>>> {
-  const user = await verifySupabaseAccessToken(idToken);
-  const admin = getSupabaseAdminClient();
-  const { data, error } = await admin.from('user_api_keys')
-    .select('id,name,key_preview,created_at,user_id').eq('user_id',user.id).is('revoked_at',null)
+  const { user, client } = await createSupabaseUserClient(idToken);
+  const { data, error } = await client.from('user_api_keys')
+    .select('id,name,key_prefix,created_at,user_id').eq('user_id',user.id).is('revoked_at',null)
     .order('created_at',{ascending:false});
   if (error) throw error;
-  return (data || []).map(row => ({ id: row.id, name: row.name, keyPreview: row.key_preview, createdAt: row.created_at, userId: row.user_id })) as Array<Omit<ApiKey,'key'>>;
+  return (data || []).map(row => ({ id: row.id, name: row.name, keyPreview: row.key_prefix, createdAt: row.created_at, userId: row.user_id })) as Array<Omit<ApiKey,'key'>>;
 }
