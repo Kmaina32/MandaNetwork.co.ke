@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     const { data: activePayments, error: activeError } = await admin.from('payment_transactions')
       .select('reference,status,created_at').eq('user_id', user.id).eq('item_type', 'course')
-      .eq('item_id', itemId).in('status', ['initialized', 'pending', 'processing'])
+      .eq('item_id', itemId).in('status', ['initialized', 'pending'])
       .order('created_at', { ascending: false }).limit(5);
     if (activeError) throw activeError;
     const recent = (activePayments || []).find((payment: any) =>
