@@ -48,7 +48,7 @@ const prompt = ai.definePrompt({
       *   Logged-out users see public pages like Courses, About, Help, and Contact.
       *   To enroll, a user must sign up or log in.
       *   Courses can be free or paid.
-      *   For paid courses, the user "pays" via a simulated M-Pesa modal. No real payment is processed. For free courses, they enroll with one click.
+      *   For paid courses, users complete checkout through Paystack. The server verifies successful settlement before granting access. Free courses can be enrolled in with one click.
       *   Once enrolled, the course appears on their dashboard.
 
   2.  **Learning**:
