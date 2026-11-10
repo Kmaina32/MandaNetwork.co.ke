@@ -3,8 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/lib/firebase';
-import { onValue, ref } from 'firebase/database';
+import { db, onValue, ref } from '@/lib/supabase/records';
 import { useRouter } from 'next/navigation';
 import { AppSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
