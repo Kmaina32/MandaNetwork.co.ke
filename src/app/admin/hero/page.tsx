@@ -95,15 +95,9 @@ export default function AdminHeroPage() {
         let remoteTitle = dbData.title;
         let remoteSubtitle = dbData.subtitle;
 
-        if (remoteConfig) {
-           try {
-              await fetchAndActivate(remoteConfig);
-              remoteTitle = getString(remoteConfig, 'hero_title') || dbData.title;
-              remoteSubtitle = getString(remoteConfig, 'hero_subtitle') || dbData.subtitle;
-           } catch(e) {
-             console.warn("Could not fetch remote config. Using defaults.");
-           }
-        }
+        const remoteValues = await getRemoteConfigValues(['hero_title','hero_subtitle']);
+        remoteTitle = remoteValues.hero_title || dbData.title;
+        remoteSubtitle = remoteValues.hero_subtitle || dbData.subtitle;
         
         form.reset({
           ...dbData,
