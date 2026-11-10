@@ -348,6 +348,15 @@ export interface Organization {
     memberLimit: number;
     logoUrl?: string;
     welcomeMessage?: string;
+    billingProvider?: 'paystack';
+    billingInterval?: 'monthly';
+    paystackSubscriptionCode?: string;
+    paystackEmailToken?: string | null;
+    paystackPlanCode?: string;
+    subscriptionStatus?: 'pending_verification' | 'active' | 'past_due' | 'non_renewing' | 'cancelled';
+    subscriptionNextPaymentDate?: string | null;
+    subscriptionLastPaidAt?: string;
+    subscriptionLastPaymentFailureAt?: number;
 }
 
 
