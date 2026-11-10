@@ -31,7 +31,7 @@ async function load(ref:Ref) {
   if(id)q=q.eq('record_id',id);
   const {data,error}=await q;if(error)throw error;
   let rows=data||[];
-  if(ref.equalValue!==undefined) rows=rows.filter((r:any)=>ref.orderField?getNested(r.data,[ref.orderField])===ref.equalValue:r.record_id===String(ref.equalValue));
+  if(ref.equalValue!==undefined) rows=rows.filter((r:any)=>ref.orderField?getNested(r.data,[ref.orderField!])===ref.equalValue:r.record_id===String(ref.equalValue));
   if(ref.orderField) rows=rows.sort((a:any,b:any)=>String(getNested(a.data,[ref.orderField])??'').localeCompare(String(getNested(b.data,[ref.orderField])??'')));
   if(id)return {collection,id,child,data:rows[0]?getNested(rows[0].data,child):null,row:rows[0]};
   return {collection,id,child,data:Object.fromEntries(rows.map((r:any)=>[r.record_id,r.data])),rows};
