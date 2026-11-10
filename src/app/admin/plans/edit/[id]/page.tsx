@@ -50,7 +50,7 @@ export default function EditPlanPage() {
         try {
             const plan = await getPlanById(params.id);
             if (!plan) notFound();
-            form.reset({ ...plan, features: plan.features.map(value => ({ value })) });
+            form.reset({ ...plan, priceDetail: 'per month', features: plan.features.map(value => ({ value })) });
         } catch (error) {
             console.error(error);
             toast({ title: "Error", description: "Failed to load plan details.", variant: 'destructive'});
@@ -65,7 +65,7 @@ export default function EditPlanPage() {
   const onSubmit = async (values: z.infer<typeof planFormSchema>) => {
     setIsLoading(true);
     try {
-      await updatePlan(params.id, { ...values, features: values.features.map(feature => feature.value) });
+      await updatePlan(params.id, { ...values, priceDetail: 'per month', features: values.features.map(feature => feature.value) });
       toast({
         title: 'Plan Updated!',
         description: `The plan "${values.name}" has been successfully updated.`,
