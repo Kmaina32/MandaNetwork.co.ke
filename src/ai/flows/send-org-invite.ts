@@ -1,6 +1,6 @@
 'use server';
 
-import { getSupabaseAdminClient } from '@/lib/supabase/admin';
+import { createSupabaseUserClient } from '@/lib/supabase/user-client';
 import { verifySupabaseAccessToken } from '@/lib/supabase/verify-access-token';
 import { z } from 'zod';
 import { ai } from '@/ai/genkit-instance';
@@ -24,11 +24,10 @@ const createOrganizationInviteFlow = ai.defineFlow({
   outputSchema: CreateOrgInviteOutputSchema,
 }, async ({ idToken, email, organizationId }) => {
   try {
-    const user = await verifySupabaseAccessToken(idToken);
-    const admin = getSupabaseAdminClient();
+    const { user, client } = await createSupabaseUserClient(idToken);
     const [{ data: organization, error: orgError }, { data: membership, error: memberError }] = await Promise.all([
-      admin.from('organizations').select('id,name,owner_id').eq('id',organizationId).maybeSingle(),
-      admin.from('organization_members').select('member_role,status').eq('organization_id',organizationId)
+      client.from('organizations').select('id,name,owner_id').eq('id',organizationId).maybeSingle(),
+      client.from('organization_members').select('member_role,status').eq('organization_id',organizationId)
         .eq('user_id',user.id).eq('status','active').maybeSingle(),
     ]);
     if (orgError) throw orgError;
@@ -38,19 +37,17 @@ const createOrganizationInviteFlow = ai.defineFlow({
     const isMemberAdmin = membership && ['owner','admin'].includes(membership.member_role);
     if (!isOwner && !isMemberAdmin) throw new Error('You are not authorized to invite members to this organization.');
 
-    const { data: existing, error: existingError } = await admin.from('academy_records')
-      .select('record_id,data').eq('collection','invitations').limit(500);
+    const { data: existing, error: existingError } = await client.from('organization_invitations')
+      .select('id,email,organization_id,status,expires_at').eq('organization_id',organizationId).eq('email',email).eq('status','pending').limit(5);
     if (existingError) throw existingError;
-    const duplicate = (existing || []).find((row:any) => String(row.data?.email || '').toLowerCase() === email
-      && row.data?.organizationId === organizationId && row.data?.status === 'pending'
-      && (!row.data?.expiresAt || new Date(row.data.expiresAt).getTime() > Date.now()));
-    if (duplicate) return { success:true, inviteId:duplicate.record_id, message:'A pending invitation already exists for this email.' };
+    const duplicate = (existing || []).find((row:any) => !row.expires_at || new Date(row.expires_at).getTime() > Date.now());
+    if (duplicate) return { success:true, inviteId:duplicate.id, message:'A pending invitation already exists for this email.' };
 
     const inviteId = crypto.randomUUID();
-    const { error } = await admin.from('academy_records').insert({
-      collection:'invitations', record_id:inviteId, owner_id:user.id,
-      data:{ email, organizationId, organizationName:organization.name, createdBy:user.id,
-        createdAt:new Date().toISOString(), expiresAt:new Date(Date.now()+7*24*60*60*1000).toISOString(), status:'pending' },
+    const { error } = await client.from('organization_invitations').insert({
+      id: inviteId, organization_id: organizationId, email, invited_user_id: null,
+      member_role: 'member', invited_by: user.id, expires_at: new Date(Date.now()+7*24*60*60*1000).toISOString(),
+      status: 'pending', content: { organizationName: organization.name },
     });
     if (error) throw error;
     return { success:true, inviteId, message:'Invitation created successfully.' };
