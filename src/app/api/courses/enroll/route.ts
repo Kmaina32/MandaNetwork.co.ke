@@ -66,6 +66,9 @@ export async function POST(request: NextRequest) {
       completed: false,
       content: { enrollmentDate, paymentMethod: 'free', completedLessons: [] },
     });
+    if (enrollmentError?.code === '23505') {
+      return NextResponse.json({ success: true, alreadyEnrolled: true });
+    }
     if (enrollmentError) throw enrollmentError;
 
     // Activity history is supplementary and must not undo a successful enrolment.
