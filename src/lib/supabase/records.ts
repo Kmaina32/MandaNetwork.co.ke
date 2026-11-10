@@ -150,7 +150,7 @@ export async function set(reference: PathRef, value: any): Promise<void> {
   if (!collection || !recordId) throw new Error('Writes must target a record.');
   const supabase = getSupabaseBrowserClient();
   if (childPath.length) {
-    const { data: current, error: readError } = await supabase.from('academy_records').select('data').eq('collection',collection).eq('record_id',recordId).maybeSingle();
+    const { data: current, error: readError } = await supabase.from('academy_records').select('data,owner_id').eq('collection',collection).eq('record_id',recordId).maybeSingle();
     if (readError) throw readError;
     const next = nestedSet(current?.data || {}, childPath, value);
     const { data: auth } = await supabase.auth.getUser();
