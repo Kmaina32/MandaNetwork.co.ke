@@ -30,12 +30,35 @@ export function newPaystackReference(): string {
   return `VA-${randomUUID()}`;
 }
 
+export async function createPaystackPlan(input: { name: string; amount: number; currency: 'KES'; interval: 'monthly' }) {
+  const response = await fetch(`${PAYSTACK_API}/plan`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${getSecretKey()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: input.name.slice(0, 100),
+      amount: String(input.amount * 100),
+      currency: input.currency,
+      interval: input.interval,
+      send_invoices: true,
+      send_sms: false,
+    }),
+    signal: AbortSignal.timeout(20000),
+    cache: 'no-store',
+  });
+  const result = await response.json().catch(() => null);
+  if (!response.ok || result?.status !== true || typeof result?.data?.plan_code !== 'string') {
+    throw new Error('Paystack could not create the recurring billing plan. Confirm that subscriptions are enabled for your merchant account and KES.');
+  }
+  return { planCode: result.data.plan_code as string };
+}
+
 export async function initializePaystackTransaction(input: {
   email: string;
   amount: number;
   reference: string;
   callbackUrl: string;
   metadata: Record<string, string>;
+  planCode?: string;
 }) {
   const response = await fetch(`${PAYSTACK_API}/transaction/initialize`, {
     method: 'POST',
@@ -45,11 +68,11 @@ export async function initializePaystackTransaction(input: {
     },
     body: JSON.stringify({
       email: input.email,
-      amount: String(input.amount * 100),
+      ...(input.planCode ? { plan: input.planCode } : { amount: String(input.amount * 100) }),
       currency: 'KES',
       reference: input.reference,
       callback_url: input.callbackUrl,
-      channels: ['card', 'mobile_money', 'bank', 'bank_transfer'],
+      channels: input.planCode ? ['card'] : ['card', 'mobile_money', 'bank', 'bank_transfer'],
       metadata: input.metadata,
     }),
     signal: AbortSignal.timeout(20000),
@@ -157,6 +180,9 @@ async function applyVerifiedPayment(reference: string, providerData: Awaited<Ret
       if (!['basic', 'pro'].includes(planName)) throw new Error('This organization plan is not supported for automatic activation.');
       updates[`organizations/${payment.organizationId}/subscriptionTier`] = planName;
       updates[`organizations/${payment.organizationId}/subscriptionExpiresAt`] = null;
+      updates[`organizations/${payment.organizationId}/billingProvider`] = 'paystack';
+      updates[`organizations/${payment.organizationId}/billingInterval`] = 'monthly';
+      updates[`organizations/${payment.organizationId}/subscriptionStatus`] = 'active';
     }
 
     updates[`paymentCheckoutLocks/${payment.uid}/${payment.itemType}-${payment.itemId}`] = null;
@@ -215,10 +241,70 @@ export function verifyPaystackWebhookSignature(rawBody: string, headers: Headers
 }
 
 export async function handlePaystackWebhookEvent(event: unknown) {
-  const payload = event as { event?: string; data?: { reference?: string } };
-  if (payload?.event !== 'charge.success') return { ignored: true };
-  const reference = payload.data?.reference;
-  if (typeof reference !== 'string') throw new Error('Webhook reference is missing.');
-  const payment = await verifyAndFulfillPaystackPayment(reference);
-  return { ignored: false, payment };
+  const payload = event as {
+    event?: string;
+    data?: {
+      reference?: string;
+      subscription_code?: string;
+      email_token?: string;
+      next_payment_date?: string | null;
+      status?: string;
+      customer?: { customer_code?: string; email?: string };
+      plan?: { plan_code?: string; name?: string; amount?: number; interval?: string };
+      subscription?: { subscription_code?: string; email_token?: string; next_payment_date?: string | null; status?: string };
+    };
+  };
+  const data = payload?.data;
+  if (payload?.event === 'charge.success') {
+    const reference = data?.reference;
+    if (typeof reference !== 'string') throw new Error('Webhook reference is missing.');
+    const payment = await verifyAndFulfillPaystackPayment(reference);
+    return { ignored: false, payment };
+  }
+
+  if (payload?.event === 'subscription.create' && data) {
+    const subscriptionCode = data.subscription_code || data.subscription?.subscription_code;
+    const emailToken = data.email_token || data.subscription?.email_token;
+    const email = data.customer?.email?.toLowerCase();
+    const planCode = data.plan?.plan_code;
+    if (!subscriptionCode || !email || !planCode) throw new Error('Subscription event is missing required identifiers.');
+    const planMap = await adminDb.ref('paystackPlanCodes').get();
+    const matchedPlan = Object.entries(planMap.val() || {}).find(([, value]: [string, any]) => value?.planCode === planCode);
+    if (!matchedPlan) throw new Error('Subscription plan could not be matched to a Varban plan.');
+    const [planId, planRecord] = matchedPlan as [string, any];
+    const transactions = await adminDb.ref('paystackTransactions').orderByChild('email').equalTo(email).limitToLast(20).get();
+    const candidates = Object.values(transactions.val() || {}) as any[];
+    const payment = candidates.find(item => item.itemType === 'organization_plan' && item.itemId === `org-upgrade-${planId}` && item.status === 'completed');
+    if (!payment?.organizationId) throw new Error('Paid organization checkout could not be matched to the subscription.');
+    await adminDb.ref(`organizations/${payment.organizationId}`).update({
+      paystackSubscriptionCode: subscriptionCode,
+      paystackEmailToken: emailToken || null,
+      paystackPlanCode: planCode,
+      subscriptionStatus: 'active',
+      subscriptionNextPaymentDate: data.next_payment_date || data.subscription?.next_payment_date || null,
+      billingProvider: 'paystack',
+      billingInterval: 'monthly',
+      updatedAt: Date.now(),
+    });
+    return { ignored: false, subscriptionCode };
+  }
+
+  if (payload?.event === 'invoice.payment_failed' && data?.subscription_code) {
+    const orgs = await adminDb.ref('organizations').get();
+    const match = Object.entries(orgs.val() || {}).find(([, value]: [string, any]) => value?.paystackSubscriptionCode === data.subscription_code);
+    if (match) await adminDb.ref(`organizations/${match[0]}`).update({ subscriptionStatus: 'past_due', subscriptionLastPaymentFailureAt: Date.now() });
+    return { ignored: false, status: 'past_due' };
+  }
+
+  if ((payload?.event === 'subscription.not_renew' || payload?.event === 'subscription.disable') && data?.subscription_code) {
+    const orgs = await adminDb.ref('organizations').get();
+    const match = Object.entries(orgs.val() || {}).find(([, value]: [string, any]) => value?.paystackSubscriptionCode === data.subscription_code);
+    if (match) await adminDb.ref(`organizations/${match[0]}`).update({
+      subscriptionStatus: payload.event === 'subscription.not_renew' ? 'non_renewing' : 'cancelled',
+      subscriptionExpiresAt: data.next_payment_date || (match[1] as any)?.subscriptionNextPaymentDate || null,
+    });
+    return { ignored: false, status: payload.event };
+  }
+
+  return { ignored: true };
 }
