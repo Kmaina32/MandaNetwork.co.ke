@@ -4,7 +4,6 @@ import {
   useState, useEffect, createContext, useContext, ReactNode,
   Dispatch, SetStateAction, useCallback,
 } from 'react';
-import type { User } from 'firebase/auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { RegisteredUser, Organization } from '@/lib/types';
 import { useToast } from './use-toast';
@@ -12,6 +11,11 @@ import { useRouter } from 'next/navigation';
 import { slugify } from '@/lib/utils';
 
 type SupabaseAuthUser = import('@supabase/supabase-js').User;
+type User = {
+  uid: string; email: string | null; displayName: string; emailVerified: boolean; photoURL: string;
+  metadata?: { creationTime?: string; lastSignInTime?: string };
+  reload: () => Promise<User>;
+};
 type AppUser = User & {
   supabaseId: string;
   appMetadata: { role?: string; admin_expires_at?: string; organization_admin?: boolean };
