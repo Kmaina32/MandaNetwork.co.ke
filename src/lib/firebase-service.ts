@@ -625,7 +625,7 @@ export async function getUserApiKeys(userId: string): Promise<ApiKey[]> {
   if(auth.user?.id!==userId) throw new Error('You can only view your own API keys.');
   const {data,error}=await supabase.from('user_api_keys').select('id,name,key_prefix,created_at,revoked_at').eq('user_id',userId).order('created_at',{ascending:false});
   if(error) throw error;
-  return (data||[]).map((row:any)=>({id:row.id,name:row.name,keyPreview:row.key_prefix,createdAt:row.created_at,revokedAt:row.revoked_at})) as ApiKey[];
+  return (data||[]).map((row:any)=>({id:row.id,name:row.name,keyPreview:row.key_prefix,createdAt:row.created_at,revokedAt:row.revoked_at,userId:row.user_id})) as ApiKey[];
 }
 
 export async function deleteApiKey(userId: string, keyId: string): Promise<void> {
