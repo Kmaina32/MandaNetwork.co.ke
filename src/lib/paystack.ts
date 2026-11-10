@@ -69,7 +69,7 @@ export async function verifyAndFulfillPaystackPayment(reference: string) {
     await supabase.from('payment_transactions').update({ status: failed ? 'failed' : 'pending', updated_at: new Date().toISOString() }).eq('reference', reference);
     throw new Error(failed ? 'Paystack reports that this payment was not completed.' : 'Payment has not been confirmed yet.');
   }
-  if (payment.status === 'completed') return { ...payment, itemType: payment.item_type, itemId: payment.item_id };
+  if (payment.status === 'success') return { ...payment, itemType: payment.item_type, itemId: payment.item_id };
 
   const { data: course, error: courseError } = await supabase.from('courses').select('id,title,is_published').eq('id', payment.item_id).eq('is_published', true).maybeSingle();
   if (courseError) throw courseError;
@@ -83,7 +83,7 @@ export async function verifyAndFulfillPaystackPayment(reference: string) {
   if (enrollmentError) throw enrollmentError;
 
   const { error: updateError } = await supabase.from('payment_transactions').update({
-    status: 'completed',
+    status: 'success',
     provider_payload: {
       ...payload, providerStatus: provider.status, providerChannel: provider.channel || null,
       gatewayResponse: provider.gateway_response || null, paidAt: provider.paid_at || now,
@@ -92,7 +92,7 @@ export async function verifyAndFulfillPaystackPayment(reference: string) {
     updated_at: now,
   }).eq('reference', reference).neq('status', 'completed');
   if (updateError) throw updateError;
-  return { ...payment, status: 'completed', itemType: 'course', itemId: payment.item_id };
+  return { ...payment, status: 'success', itemType: 'course', itemId: payment.item_id };
 }
 
 export function verifyPaystackWebhookSignature(rawBody: string, headers: Headers): boolean {
