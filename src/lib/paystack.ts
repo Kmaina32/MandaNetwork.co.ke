@@ -240,6 +240,47 @@ export function verifyPaystackWebhookSignature(rawBody: string, headers: Headers
   return false;
 }
 
+async function processRecurringCharge(reference: string, subscriptionCode: string, email?: string) {
+  const verified = await verifyWithPaystack(reference);
+  if (verified.status !== 'success' || verified.reference !== reference || verified.currency !== 'KES') {
+    throw new Error('Recurring charge could not be verified.');
+  }
+  const organizations = await adminDb.ref('organizations').get();
+  const match = Object.entries(organizations.val() || {}).find(([, value]: [string, any]) => value?.paystackSubscriptionCode === subscriptionCode);
+  if (!match) throw new Error('Recurring subscription could not be matched to an organization.');
+  const [organizationId, organization] = match as [string, any];
+  if (email && verified.customer?.email && verified.customer.email.toLowerCase() !== email.toLowerCase()) {
+    throw new Error('Recurring payment customer did not match the subscription.');
+  }
+  const planCodes = await adminDb.ref('paystackPlanCodes').get();
+  const plan = Object.values(planCodes.val() || {}).find((value: any) => value?.planCode === organization.paystackPlanCode) as any;
+  if (!plan || Number(verified.amount) !== Number(plan.amount) * 100) {
+    throw new Error('Recurring payment amount did not match the subscribed plan.');
+  }
+  const renewalRef = adminDb.ref(`paystackRenewals/${reference}`);
+  const existing = await renewalRef.get();
+  if (existing.exists()) return { duplicate: true };
+  const now = Date.now();
+  const renewal = await renewalRef.transaction(current => current || {
+    reference,
+    organizationId,
+    subscriptionCode,
+    amount: Number(plan.amount),
+    currency: 'KES',
+    status: 'completed',
+    provider: 'paystack',
+    paidAt: verified.paid_at || new Date(now).toISOString(),
+    createdAt: now,
+  });
+  if (!renewal.committed) return { duplicate: true };
+  await adminDb.ref(`organizations/${organizationId}`).update({
+    subscriptionStatus: 'active',
+    subscriptionLastPaidAt: verified.paid_at || new Date(now).toISOString(),
+    updatedAt: now,
+  });
+  return { duplicate: false, organizationId };
+}
+
 export async function handlePaystackWebhookEvent(event: unknown) {
   const payload = event as {
     event?: string;
@@ -255,53 +296,62 @@ export async function handlePaystackWebhookEvent(event: unknown) {
     };
   };
   const data = payload?.data;
+  const subscriptionCode = data?.subscription_code || data?.subscription?.subscription_code;
+
   if (payload?.event === 'charge.success') {
     const reference = data?.reference;
     if (typeof reference !== 'string') throw new Error('Webhook reference is missing.');
-    const payment = await verifyAndFulfillPaystackPayment(reference);
-    return { ignored: false, payment };
+    try {
+      const payment = await verifyAndFulfillPaystackPayment(reference);
+      return { ignored: false, payment };
+    } catch (error) {
+      if (!(error instanceof Error) || !error.message.includes('Unknown payment reference')) throw error;
+      if (!subscriptionCode) throw error;
+      const renewal = await processRecurringCharge(reference, subscriptionCode, data?.customer?.email);
+      return { ignored: false, renewal };
+    }
   }
 
   if (payload?.event === 'subscription.create' && data) {
-    const subscriptionCode = data.subscription_code || data.subscription?.subscription_code;
+    const code = subscriptionCode;
     const emailToken = data.email_token || data.subscription?.email_token;
     const email = data.customer?.email?.toLowerCase();
     const planCode = data.plan?.plan_code;
-    if (!subscriptionCode || !email || !planCode) throw new Error('Subscription event is missing required identifiers.');
+    if (!code || !email || !planCode) throw new Error('Subscription event is missing required identifiers.');
     const planMap = await adminDb.ref('paystackPlanCodes').get();
     const matchedPlan = Object.entries(planMap.val() || {}).find(([, value]: [string, any]) => value?.planCode === planCode);
     if (!matchedPlan) throw new Error('Subscription plan could not be matched to a Varban plan.');
-    const [planId, planRecord] = matchedPlan as [string, any];
+    const [planId] = matchedPlan as [string, any];
     const transactions = await adminDb.ref('paystackTransactions').orderByChild('email').equalTo(email).limitToLast(20).get();
     const candidates = Object.values(transactions.val() || {}) as any[];
-    const payment = candidates.find(item => item.itemType === 'organization_plan' && item.itemId === `org-upgrade-${planId}` && item.status === 'completed');
-    if (!payment?.organizationId) throw new Error('Paid organization checkout could not be matched to the subscription.');
+    const payment = candidates.find(item => item.itemType === 'organization_plan' && item.itemId === `org-upgrade-${planId}` && ['pending', 'processing', 'completed'].includes(item.status));
+    if (!payment?.organizationId) throw new Error('Organization checkout could not be matched to the subscription.');
     await adminDb.ref(`organizations/${payment.organizationId}`).update({
-      paystackSubscriptionCode: subscriptionCode,
+      paystackSubscriptionCode: code,
       paystackEmailToken: emailToken || null,
       paystackPlanCode: planCode,
-      subscriptionStatus: 'active',
+      subscriptionStatus: payment.status === 'completed' ? 'active' : 'pending_verification',
       subscriptionNextPaymentDate: data.next_payment_date || data.subscription?.next_payment_date || null,
       billingProvider: 'paystack',
       billingInterval: 'monthly',
       updatedAt: Date.now(),
     });
-    return { ignored: false, subscriptionCode };
+    return { ignored: false, subscriptionCode: code };
   }
 
-  if (payload?.event === 'invoice.payment_failed' && data?.subscription_code) {
+  if (payload?.event === 'invoice.payment_failed' && subscriptionCode) {
     const orgs = await adminDb.ref('organizations').get();
-    const match = Object.entries(orgs.val() || {}).find(([, value]: [string, any]) => value?.paystackSubscriptionCode === data.subscription_code);
+    const match = Object.entries(orgs.val() || {}).find(([, value]: [string, any]) => value?.paystackSubscriptionCode === subscriptionCode);
     if (match) await adminDb.ref(`organizations/${match[0]}`).update({ subscriptionStatus: 'past_due', subscriptionLastPaymentFailureAt: Date.now() });
     return { ignored: false, status: 'past_due' };
   }
 
-  if ((payload?.event === 'subscription.not_renew' || payload?.event === 'subscription.disable') && data?.subscription_code) {
+  if ((payload?.event === 'subscription.not_renew' || payload?.event === 'subscription.disable') && subscriptionCode) {
     const orgs = await adminDb.ref('organizations').get();
-    const match = Object.entries(orgs.val() || {}).find(([, value]: [string, any]) => value?.paystackSubscriptionCode === data.subscription_code);
+    const match = Object.entries(orgs.val() || {}).find(([, value]: [string, any]) => value?.paystackSubscriptionCode === subscriptionCode);
     if (match) await adminDb.ref(`organizations/${match[0]}`).update({
       subscriptionStatus: payload.event === 'subscription.not_renew' ? 'non_renewing' : 'cancelled',
-      subscriptionExpiresAt: data.next_payment_date || (match[1] as any)?.subscriptionNextPaymentDate || null,
+      subscriptionExpiresAt: data?.next_payment_date || (match[1] as any)?.subscriptionNextPaymentDate || null,
     });
     return { ignored: false, status: payload.event };
   }
