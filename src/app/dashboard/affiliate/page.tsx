@@ -28,8 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { onValue, ref } from 'firebase/database';
-import { db } from '@/lib/firebase';
+import { onValue, ref, db } from '@/lib/supabase/records';
 
 export default function AffiliateDashboardPage() {
     const { user, dbUser: initialDbUser, loading: authLoading } = useAuth();
