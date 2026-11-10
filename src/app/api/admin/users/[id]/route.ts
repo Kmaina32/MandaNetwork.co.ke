@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
@@ -14,17 +13,13 @@ export async function DELETE(request:NextRequest,{params}:{params:Promise<{id:st
     const supabase=await getSupabaseServerClient();
     const {data:{user},error:authError}=await supabase.auth.getUser();
     if(authError||!user)return NextResponse.json({error:'Sign in is required.'},{status:401});
-    if(user.id===id)return NextResponse.json({error:'You cannot delete the account you are currently using.'},{status:409});
-    const {data:roles,error:roleError}=await supabase.from('user_roles').select('role').eq('user_id',user.id).in('role',['admin','super_admin']);
-    if(roleError)throw roleError;
-    if(!roles?.length)return NextResponse.json({error:'Administrator access is required.'},{status:403});
-    const admin=getSupabaseAdminClient();
-    const {data:targetRoles,error:targetRoleError}=await admin.from('user_roles').select('role').eq('user_id',id);
-    if(targetRoleError)throw targetRoleError;
-    if((targetRoles||[]).some(row=>row.role==='super_admin')&&!roles.some(row=>row.role==='super_admin'))
-      return NextResponse.json({error:'Only a super administrator can delete another super administrator.'},{status:403});
-    const {error:deleteError}=await admin.auth.admin.deleteUser(id);
-    if(deleteError)throw deleteError;
+    const {data,error}=await supabase.rpc('delete_user_account',{p_user_id:id});
+    if(error) {
+      const message=error.message||'Account deletion failed.';
+      const status=/administrator|super administrator/i.test(message)?403:/own active account/i.test(message)?409:400;
+      return NextResponse.json({error:message},{status});
+    }
+    if(!data)return NextResponse.json({error:'Account not found.'},{status:404});
     return NextResponse.json({success:true},{headers:{'Cache-Control':'no-store, private'}});
   } catch(error) {
     console.error('Supabase account deletion failed:',error instanceof Error?error.message:'Unknown error');
