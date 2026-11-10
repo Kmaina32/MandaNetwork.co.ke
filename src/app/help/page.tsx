@@ -36,7 +36,7 @@ type Message = {
 const faqItems = [
     {
         question: "How do I purchase a course?",
-        answer: "To purchase a course, simply navigate to the course you're interested in and click the \"View Course\" button. On the course detail page, you'll see a purchase button with the price. We use M-Pesa for secure payments. Just follow the on-screen instructions to complete your purchase."
+        answer: "To purchase a course, simply navigate to the course you're interested in and click the \"View Course\" button. On the course detail page, you'll see a purchase button with the price. All purchases are securely processed through Paystack. Follow the checkout instructions to pay using the payment channels enabled for your account."
     },
     {
         question: "How do I access a course I've enrolled in?",
