@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseUserClient } from '@/lib/supabase/user-client';
-import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { initializePaystackTransaction, newPaystackReference } from '@/lib/paystack';
 
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
-  if (!process.env.PAYSTACK_SECRET_KEY || !process.env.PAYSTACK_CALLBACK_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!process.env.PAYSTACK_SECRET_KEY || !process.env.PAYSTACK_CALLBACK_URL) {
     return NextResponse.json({
-      error: 'Paystack checkout is disabled until PAYSTACK_SECRET_KEY, PAYSTACK_CALLBACK_URL and SUPABASE_SERVICE_ROLE_KEY are configured for this deployment.',
+      error: 'Paystack checkout is disabled until PAYSTACK_SECRET_KEY and PAYSTACK_CALLBACK_URL are configured for this deployment.',
     }, { status: 503 });
   }
   try {
@@ -16,7 +15,7 @@ export async function POST(request: NextRequest) {
     if (!authorization.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Please sign in before making a payment.' }, { status: 401 });
     }
-    const { user } = await createSupabaseUserClient(authorization.slice(7));
+    const { user, client } = await createSupabaseUserClient(authorization.slice(7));
     if (!user.email || !user.email_confirmed_at) {
       return NextResponse.json({ error: 'Verify your email address before making a payment.' }, { status: 403 });
     }
@@ -33,8 +32,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'This payment type is not yet available on the new secure checkout. Please contact support.' }, { status: 409 });
     }
 
-    const admin = getSupabaseAdminClient();
-    const { data: course, error: courseError } = await admin.from('courses')
+    const { data: course, error: courseError } = await client.from('courses')
       .select('id,title,price,is_published').eq('id', itemId).eq('is_published', true).maybeSingle();
     if (courseError) throw courseError;
     if (!course) return NextResponse.json({ error: 'This course is no longer available.' }, { status: 404 });
@@ -44,12 +42,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'This course has an invalid payment amount. Contact support.' }, { status: 409 });
     }
 
-    const { data: existingEnrollment, error: enrollmentError } = await admin.from('enrollments')
+    const { data: existingEnrollment, error: enrollmentError } = await client.from('enrollments')
       .select('id').eq('user_id', user.id).eq('course_id', itemId).maybeSingle();
     if (enrollmentError) throw enrollmentError;
     if (existingEnrollment) return NextResponse.json({ error: 'You already have access to this course.' }, { status: 409 });
 
-    const { data: activePayments, error: activeError } = await admin.from('payment_transactions')
+    const { data: activePayments, error: activeError } = await client.from('payment_transactions')
       .select('reference,status,created_at').eq('user_id', user.id).eq('item_type', 'course')
       .eq('item_id', itemId).in('status', ['initialized', 'pending'])
       .order('created_at', { ascending: false }).limit(5);
