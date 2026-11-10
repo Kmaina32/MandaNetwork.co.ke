@@ -9,23 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays } from "lucide-react";
 import { format } from "date-fns";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAllBlogPosts } from '@/lib/firebase-server';
 import type { BlogPost } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 async function getPublishedPosts(): Promise<BlogPost[]> {
-  try {
-    const snapshot = await adminDb.ref("blog").get();
-    if (!snapshot.exists()) return [];
-    return Object.entries(snapshot.val())
-      .map(([id, post]) => ({ id, ...(post as Omit<BlogPost, "id">) }))
-      .filter((post) => post.isPublished)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  } catch (error) {
-    console.error("Failed to load public blog posts:", error);
-    return [];
-  }
+  try { return (await getAllBlogPosts()).filter(post => post.isPublished).sort((a,b)=>new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime()); }
+  catch(error){ console.error('Failed to load public blog posts:',error); return []; }
 }
 
 function formatDate(value: string) {
