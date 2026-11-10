@@ -11,5 +11,5 @@ export async function verifySupabaseAccessToken(accessToken: string) {
   });
   const { data, error } = await client.auth.getUser(accessToken);
   if (error || !data.user) throw new Error('Your sign-in session has expired. Please sign in again.');
-  return data.user;
+  return { ...data.user, legacyUid: data.user.id };
 }
