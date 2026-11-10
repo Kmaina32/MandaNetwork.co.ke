@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     const reference = newPaystackReference();
     const now = new Date().toISOString();
-    const { error: insertError } = await admin.from('payment_transactions').insert({
+    const { error: insertError } = await client.from('payment_transactions').insert({
       id: reference, user_id: user.id, provider: 'paystack', reference,
       item_type: 'course', item_id: itemId, amount_kes: amount,
       currency: 'KES', status: 'initialized',
@@ -80,12 +80,13 @@ export async function POST(request: NextRequest) {
         callbackUrl: parsedCallback.toString(),
         metadata: { uid: user.id, itemType: 'course', itemId, itemName: String(course.title || 'Course').slice(0, 120) },
       });
-      const { error: updateError } = await admin.from('payment_transactions')
-        .update({ status: 'pending', updated_at: new Date().toISOString() }).eq('reference', reference);
-      if (updateError) throw updateError;
+      const { data: statusUpdated, error: updateError } = await client.rpc('set_paystack_checkout_status', {
+        p_reference: reference, p_status: 'pending',
+      });
+      if (updateError || !statusUpdated) throw updateError || new Error('Could not finalize checkout status.');
       return NextResponse.json({ authorizationUrl: checkout.authorizationUrl, reference });
     } catch (error) {
-      await admin.from('payment_transactions').update({ status: 'failed', updated_at: new Date().toISOString() }).eq('reference', reference);
+      await client.rpc('set_paystack_checkout_status', { p_reference: reference, p_status: 'failed' });
       throw error;
     }
   } catch (error) {
