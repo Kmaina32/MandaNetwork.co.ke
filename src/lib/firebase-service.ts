@@ -3,7 +3,7 @@
 import type { Assignment, TutorSettings, Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject as Project, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, TeamMember, ContactMessage, Form as FormType, FormSubmission, Referral, Bootcamp, BlogPost, HeroData } from './types';
 import { slugify } from './utils';
 import { getSupabaseBrowserClient } from './supabase/client';
-import { uploadAcademyAsset } from './supabase/storage';
+import { uploadAcademyAsset, uploadPublicAcademyImage } from './supabase/storage';
 
 export type { Assignment, Course, UserCourse, CalendarEvent, Submission, TutorMessage, Notification, DiscussionThread, DiscussionReply, LiveSession, Program, Bundle, ApiKey, PortfolioProject, LearningGoal, CourseFeedback, Portfolio, PermissionRequest, Organization, Invitation, RegisteredUser, Hackathon, HackathonSubmission, LeaderboardEntry, PricingPlan, Advertisement, UserActivity, TeamMember, ContactMessage, Form, FormSubmission, Referral, Bootcamp, BlogPost, HeroData, TutorSettings } from './types';
 
@@ -27,7 +27,7 @@ export interface PublicCertificateRecord {
 // Image Upload Service
 export async function uploadImage(path: string, file: File): Promise<string> {
     const folder = path.split('/').filter(Boolean).slice(0, 2).join('-') || 'images';
-    return uploadAcademyAsset(file, folder);
+    return uploadPublicAcademyImage(file, folder);
 }
 
 // Course Functions — Supabase is the source of truth.
