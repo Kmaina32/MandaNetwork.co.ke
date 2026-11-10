@@ -2,7 +2,7 @@
 
 import axios from 'axios';
 import { z } from 'zod';
-import { adminDb } from '@/lib/firebase-admin';
+import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { verifySupabaseAccessToken } from '@/lib/supabase/verify-access-token';
 
 const MpesaPaymentInputSchema = z.object({
@@ -53,11 +53,11 @@ export async function processMpesaPayment(input: MpesaPaymentInput): Promise<Mpe
   try {
     const parsed = MpesaPaymentInputSchema.parse(input);
     const decoded = await verifySupabaseAccessToken(parsed.idToken);
-    const userId = decoded.legacyUid;
-
-    const courseSnapshot = await adminDb.ref(`courses/${parsed.courseId}`).get();
-    if (!courseSnapshot.exists()) return { success: false, message: 'This course is no longer available.' };
-    const course = courseSnapshot.val();
+    const userId = decoded.id;
+    const admin = getSupabaseAdminClient();
+    const { data: course, error: courseError } = await admin.from('courses').select('id,title,price,is_published').eq('id',parsed.courseId).eq('is_published',true).maybeSingle();
+    if (courseError) throw courseError;
+    if (!course) return { success: false, message: 'This course is no longer available.' };
     const amount = Number(course.price);
     if (!Number.isFinite(amount) || amount <= 0 || !Number.isInteger(amount)) {
       return { success: false, message: 'This course does not have a valid payment amount. Please contact support.' };
@@ -103,16 +103,18 @@ export async function processMpesaPayment(input: MpesaPaymentInput): Promise<Mpe
       return { success: false, message: response.data?.ResponseDescription || 'M-Pesa could not start the payment. Please try again.' };
     }
 
-    await adminDb.ref(`mpesaTransactions/${checkoutRequestId}`).set({
-      uid: userId,
-      courseId: parsed.courseId,
-      amount,
-      phoneNumber: phone,
-      checkoutRequestId,
-      status: 'pending',
-      createdAt: Date.now(),
-      environment: process.env.MPESA_ENVIRONMENT === 'production' ? 'production' : 'sandbox',
+    const reference = 'mpesa_' + checkoutRequestId;
+    const { error: transactionError } = await admin.from('payment_transactions').insert({
+      id: reference, user_id: userId, provider: 'mpesa', reference,
+      item_type: 'course', item_id: parsed.courseId, amount_kes: amount,
+      currency: 'KES', status: 'pending',
+      provider_payload: {
+        checkoutRequestId, phoneNumber: phone, environment: process.env.MPESA_ENVIRONMENT === 'production' ? 'production' : 'sandbox',
+        itemName: String(course.title || parsed.courseId).slice(0, 120),
+      },
+      updated_at: new Date().toISOString(),
     });
+    if (transactionError) throw transactionError;
 
     return {
       success: true,
@@ -123,7 +125,7 @@ export async function processMpesaPayment(input: MpesaPaymentInput): Promise<Mpe
     console.error('M-Pesa initiation failed:', error instanceof Error ? error.message : 'Unknown error');
     return {
       success: false,
-      message: error instanceof Error && error.name === 'FirebaseAuthError'
+      message: error instanceof Error && /session/i.test(error.message)
         ? 'Your session has expired. Sign in again and retry.'
         : 'M-Pesa payment could not be initiated. Please try again.',
     };
@@ -133,9 +135,11 @@ export async function processMpesaPayment(input: MpesaPaymentInput): Promise<Mpe
 export async function getMpesaPaymentStatus(idToken: string, checkoutRequestId: string): Promise<'pending' | 'processing' | 'completed' | 'failed' | 'unknown'> {
   const decoded = await verifySupabaseAccessToken(idToken);
   if (!/^[A-Za-z0-9_-]{8,160}$/.test(checkoutRequestId)) throw new Error('Invalid checkout request.');
-  const snapshot = await adminDb.ref(`mpesaTransactions/${checkoutRequestId}`).get();
-  if (!snapshot.exists()) return 'unknown';
-  const transaction = snapshot.val();
-  if (transaction.uid !== decoded.legacyUid) throw new Error('Not authorized to view this payment.');
-  return transaction.status;
+  const admin = getSupabaseAdminClient();
+  const { data: transaction, error } = await admin.from('payment_transactions').select('user_id,status,provider_payload')
+    .eq('provider','mpesa').filter('provider_payload->>checkoutRequestId','eq',checkoutRequestId).maybeSingle();
+  if (error) throw error;
+  if (!transaction) return 'unknown';
+  if (transaction.user_id !== decoded.id) throw new Error('Not authorized to view this payment.');
+  return transaction.status === 'success' ? 'completed' : transaction.status === 'failed' ? 'failed' : 'pending';
 }
