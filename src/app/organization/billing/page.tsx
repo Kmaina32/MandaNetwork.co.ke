@@ -5,14 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Download, Loader2, CheckCircle, Mail } from 'lucide-react';
+import { Download, Loader2, CheckCircle, Mail, CreditCard, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { formatDistanceToNow } from 'date-fns';
 import { useState, useEffect } from 'react';
 import { PaymentModal } from '@/components/PaymentModal';
 import { useToast } from '@/hooks/use-toast';
 import type { PricingPlan } from '@/lib/types';
-import { getAllPlans, updateOrganization } from '@/lib/firebase-service';
+import { getAllPlans } from '@/lib/firebase-service';
 import PaymentIcons from '@/components/PaymentIcons';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
 
@@ -39,21 +39,18 @@ export default function OrganizationBillingPage() {
         fetchPlans();
     }, [toast]);
     
-    const handlePaymentSuccess = async () => {
-        if (!organization || !paymentModalState.plan || !user) return;
+    const openSubscriptionManagement = async () => {
+        if (!user) return;
         try {
-            await updateOrganization(organization.id, {
-                subscriptionTier: paymentModalState.plan.name.toLowerCase() as 'trial' | 'basic' | 'pro',
-                subscriptionExpiresAt: null, // Assuming permanent upgrade for now
-            });
-            await fetchUserData(user); // Re-fetch org data to update UI
-            toast({ title: 'Upgrade Successful!', description: `Your organization is now on the ${paymentModalState.plan.name} plan.`});
+            const token = await user.getIdToken();
+            const response = await fetch('/api/paystack/subscription/manage', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || typeof result.url !== 'string') throw new Error(result.error || 'Could not open subscription management.');
+            window.location.assign(result.url);
         } catch (error) {
-            toast({ title: 'Error', description: 'Failed to update your subscription status.', variant: 'destructive'});
-        } finally {
-            setPaymentModalState({ isOpen: false, plan: null });
+            toast({ title: 'Unable to manage subscription', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
         }
-    }
+    };
 
     const handleUpgradeClick = (plan: PricingPlan) => {
         setPaymentModalState({ isOpen: true, plan: plan });
@@ -68,7 +65,7 @@ export default function OrganizationBillingPage() {
             <Card>
                  <CardHeader>
                     <CardTitle>Plans & Pricing</CardTitle>
-                    <CardDescription>Choose the plan that's right for your team.</CardDescription>
+                    <CardDescription>Choose a monthly organization subscription. Recurring renewals are charged to a saved payment card through Paystack.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -77,7 +74,7 @@ export default function OrganizationBillingPage() {
                                 <CardHeader>
                                     <CardTitle>{tier.name}</CardTitle>
                                     <p className="text-3xl font-bold">Ksh {tier.price.toLocaleString()}</p>
-                                    <p className="text-sm text-muted-foreground">{tier.priceDetail}</p>
+                                    <p className="text-sm text-muted-foreground">Ksh {tier.price.toLocaleString()} billed monthly · card subscription</p>
                                 </CardHeader>
                                 <CardContent className="flex-grow">
                                     <ul className="space-y-2 text-sm">
@@ -110,6 +107,18 @@ export default function OrganizationBillingPage() {
                 </CardContent>
             </Card>
 
+            {organization?.paystackSubscriptionCode && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Manage recurring billing</CardTitle>
+                        <CardDescription>Subscription status: {organization.subscriptionStatus || 'active'}. Renewal date: {organization.subscriptionNextPaymentDate ? new Date(organization.subscriptionNextPaymentDate).toLocaleDateString() : 'Provided by Paystack'}.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button onClick={openSubscriptionManagement} variant="outline"><CreditCard className="mr-2 h-4 w-4" />Manage card or cancel subscription<ExternalLink className="ml-2 h-4 w-4" /></Button>
+                    </CardContent>
+                </Card>
+            )}
+
             <Card>
                 <CardHeader>
                     <CardTitle>Accepted Payment Methods</CardTitle>
@@ -122,7 +131,7 @@ export default function OrganizationBillingPage() {
              <Card>
                 <CardHeader>
                     <CardTitle>Billing History</CardTitle>
-                    <CardDescription>View and download your past invoices.</CardDescription>
+                    <CardDescription>View your Paystack subscription and payment history.</CardDescription>
                 </CardHeader>
                 <CardContent>
                      <Table>
@@ -153,7 +162,7 @@ export default function OrganizationBillingPage() {
                     itemName={`Upgrade to ${paymentModalState.plan.name} Plan`}
                     price={paymentModalState.plan.price}
                     purchaseType="organization_plan"
-                    onPaymentSuccess={handlePaymentSuccess}
+                    onPaymentSuccess={() => {}}
                 />
             )}
         </div>
