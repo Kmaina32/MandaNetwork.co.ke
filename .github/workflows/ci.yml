@@ -10,12 +10,6 @@ permissions:
   contents: read
 
 jobs:
-  runner-smoke:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Verify hosted runner and Node runtime
-        run: node --version && npm --version
-
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 30
