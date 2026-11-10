@@ -3,9 +3,6 @@ import { createHash } from 'node:crypto';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export const runtime='nodejs';
-// API-key validation and published-course reads run only on the trusted server.
-// The service-role credential never leaves this route.
-const supabase=getSupabaseAdminClient();
 
 export async function GET(req:NextRequest) {
   const authHeader=req.headers.get('Authorization');
@@ -13,6 +10,8 @@ export async function GET(req:NextRequest) {
   const apiKey=authHeader.slice(7).trim();
   if(!/^sk_live_[a-f0-9]{48}$/i.test(apiKey))return NextResponse.json({message:'Unauthorized: Invalid API Key'},{status:401});
   try {
+    // Initialize only during a request; builds must not require server secrets.
+    const supabase=getSupabaseAdminClient();
     const keyHash=createHash('sha256').update(apiKey).digest('hex');
     const {data:valid,error:verifyError}=await supabase.rpc('validate_api_key_and_consume',{p_key_hash:keyHash});
     if(verifyError)throw verifyError;
