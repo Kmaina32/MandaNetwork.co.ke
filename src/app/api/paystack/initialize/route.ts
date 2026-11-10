@@ -6,6 +6,11 @@ import { initializePaystackTransaction, newPaystackReference } from '@/lib/payst
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
+  if (!process.env.PAYSTACK_SECRET_KEY || !process.env.PAYSTACK_CALLBACK_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json({
+      error: 'Paystack checkout is disabled until PAYSTACK_SECRET_KEY, PAYSTACK_CALLBACK_URL and SUPABASE_SERVICE_ROLE_KEY are configured for this deployment.',
+    }, { status: 503 });
+  }
   try {
     const authorization = request.headers.get('authorization') || '';
     if (!authorization.startsWith('Bearer ')) {
