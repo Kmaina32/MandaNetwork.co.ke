@@ -107,7 +107,11 @@ export async function POST(request: NextRequest) {
       } else {
         const createdPlan = await createPaystackPlan({ name: `Varban ${itemName} monthly`, amount, currency: 'KES', interval: 'monthly' });
         recurringPlanCode = createdPlan.planCode;
-        await adminDb.ref(`paystackPlanCodes/${pricingPlanId}`).set({ planCode: recurringPlanCode, amount, currency: 'KES', interval: 'monthly', updatedAt: Date.now() });
+        const planRecord = { planId: pricingPlanId, planCode: recurringPlanCode, amount, currency: 'KES', interval: 'monthly', updatedAt: Date.now() };
+        await Promise.all([
+          adminDb.ref(`paystackPlanCodes/${pricingPlanId}`).set(planRecord),
+          adminDb.ref(`paystackPlanCodeLookup/${recurringPlanCode}`).set(planRecord),
+        ]);
       }
       } catch (error) {
         await lockRef.transaction((current) => current?.reference === reference ? null : current);
