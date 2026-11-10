@@ -623,42 +623,38 @@ export async function deleteBundle(id: string): Promise<void> {
 }
 
 export async function createApiKey(userId: string, keyData: Omit<ApiKey, 'id'>): Promise<string> {
-    const keysRef = ref(db, `apiKeys/${userId}`);
-    const newKeyRef = push(keysRef);
-    await set(newKeyRef, keyData);
-    return newKeyRef.key!;
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser();
+  if(!auth.user || auth.user.id!==userId) throw new Error('You can only create API keys for your own account.');
+  const item=keyData as any; const rawKey=String(item.key||'');
+  if(rawKey.length<24) throw new Error('A securely generated API key is required.');
+  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(rawKey));
+  const hash=Array.from(new Uint8Array(digest)).map(byte=>byte.toString(16).padStart(2,'0')).join('');
+  const id=crypto.randomUUID();
+  const {error}=await supabase.from('user_api_keys').insert({id,user_id:userId,name:String(item.name||'API key'),key_hash:hash,key_prefix:rawKey.slice(0,8)});
+  if(error) throw error; return id;
 }
 
 export async function getUserApiKeys(userId: string): Promise<ApiKey[]> {
-    const keysRef = ref(db, `apiKeys/${userId}`);
-    const snapshot = await get(keysRef);
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        return Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    }
-    return [];
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser();
+  if(auth.user?.id!==userId) throw new Error('You can only view your own API keys.');
+  const {data,error}=await supabase.from('user_api_keys').select('id,name,key_prefix,created_at,revoked_at').eq('user_id',userId).order('created_at',{ascending:false});
+  if(error) throw error;
+  return (data||[]).map((row:any)=>({id:row.id,name:row.name,keyPrefix:row.key_prefix,createdAt:row.created_at,revokedAt:row.revoked_at})) as ApiKey[];
 }
 
 export async function deleteApiKey(userId: string, keyId: string): Promise<void> {
-    const keyRef = ref(db, `apiKeys/${userId}/${keyId}`);
-    await remove(keyRef);
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser();
+  if(auth.user?.id!==userId) throw new Error('You can only revoke your own API keys.');
+  const {error}=await supabase.from('user_api_keys').update({revoked_at:new Date().toISOString()}).eq('id',keyId).eq('user_id',userId);
+  if(error) throw error;
 }
 
 export async function logApiCall(userId: string, endpoint: string): Promise<void> {
-    const userRef = ref(db, `users/${userId}`);
-    await update(userRef, {
-        apiCallCount: increment(1)
-    });
-
-    const usageLogRef = ref(db, `apiUsage/${userId}`);
-    const newLogRef = push(usageLogRef);
-    await set(newLogRef, {
-        endpoint,
-        timestamp: new Date().toISOString(),
-    });
+  const supabase=getSupabaseBrowserClient(); const {data:auth}=await supabase.auth.getUser();
+  if(auth.user?.id!==userId) return;
+  await supabase.from('activity_logs').insert({user_id:userId,event_type:'api_call',content:{endpoint,timestamp:new Date().toISOString()}});
 }
 
-// Student social features
 export async function createCourseFeedback(courseId: string, feedbackData: Omit<CourseFeedback, 'id' | 'courseId' | 'createdAt'>): Promise<string> {
     const feedbackRef = ref(db, `courseFeedback/${courseId}`);
     const newFeedbackRef = push(feedbackRef);
@@ -1316,43 +1312,31 @@ export async function getReferralsByAffiliate(affiliateId: string): Promise<Refe
 }
 
 export async function createOrUpdateConversation(conversation: Partial<any>): Promise<void> {
-  const conversationRef = ref(db, `conversations/${conversation.studentId}`);
-  const snapshot = await get(conversationRef);
-  if (snapshot.exists()) {
-    const existingMessages = snapshot.val().messages || [];
-    const newMessages = [...existingMessages, {
-      senderId: 'employer', // Assuming employer starts or replies
-      text: conversation.initialMessage,
-      timestamp: new Date().toISOString(),
-    }];
-    await update(conversationRef, { messages: newMessages, lastMessageAt: new Date().toISOString() });
-  } else {
-    await set(conversationRef, {
-      studentId: conversation.studentId,
-      studentName: conversation.studentName,
-      employerName: conversation.employerName,
-      employerPhotoUrl: conversation.employerPhotoUrl,
-      organizationName: conversation.organizationName,
-      lastMessageAt: new Date().toISOString(),
-      messages: [{
-        senderId: 'employer',
-        text: conversation.initialMessage,
-        timestamp: new Date().toISOString(),
-      }]
-    });
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError || !auth.user) throw new Error('Sign in to start this conversation.');
+  const studentId=String(conversation.studentId||'');
+  if(!studentId) throw new Error('A student account is required.');
+  const participants=[...new Set([studentId,auth.user.id])];
+  const {data:existing,error:readError}=await supabase.from('conversations').select('id,content,participant_ids').eq('id',studentId).maybeSingle();
+  if(readError) throw readError;
+  const now=new Date().toISOString();
+  const content={...(existing?.content||{}),studentId,studentName:conversation.studentName,employerName:conversation.employerName,employerPhotoUrl:conversation.employerPhotoUrl,organizationName:conversation.organizationName,lastMessageAt:now};
+  const {error}=await supabase.from('conversations').upsert({id:studentId,user_id:studentId,participant_ids:participants,content,updated_at:now},{onConflict:'id'});
+  if(error) throw error;
+  if(conversation.initialMessage) {
+    const {error:messageError}=await supabase.from('conversation_messages').insert({conversation_id:studentId,user_id:auth.user.id,content:{senderId:auth.user.id,text:String(conversation.initialMessage),timestamp:now}});
+    if(messageError) throw messageError;
   }
 }
 
 export async function saveMessage(conversationId: string, message: { senderId: string; text: string; timestamp: string }): Promise<void> {
-  const messagesRef = ref(db, `conversations/${conversationId}/messages`);
-  const newMessageRef = push(messagesRef);
-  await set(newMessageRef, message);
-  await update(ref(db, `conversations/${conversationId}`), { lastMessageAt: new Date().toISOString() });
+  const supabase=getSupabaseBrowserClient(); const {data:auth,error:authError}=await supabase.auth.getUser();
+  if(authError || !auth.user) throw new Error('Sign in to send a message.');
+  const {error}=await supabase.from('conversation_messages').insert({conversation_id:conversationId,user_id:auth.user.id,content:{...message,senderId:auth.user.id}});
+  if(error) throw error;
+  await supabase.from('conversations').update({updated_at:new Date().toISOString(),content:{lastMessageAt:new Date().toISOString()}}).eq('id',conversationId);
 }
 
-/**
- * Creates an assignment for a course. Database rules restrict writes to admins.
- */
 export async function createAssignment(courseId: string, data: Omit<Assignment, 'id' | 'courseId' | 'createdAt' | 'updatedAt'>): Promise<string> {
   const supabase = getSupabaseBrowserClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
