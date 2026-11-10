@@ -117,15 +117,16 @@ export async function saveUser(uid: string, dataToSave: Partial<Omit<RegisteredU
 }
 export async function getUserById(uid: string): Promise<RegisteredUser | null> {
   const supabase = getSupabaseBrowserClient();
-  const { data, error } = await supabase.from('profiles').select('*').eq('id',uid).maybeSingle();
-  if (error) {
-    if (error.code === 'PGRST116') return null;
-    throw error;
-  }
+  const { data, error } = await supabase.from('profiles').select('id,email,display_name,avatar_path,metadata,created_at').eq('id',uid).maybeSingle();
+  if (error) throw error;
   if (!data) return null;
-  const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id',uid);
+  const { data: roles, error: roleError } = await supabase.from('user_roles').select('role').eq('user_id',uid);
+  if (roleError) throw roleError;
   const roleNames = (roles || []).map((row: any) => row.role);
-  return { ...(data.metadata || {}), uid: data.id, email: data.email, displayName: data.display_name || data.email, photoURL: data.avatar_path || '', isAdmin: roleNames.includes('admin') || roleNames.includes('super_admin'), isSuperAdmin: roleNames.includes('super_admin') } as RegisteredUser;
+  return { ...(data.metadata || {}), uid: data.id, email: data.email, displayName: data.display_name || data.email,
+    photoURL: data.avatar_path || '', createdAt: data.created_at,
+    isAdmin: roleNames.some((role: string) => ['admin','super_admin'].includes(role)),
+    isSuperAdmin: roleNames.includes('super_admin') } as RegisteredUser;
 }
 
 export async function getPublicProfileById(uid: string): Promise<RegisteredUser | null> {
@@ -139,14 +140,14 @@ export async function getUserByEmail(email: string): Promise<RegisteredUser | nu
   const supabase = getSupabaseBrowserClient();
   const { data, error } = await supabase.from('profiles').select('id,email,display_name,metadata').ilike('email',email.trim()).maybeSingle();
   if (error) throw error;
-  return data ? ({ ...(data.metadata || {}), uid: data.id, email: data.email, displayName: data.display_name } as RegisteredUser) : null;
+  return data ? ({ ...(data.metadata || {}), uid: data.id, email: data.email, displayName: data.display_name || null } as RegisteredUser) : null;
 }
 
 export async function getUserByDisplayName(displayName: string): Promise<RegisteredUser | null> {
   const supabase = getSupabaseBrowserClient();
-  const { data, error } = await supabase.from('profiles').select('id,email,display_name,avatar_path,metadata').ilike('display_name',displayName.trim()).limit(1).maybeSingle();
+  const { data, error } = await supabase.from('profiles').select('id,email,display_name,metadata').ilike('display_name',displayName.trim()).limit(1).maybeSingle();
   if (error) throw error;
-  return data ? ({ ...(data.metadata || {}), uid: data.id, email: data.email, displayName: data.display_name, photoURL: data.avatar_path || '' } as RegisteredUser) : null;
+  return data ? ({ ...(data.metadata || {}), uid: data.id, email: data.email, displayName: data.display_name } as RegisteredUser) : null;
 }
 
 export async function enrollUserInCourse(userId: string, courseId: string, paymentMethod: UserCourse['paymentMethod'] = 'free'): Promise<void> {
@@ -214,13 +215,15 @@ export async function getAllUsers(): Promise<RegisteredUser[]> {
 }
 export async function getPublicProfiles(): Promise<RegisteredUser[]> {
   const supabase = getSupabaseBrowserClient();
-  const { data, error } = await supabase.from('profiles').select('id,display_name,avatar_path,metadata').eq('metadata->>isPublic','true').order('display_name');
+  const { data, error } = await supabase.from('academy_records').select('record_id,data').eq('collection','publicProfiles').limit(200);
   if (error) throw error;
-  return (data || []).map((row: any) => ({ ...(row.metadata || {}), uid: row.id, displayName: row.display_name, photoURL: row.avatar_path || '' })) as RegisteredUser[];
+  return (data || []).map((row: any) => ({ uid: row.record_id, ...(row.data || {}) })) as RegisteredUser[];
 }
 
 export async function deleteUser(userId: string): Promise<void> {
-  throw new Error('Account deletion must use the protected Supabase Auth administration endpoint; direct client-side profile deletion is disabled.');
+  const response = await fetch('/api/admin/users/' + encodeURIComponent(userId), { method: 'DELETE' });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || 'Unable to delete this account.');
 }
 
 export async function getHeroData(): Promise<HeroData> {
