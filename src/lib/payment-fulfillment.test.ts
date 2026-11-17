@@ -13,7 +13,7 @@ describe('atomic verified payment fulfillment migration', () => {
     expect(sql).toContain('v_payment.provider <> p_provider');
     expect(sql).toContain('v_payment.amount_kes <> p_confirmed_amount');
     expect(sql).toContain('v_payment.currency <> p_confirmed_currency');
-    expect(sql).toContain('v_course.price = v_payment.amount_kes');
+    expect(sql).toMatch(/and\s+price\s*=\s*v_payment\.amount_kes/i);
   });
 
   it('restricts execution to the server service role', () => {

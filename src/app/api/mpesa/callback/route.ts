@@ -55,14 +55,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ResultCode: 0, ResultDesc: 'Transaction is not awaiting confirmation' });
     }
 
-    if (Number(callback.ResultCode) !== 0) {
+    // Callback result codes are notifications, not authoritative settlement evidence.
+    // Query Daraja for both success and failure before changing the transaction.
+    const providerStatus = await queryProviderStatus(checkoutRequestId);
+    if (String(providerStatus?.ResponseCode) !== '0'
+      || providerStatus?.CheckoutRequestID !== checkoutRequestId
+      || !['0', '1032', '1037', '1'].includes(String(providerStatus?.ResultCode))) {
+      throw new Error('Safaricom has not independently confirmed the checkout outcome.');
+    }
+
+    if (String(providerStatus.ResultCode) !== '0') {
+      if (Number(callback.ResultCode) === 0) {
+        throw new Error('Callback reports success but Daraja reports an unsuccessful payment.');
+      }
       const { error: failureError } = await admin.from('payment_transactions').update({
         status: 'failed',
-        provider_payload: { ...(transaction.provider_payload || {}), providerDescription: String(callback.ResultDesc || 'Payment failed').slice(0, 300) },
+        provider_payload: {
+          ...(transaction.provider_payload || {}),
+          providerDescription: String(providerStatus.ResultDesc || callback.ResultDesc || 'Payment failed').slice(0, 300),
+          providerResultCode: String(providerStatus.ResultCode),
+          providerVerifiedAt: new Date().toISOString(),
+        },
         updated_at: new Date().toISOString(),
       }).eq('id', transaction.id).in('status', ['pending', 'initialized']);
       if (failureError) throw failureError;
-      return NextResponse.json({ ResultCode: 0, ResultDesc: 'Failure recorded' });
+      return NextResponse.json({ ResultCode: 0, ResultDesc: 'Provider-verified failure recorded' });
+    }
+
+    if (Number(callback.ResultCode) !== 0) {
+      throw new Error('Callback reports failure but Daraja independently reports success; manual reconciliation is required.');
     }
 
     const items = callback.CallbackMetadata?.Item;
@@ -75,14 +96,6 @@ export async function POST(request: NextRequest) {
       || phone !== String(transaction.provider_payload?.phoneNumber)
       || typeof receipt !== 'string' || !/^[A-Z0-9]{8,16}$/.test(receipt)) {
       throw new Error('Callback metadata does not match the stored payment request.');
-    }
-
-    // The callback itself is not trusted as proof of payment. Query Daraja independently.
-    const providerStatus = await queryProviderStatus(checkoutRequestId);
-    if (String(providerStatus?.ResponseCode) !== '0'
-      || String(providerStatus?.ResultCode) !== '0'
-      || providerStatus?.CheckoutRequestID !== checkoutRequestId) {
-      throw new Error('Safaricom has not confirmed successful settlement for this checkout.');
     }
 
     const { data: fulfilled, error: fulfillmentError } = await admin.rpc('fulfill_verified_course_payment', {
