@@ -21,7 +21,11 @@ describe('M-Pesa callback settlement safeguards', () => {
     expect(route).not.toContain("admin.from('enrollments').upsert");
   });
 
-  it('limits failure transitions to transactions still awaiting confirmation', () => {
+  it('verifies failed callbacks with Daraja before transitioning transaction state', () => {
+    expect(route).toContain('const providerStatus = await queryProviderStatus(checkoutRequestId)');
+    expect(route).toContain("String(providerStatus?.ResponseCode) !== '0'");
+    expect(route).toContain("String(providerStatus.ResultCode) === '0'");
+    expect(route).toContain('Provider-confirmed failure recorded');
     expect(route).toContain(".in('status', ['pending', 'initialized'])");
   });
 });
