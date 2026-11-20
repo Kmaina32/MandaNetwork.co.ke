@@ -55,14 +55,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ResultCode: 0, ResultDesc: 'Transaction is not awaiting confirmation' });
     }
 
+    // Callback failure is not trusted either: independently query Daraja before changing state.
     if (Number(callback.ResultCode) !== 0) {
+      const providerStatus = await queryProviderStatus(checkoutRequestId);
+      if (providerStatus?.CheckoutRequestID !== checkoutRequestId
+        || String(providerStatus?.ResponseCode) !== '0'
+        || providerStatus?.ResultCode === undefined
+        || providerStatus?.ResultCode === null
+        || String(providerStatus.ResultCode) === '0') {
+        return NextResponse.json({ ResultCode: 0, ResultDesc: 'Failure verification pending' });
+      }
       const { error: failureError } = await admin.from('payment_transactions').update({
         status: 'failed',
-        provider_payload: { ...(transaction.provider_payload || {}), providerDescription: String(callback.ResultDesc || 'Payment failed').slice(0, 300) },
+        provider_payload: { ...(transaction.provider_payload || {}), providerResultCode: String(providerStatus.ResultCode), providerDescription: String(providerStatus.ResultDesc || callback.ResultDesc || 'Payment failed').slice(0, 300), verifiedFailureAt: new Date().toISOString() },
         updated_at: new Date().toISOString(),
       }).eq('id', transaction.id).in('status', ['pending', 'initialized']);
       if (failureError) throw failureError;
-      return NextResponse.json({ ResultCode: 0, ResultDesc: 'Failure recorded' });
+      return NextResponse.json({ ResultCode: 0, ResultDesc: 'Provider-confirmed failure recorded' });
     }
 
     const items = callback.CallbackMetadata?.Item;
