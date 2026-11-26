@@ -1,6 +1,6 @@
-# Manda Network - Project Roadmap & TODO
+# Varban Academy - Project Roadmap & TODO
 
-This document outlines the strategic priorities and actionable tasks for the Manda Network platform. The list is organized by priority and category.
+This document outlines the strategic priorities and actionable tasks for the Varban Academy platform. The list is organized by priority and category.
 
 ---
 
@@ -87,7 +87,7 @@ This document outlines the strategic priorities and actionable tasks for the Man
 58. [ ] **Build a Community Forum**: A full-featured forum separate from the course-specific discussions.
 59. [ ] **Add Offline Support (PWA)**: Allow users to download course content for offline viewing.
 60. [ ] **Implement Multi-Language Support**: Add Swahili and other local languages.
-61. [ ] **Create a Public API for Partners**: Allow third-party applications to interact with Manda Network data.
+61. [ ] **Create a Public API for Partners**: Allow third-party applications to interact with Varban Academy data.
 62. [ ] **Add Team-Based Projects**: Allow students to collaborate on projects within a course.
 63. [ ] **Implement a "Live Help" Feature**: Allow students to request real-time help from instructors or TAs.
 64. [ ] **Add Peer Review for Assignments**: Allow students to review and grade each other's work based on a rubric.
