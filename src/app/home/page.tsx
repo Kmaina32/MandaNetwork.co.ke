@@ -70,7 +70,7 @@ export default function Home() {
     <div className="min-h-screen overflow-hidden bg-white text-neutral-950">
       <header className="sticky top-0 z-40 border-b border-neutral-200/80 bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 sm:px-8">
-          <Link href="/" className="flex items-center gap-3" aria-label="Varban Academy home">
+          <Link href="/home" className="flex items-center gap-3" aria-label="Varban Academy home">
             
             <span className="text-base font-bold tracking-tight sm:text-lg">Varban Academy</span>
           </Link>
@@ -247,7 +247,7 @@ export default function Home() {
       <footer className="border-t border-neutral-200 bg-white text-neutral-950">
         <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:py-16">
           <div className="grid gap-10 border-b border-neutral-200 pb-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
-            <div className="max-w-sm"><Link href="/" className="text-xl font-bold tracking-tight">Varban Academy</Link><p className="mt-4 text-sm leading-6 text-neutral-600">Practical learning for people building knowledge, skills and confidence for a changing world.</p></div>
+            <div className="max-w-sm"><Link href="/home" className="text-xl font-bold tracking-tight">Varban Academy</Link><p className="mt-4 text-sm leading-6 text-neutral-600">Practical learning for people building knowledge, skills and confidence for a changing world.</p></div>
             <div><h3 className="text-sm font-semibold">Learn</h3><ul className="mt-4 space-y-3 text-sm text-neutral-600"><li><Link href="/programs">Courses and programs</Link></li><li><Link href="/bootcamps">Bootcamps</Link></li><li><Link href="/blog">Insights and guides</Link></li><li><Link href="/live">Live learning</Link></li></ul></div>
             <div><h3 className="text-sm font-semibold">Varban Academy</h3><ul className="mt-4 space-y-3 text-sm text-neutral-600"><li><Link href="/about">About us</Link></li><li><Link href="/for-business">For organisations</Link></li><li><Link href="/contact">Contact</Link></li><li><Link href="/help">Help centre</Link></li></ul></div>
             <div><h3 className="text-sm font-semibold">Legal and privacy</h3><ul className="mt-4 space-y-3 text-sm text-neutral-600"><li><Link href="/legal/terms">Terms and agreements</Link></li><li><Link href="/legal/risk-disclosure">Risk disclosure</Link></li><li><Link href="/legal/privacy">Privacy notice</Link></li><li><Link href="/legal/data-use">How we use your data</Link></li><li><Link href="/legal/data-safety">Data safety</Link></li><li><Link href="/account-deletion">Account deletion</Link></li><li><Link href="/legal/legal">Legal information</Link></li></ul></div>
