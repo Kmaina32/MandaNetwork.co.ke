@@ -1,7 +1,7 @@
 
 # SEO and Content Marketing Strategy
 
-This document outlines the Search Engine Optimization (SEO) and content marketing strategy for Manda Network to increase organic traffic, generate leads, and establish brand authority.
+This document outlines the Search Engine Optimization (SEO) and content marketing strategy for Varban Academy to increase organic traffic, generate leads, and establish brand authority.
 
 ## 1. Target Audience and Keywords
 
@@ -19,7 +19,7 @@ Our primary audience consists of individuals in Kenya and East Africa searching 
 - "Affordable Python courses for beginners"
 - "Cybersecurity certification in East Africa"
 - "What is generative AI?"
-- "Manda Network reviews"
+- "Varban Academy reviews"
 
 ## 2. Content Strategy
 
