@@ -162,7 +162,7 @@ export default function OrganizationLoginPage() {
         <div className="hidden bg-muted lg:block p-8">
             <div
                 className="h-full w-full rounded-lg bg-cover bg-center"
-                style={{ backgroundImage: `url(${imageUrl || 'https://picsum.photos/1200/900'})` }}
+                style={{ backgroundImage: `url(${imageUrl || 'https://images.unsplash.com/photo-1758518730151-cf64fddb4f0a?auto=format&fit=crop&w=1800&q=85'})` }}
                 data-ai-hint="business team meeting"
             />
         </div>
