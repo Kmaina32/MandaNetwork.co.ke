@@ -127,7 +127,7 @@ export default function ContactPage() {
                     <div className="bg-primary/10 p-3 rounded-full"><Mail className="h-6 w-6 text-primary" /></div>
                     <div>
                       <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Email Us</h3>
-                      <a href="mailto:info@mandanetwork.co.ke" className="text-primary hover:underline">info@mandanetwork.co.ke</a>
+                      <p className="text-gray-600 dark:text-gray-400">Send us a message using the contact form on this page.</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-4">
