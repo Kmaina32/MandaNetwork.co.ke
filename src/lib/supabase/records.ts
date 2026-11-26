@@ -191,14 +191,15 @@ export async function set(reference: PathRef, value: any): Promise<void> {
   if (!collection || !recordId) throw new Error('Writes must target a record.');
   const supabase = getSupabaseBrowserClient();
   if (childPath.length) {
-    const { data: current, error: readError } = await supabase.from('academy_records').select('data,owner_id').eq('collection',collection).eq('record_id',recordId).maybeSingle();
-    if (readError) throw readError;
-    const next = nestedSet(current?.data || {}, childPath, value);
-    const { data: auth } = await supabase.auth.getUser();
-    const { error } = await supabase.from('academy_records').upsert({
-      collection, record_id: recordId, owner_id: current?.owner_id || ownerFor(next) || auth.user?.id || null,
-      data: next, updated_at: new Date().toISOString(),
-    }, { onConflict: 'collection,record_id' });
+    const { data: auth, error: authError } = await supabase.auth.getUser();
+    if (authError || !auth.user) throw new Error('Sign-in is required to write records.');
+    const { error } = await supabase.rpc('academy_record_set_path', {
+      p_collection: collection,
+      p_record_id: recordId,
+      p_path: childPath,
+      p_value: value,
+      p_owner_id: ownerFor(value) || auth.user.id,
+    });
     if (error) throw error;
     return;
   }
@@ -213,35 +214,33 @@ export async function update(reference: PathRef, patch: any): Promise<void> {
   const [collection, recordId, ...childPath] = reference.path;
   if (!collection || !recordId) throw new Error('Updates must target a record.');
   const supabase = getSupabaseBrowserClient();
-  const { data: current, error: readError } = await supabase.from('academy_records').select('data,owner_id').eq('collection',collection).eq('record_id',recordId).maybeSingle();
-  if (readError) throw readError;
-  const next = childPath.length
-    ? nestedSet(current?.data || {}, childPath, nestedMerge(nestedGet(current?.data || {},childPath),patch))
-    : nestedMerge(current?.data || {},patch);
-  const { data: auth } = await supabase.auth.getUser();
-  const { error } = await supabase.from('academy_records').upsert({
-    collection, record_id: recordId, owner_id: current?.owner_id || ownerFor(next) || auth.user?.id || null,
-    data: next, updated_at: new Date().toISOString(),
-  }, { onConflict: 'collection,record_id' });
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  if (authError || !auth.user) throw new Error('Sign-in is required to update records.');
+  const { error } = await supabase.rpc('academy_record_merge', {
+    p_collection: collection,
+    p_record_id: recordId,
+    p_path: childPath,
+    p_patch: patch,
+    p_owner_id: ownerFor(patch) || auth.user.id,
+  });
   if (error) throw error;
 }
 export async function remove(reference: PathRef): Promise<void> {
   const [collection, recordId, ...childPath] = reference.path;
   if (!collection) throw new Error('A collection path is required.');
-  const supabase = getSupabaseBrowserClient();
   if (!recordId) throw new Error('Collection-wide deletion is not supported.');
+  const supabase = getSupabaseBrowserClient();
   if (!childPath.length) {
-    const { error } = await supabase.from('academy_records').delete().eq('collection',collection).eq('record_id',recordId);
+    const { error } = await supabase.from('academy_records').delete().eq('collection', collection).eq('record_id', recordId);
     if (error) throw error;
     return;
   }
-  const { data: current, error: readError } = await supabase.from('academy_records').select('data').eq('collection',collection).eq('record_id',recordId).maybeSingle();
-  if (readError) throw readError;
-  const parent = childPath.slice(0,-1);
-  const key = childPath[childPath.length-1];
-  const target = nestedGet(current?.data || {},parent);
-  if (target && typeof target === 'object') delete target[key];
-  const next = parent.length ? nestedSet(current?.data || {},parent,target) : target;
-  const { error } = await supabase.from('academy_records').update({ data: next, updated_at: new Date().toISOString() }).eq('collection',collection).eq('record_id',recordId);
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  if (authError || !auth.user) throw new Error('Sign-in is required to remove record fields.');
+  const { error } = await supabase.rpc('academy_record_remove_path', {
+    p_collection: collection,
+    p_record_id: recordId,
+    p_path: childPath,
+  });
   if (error) throw error;
 }
