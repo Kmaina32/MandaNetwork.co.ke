@@ -147,7 +147,7 @@ export default function PortfoliosPage() {
                                     </CardHeader>
                                     <CardContent className="flex-grow text-center">
                                         <p className="text-muted-foreground line-clamp-3">
-                                            {profile.portfolio?.aboutMe || 'A passionate learner from Manda Network.'}
+                                            {profile.portfolio?.aboutMe || 'A passionate learner from Varban Academy.'}
                                         </p>
                                     </CardContent>
                                     <CardFooter className="flex flex-col gap-2">
