@@ -53,7 +53,7 @@ export default function AdminBlockchainPage() {
                 toast({
                     variant: "destructive",
                     title: "Contract Not Found",
-                    description: "The MandaToken contract could not be found on the current network. Please ensure your wallet is connected to the correct network (e.g., Polygon Amoy testnet).",
+                    description: "The MDT token contract could not be found on the current network. Please ensure your wallet is connected to the correct network (e.g., Polygon Amoy testnet).",
                     duration: 10000,
                 });
                 setMdtBalance('N/A');
@@ -154,7 +154,7 @@ export default function AdminBlockchainPage() {
                   Blockchain Faucet Management
                 </CardTitle>
                 <CardDescription>
-                    Connect your owner wallet to manage the token faucet for the MandaToken (MDT) contract.
+                    Connect your owner wallet to manage the token faucet for the MDT token contract.
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-grow flex flex-col space-y-6">
@@ -163,7 +163,7 @@ export default function AdminBlockchainPage() {
                         <AlertCircle className="h-4 w-4" />
                         <AlertTitle>Action Required</AlertTitle>
                         <AlertDescription>
-                            The MandaToken contract is not deployed or configured. Please follow the blockchain integration guide to deploy the contract and update its address in `src/lib/blockchain/contracts.ts` to enable these features.
+                            The MDT token contract is not deployed or configured. Please follow the blockchain integration guide to deploy the contract and update its address in `src/lib/blockchain/contracts.ts` to enable these features.
                         </AlertDescription>
                     </Alert>
                 )}
