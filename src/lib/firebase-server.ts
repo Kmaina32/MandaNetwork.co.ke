@@ -37,7 +37,7 @@ export const getHeroData = cache(async (): Promise<HeroData> => {
   const imageKeys = ['imageUrl', 'loginImageUrl', 'signupImageUrl', 'programsImageUrl', 'bootcampsImageUrl', 'hackathonsImageUrl', 'portfoliosImageUrl', 'orgHeroImageUrl', 'orgLoginImageUrl', 'orgSignupImageUrl'] as const;
   for (const key of imageKeys) {
     const value = resolved[key];
-    if (typeof value !== 'string' || !value.trim() || /picsum\\.photos|placehold\\.co/i.test(value)) {
+    if (typeof value !== 'string' || !value.trim() || /picsum\.photos|placehold\.co/i.test(value)) {
       resolved[key] = defaultHero[key] || defaultHero.imageUrl;
     }
   }
