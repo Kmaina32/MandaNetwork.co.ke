@@ -28,7 +28,7 @@ returns jsonb
 language plpgsql
 immutable
 set search_path = public
-as $
+as $$
 declare
   target_object jsonb := case when jsonb_typeof(p_target) = 'object' then p_target else '{}'::jsonb end;
 begin
@@ -43,14 +43,14 @@ begin
     true
   );
 end;
-$;
+$$;
 
 create or replace function public.academy_jsonb_deep_merge(p_target jsonb, p_patch jsonb)
 returns jsonb
 language plpgsql
 immutable
 set search_path = public
-as $
+as $$
 declare
   result_value jsonb := case when jsonb_typeof(p_target) = 'object' then p_target else '{}'::jsonb end;
   entry record;
@@ -76,14 +76,14 @@ begin
   end loop;
   return result_value;
 end;
-$;
+$$;
 
 create or replace function public.academy_jsonb_remove_path(p_target jsonb, p_path text[])
 returns jsonb
 language plpgsql
 immutable
 set search_path = public
-as $
+as $$
 declare
   target_value jsonb := coalesce(p_target, '{}'::jsonb);
 begin
@@ -95,7 +95,7 @@ begin
     public.academy_jsonb_remove_path(target_value -> p_path[1], p_path[2:]), true
   );
 end;
-$;
+$$;
 
 create or replace function public.academy_record_set_path(
   p_collection text, p_record_id text, p_path text[], p_value jsonb, p_owner_id uuid
@@ -104,7 +104,7 @@ returns void
 language plpgsql
 security invoker
 set search_path = public
-as $
+as $$
 begin
   if auth.uid() is null then raise exception 'Sign-in is required.'; end if;
   if coalesce(cardinality(p_path), 0) = 0 then raise exception 'A nested path is required.'; end if;
@@ -115,7 +115,7 @@ begin
     set data = public.academy_jsonb_set_path(public.academy_records.data, p_path, p_value),
         updated_at = now();
 end;
-$;
+$$;
 
 create or replace function public.academy_record_merge(
   p_collection text, p_record_id text, p_path text[], p_patch jsonb, p_owner_id uuid
@@ -124,7 +124,7 @@ returns void
 language plpgsql
 security invoker
 set search_path = public
-as $
+as $$
 declare
   initial_data jsonb;
 begin
@@ -150,7 +150,7 @@ begin
     end,
     updated_at = now();
 end;
-$;
+$$;
 
 create or replace function public.academy_record_remove_path(
   p_collection text, p_record_id text, p_path text[]
@@ -159,7 +159,7 @@ returns void
 language plpgsql
 security invoker
 set search_path = public
-as $
+as $$
 begin
   if auth.uid() is null then raise exception 'Sign-in is required.'; end if;
   if coalesce(cardinality(p_path), 0) = 0 then raise exception 'A nested path is required.'; end if;
@@ -168,7 +168,7 @@ begin
          updated_at = now()
    where collection = p_collection and record_id = p_record_id;
 end;
-$;
+$$;
 
 revoke all on function public.academy_jsonb_set_path(jsonb,text[],jsonb) from public, anon;
 revoke all on function public.academy_jsonb_deep_merge(jsonb,jsonb) from public, anon;
