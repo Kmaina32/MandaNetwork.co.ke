@@ -32,5 +32,5 @@ export async function getMpesaPaymentStatus(idToken: string, checkoutRequestId: 
     .eq('provider','mpesa').filter('provider_payload->>checkoutRequestId','eq',checkoutRequestId).maybeSingle();
   if (error) throw error;
   if (!data) return 'unknown';
-  return data.status === 'completed' ? 'completed' : data.status === 'failed' ? 'failed' : 'pending';
+  return data.status === 'success' ? 'completed' : data.status === 'failed' ? 'failed' : 'pending';
 }
