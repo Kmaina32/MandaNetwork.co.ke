@@ -1,11 +1,11 @@
 
-# Manda Network - Portfolio Enhancement Roadmap
+# Varban Academy - Portfolio Enhancement Roadmap
 
 This document outlines a strategic roadmap for evolving the Student Portfolio feature from a simple certificate showcase into a comprehensive career-building and job-seeking tool.
 
 ## 1. Vision
 
-To empower Manda Network graduates by providing them with a dynamic, professional, and shareable portfolio that effectively demonstrates their skills, projects, and achievements to potential employers. This turns our platform into a direct bridge between education and employment.
+To empower Varban Academy graduates by providing them with a dynamic, professional, and shareable portfolio that effectively demonstrates their skills, projects, and achievements to potential employers. This turns our platform into a direct bridge between education and employment.
 
 ---
 
@@ -24,7 +24,7 @@ These features focus on allowing students to present a more complete picture of 
 -   **Enhancement:** Skills could be automatically suggested or verified based on the courses they've completed.
 
 **3. Hackathon Achievements:**
--   **Description:** An automated section that displays participation in Manda Network hackathons, including submitted projects and any awards or rankings achieved.
+-   **Description:** An automated section that displays participation in Varban Academy hackathons, including submitted projects and any awards or rankings achieved.
 
 **4. Work & Education History:**
 -   **Description:** Traditional resume sections for students to list their professional work experience and formal education history.
@@ -78,13 +78,13 @@ These features enhance the user experience and provide valuable feedback.
 
 ### Phase 4: Deeper LMS Integration
 
-These features create a more interconnected and gamified experience within the Manda Network ecosystem.
+These features create a more interconnected and gamified experience within the Varban Academy ecosystem.
 
 **16. Leaderboard Rank Display:**
 -   **Description:** Automatically display the student's current rank from the hackathon leaderboard on their portfolio page.
 
 **17. Peer Skill Endorsements:**
--   **Description:** Similar to LinkedIn, allow other Manda Network students to "endorse" the skills listed on a portfolio, adding a layer of community validation.
+-   **Description:** Similar to LinkedIn, allow other Varban Academy students to "endorse" the skills listed on a portfolio, adding a layer of community validation.
 
 **18. Course-Specific Project Galleries:**
 -   **Description:** On each course page, automatically generate a gallery showcasing the public portfolio projects submitted by students who completed that course.
