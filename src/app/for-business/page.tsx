@@ -47,7 +47,7 @@ export default async function ForBusinessPage() {
               <section className="relative py-20 md:py-32 bg-secondary p-4">
                    <div className="absolute inset-4 rounded-xl overflow-hidden">
                       <Image
-                          src={heroData.orgHeroImageUrl || 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1800&q=85'}
+                          src={heroData.orgHeroImageUrl || 'https://images.unsplash.com/photo-1758518731706-be5d5230e5a5?auto=format&fit=crop&w=1800&q=85'}
                           alt="Professional team collaborating in a modern workplace"
                           fill
                           priority

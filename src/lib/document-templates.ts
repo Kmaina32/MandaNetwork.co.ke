@@ -579,7 +579,7 @@ These features transform the portfolio from a static page into an active career 
 -   **Description:** A one-click button to generate and download the entire portfolio as a professionally formatted PDF resume.
 
 **9. Customizable URL:**
--   **Description:** Allow students to choose a personalized, memorable URL for their public portfolio (e.g., \`manda.network/portfolio/jane-doe\`).
+-   **Description:** Allow students to choose a personalized, memorable URL for their public portfolio (e.g., \`your-domain.com/portfolio/jane-doe\`).
 
 **10. Testimonials & Recommendations:**
 -   **Description:** A system where instructors or even peers can write recommendations that appear on the student's profile, adding social proof.
@@ -643,7 +643,7 @@ The primary way to interact with the Telegram API is through a bot. You'll creat
 2.  **Create a new bot:**
     *   Send the command \`/newbot\` to BotFather.
     *   It will ask you for a **name** for your bot. This is a friendly name that will be displayed in chats (e.g., \`Varban Academy Bot\`).
-    *   Next, it will ask for a **username**. This must be unique and end in \`bot\` (e.g., \`VarbanAcademyBot\` or \`manda_network_bot\`).
+    *   Next, it will ask for a **username**. This must be unique and end in \`bot\` (e.g., \`VarbanAcademyBot\` or \`VarbanAcademyBot\`).
 
 3.  **Copy your API Token:**
     *   Once you've chosen a unique username, BotFather will congratulate you and provide you with an **API token**.
@@ -665,7 +665,7 @@ This channel is where your bot will post notifications for your users.
     *   In Telegram, go to "New Message" and select "New Channel".
     *   Give your channel a name (e.g., "Varban Academy Announcements") and an optional description.
     *   **Crucially, set the channel type to "Public"**. This makes it easy to get the channel ID.
-    *   Create a simple, memorable public link (e.g., \`t.me/MandaAnnouncements\`). The part after \`t.me/\` is your channel's username.
+    *   Create a simple, memorable public link (e.g., \`t.me/VarbanAcademyAnnouncements\`). The part after \`t.me/\` is your channel's username.
 
 2.  **Add Your Bot as an Administrator:**
     *   Open your newly created channel's info page.
@@ -675,7 +675,7 @@ This channel is where your bot will post notifications for your users.
 
 3.  **Get the Channel ID:**
     *   For **public channels**, the ID is simply the username, prefixed with an \`@\` symbol.
-    *   For example, if your public link is \`t.me/MandaAnnouncements\`, your Channel ID is \`@MandaAnnouncements\`.
+    *   For example, if your public link is \`t.me/VarbanAcademyAnnouncements\`, your Channel ID is \`@VarbanAcademyAnnouncements\`.
 
 4.  **Save your Channel ID:**
     *   Open your \`.env\` file again.
@@ -693,7 +693,7 @@ Your \`.env\` file should now contain these new lines (along with your other var
 
 # Telegram Integration
 TELEGRAM_BOT_TOKEN="1234567890:ABC-DEF1234ghIkl-zyx57W2v1u123456789"
-TELEGRAM_CHANNEL_ID="@MandaAnnouncements"
+TELEGRAM_CHANNEL_ID="@VarbanAcademyAnnouncements"
 \`\`\`
 
 Once you have completed these steps and saved your \`.env\` file, the application will be ready to use these credentials for the Telegram integration features we build.

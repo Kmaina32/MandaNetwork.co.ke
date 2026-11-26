@@ -76,7 +76,7 @@ export default function PortfoliosPage() {
                     <div className="container mx-auto px-4 md:px-6">
                     <div className="relative rounded-xl overflow-hidden min-h-[400px] flex items-center justify-center text-center p-4">
                         <Image
-                            src={heroData.portfoliosImageUrl || 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1800&q=85'}
+                            src={heroData.portfoliosImageUrl || 'https://images.unsplash.com/photo-1758518731706-be5d5230e5a5?auto=format&fit=crop&w=1800&q=85'}
                             alt="Professionals collaborating in a modern workplace"
                             fill
                             priority
@@ -147,7 +147,7 @@ export default function PortfoliosPage() {
                                     </CardHeader>
                                     <CardContent className="flex-grow text-center">
                                         <p className="text-muted-foreground line-clamp-3">
-                                            {profile.portfolio?.aboutMe || 'A passionate learner from Manda Network.'}
+                                            {profile.portfolio?.aboutMe || 'A passionate learner from Varban Academy.'}
                                         </p>
                                     </CardContent>
                                     <CardFooter className="flex flex-col gap-2">

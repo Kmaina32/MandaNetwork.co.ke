@@ -1,5 +1,5 @@
 
-# Manda Network - Investor Pitch Deck
+# Varban Academy - Investor Pitch Deck
 
 This document contains the core content and narrative for our investor pitch deck. Each section corresponds to a slide or a key talking point.
 
@@ -8,7 +8,7 @@ This document contains the core content and narrative for our investor pitch dec
 ### **Slide 1: Title Slide**
 
 - **Image:** A powerful, aspirational image of a young Kenyan professional using a computer.
-- **Title:** Manda Network
+- **Title:** Varban Academy
 - **Tagline:** Upskilling Kenya for the A.I. Revolution.
 
 ---
@@ -24,7 +24,7 @@ This document contains the core content and narrative for our investor pitch dec
 
 ### **Slide 3: The Solution**
 
-- **Headline:** Manda Network: Your A.I.-Powered Career Partner.
+- **Headline:** Varban Academy: Your A.I.-Powered Career Partner.
 - **What We Do:** We provide high-quality, affordable, and hyper-relevant online courses in technology, data science, and artificial intelligence.
 - **Our Unique Edge:** We leverage A.I. to bridge the gap between education and employment:
     1.  **A.I. Course Generation:** To create up-to-date, world-class courses in a fraction of the time.

@@ -5,13 +5,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, BookOpen, ChartNoAxesCombined, GraduationCap, Menu, PlayCircle, Search, Video, X } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { getAllCourses, getAllBlogPosts } from '@/lib/firebase-service';
+import { getAllCourses, getAllBlogPosts, getHeroData } from '@/lib/firebase-service';
 import type { Course } from '@/lib/mock-data';
 import type { BlogPost } from '@/lib/types';
 import { slugify } from '@/lib/utils';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
 
-const HERO_IMAGE = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1600&q=85';
+const HERO_IMAGE = 'https://images.unsplash.com/photo-1768055105681-7d2096c5165f?auto=format&fit=crop&w=1800&q=85';
 const LEARNING_IMAGE = 'https://images.unsplash.com/photo-1642790106117-e829e14a795f?auto=format&fit=crop&w=1100&q=85';
 const ANALYSIS_IMAGE = 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=900&q=85';
 
@@ -35,6 +35,7 @@ export default function Home() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [heroImageUrl, setHeroImageUrl] = useState(HERO_IMAGE);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mobileNavLinks: [string, string][] = user
@@ -43,6 +44,7 @@ export default function Home() {
 
   useEffect(() => {
     let active = true;
+    getHeroData().then((settings) => { if (active && settings.imageUrl) setHeroImageUrl(settings.imageUrl); }).catch((error) => console.error('Unable to load homepage hero image', error));
     const loadLandingContent = async () => {
       setLoading(true);
       const [courseResult, postResult] = await Promise.allSettled([getAllCourses(), getAllBlogPosts()]);
@@ -104,7 +106,7 @@ export default function Home() {
       </header>
 
       <main>
-        <section className="relative isolate flex min-h-[560px] items-center overflow-hidden bg-neutral-100 bg-cover bg-center px-5 py-20 sm:px-8 sm:py-24 lg:min-h-[640px]" style={{ backgroundImage: `linear-gradient(90deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.91) 48%, rgba(255,255,255,0.72) 100%), url("${HERO_IMAGE}")` }}>
+        <section className="relative isolate flex min-h-[560px] items-center overflow-hidden bg-neutral-100 bg-cover bg-center px-5 py-20 sm:px-8 sm:py-24 lg:min-h-[640px]" style={{ backgroundImage: `linear-gradient(90deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.91) 48%, rgba(255,255,255,0.72) 100%), url("${heroImageUrl}")` }}>
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-white/50" aria-hidden="true" />
           <div className="relative mx-auto w-full max-w-7xl">
             <div className="max-w-3xl">
@@ -202,7 +204,7 @@ export default function Home() {
                 <div className="p-5"><BookOpen className="h-5 w-5 text-neutral-700" /><h3 className="mt-4 text-lg font-semibold text-neutral-950">Guides and insights</h3><p className="mt-2 text-sm leading-6 text-neutral-600">Read useful explanations, tutorials and perspectives that support your learning.</p><span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold">Explore articles <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span></div>
               </Link>
               <Link href="/live" className="group overflow-hidden rounded-xl border border-neutral-200 bg-white transition hover:-translate-y-1 hover:shadow-lg">
-                <div className="relative aspect-[1.55/1] overflow-hidden bg-neutral-100"><Image src={HERO_IMAGE} alt="Trading screens during a practical learning session" fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition duration-500 group-hover:scale-105" /></div>
+                <div className="relative aspect-[1.55/1] overflow-hidden bg-neutral-100"><Image src={heroImageUrl} alt="Trading screens during a practical learning session" fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition duration-500 group-hover:scale-105" /></div>
                 <div className="p-5"><PlayCircle className="h-5 w-5 text-neutral-700" /><h3 className="mt-4 text-lg font-semibold text-neutral-950">Live learning</h3><p className="mt-2 text-sm leading-6 text-neutral-600">Access the live learning area for practical sessions and demonstrations when available.</p><span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold">Visit live learning <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span></div>
               </Link>
               <Link href="/programs" className="group overflow-hidden rounded-xl border border-neutral-200 bg-white transition hover:-translate-y-1 hover:shadow-lg">

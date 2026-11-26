@@ -1,6 +1,6 @@
 # How to Set Up Your Telegram Bot and Channel
 
-This guide will walk you through the process of creating a Telegram bot, getting your API token, creating a channel, and finding the necessary IDs to integrate with the Manda Network platform.
+This guide will walk you through the process of creating a Telegram bot, getting your API token, creating a channel, and finding the necessary IDs to integrate with the Varban Academy platform.
 
 ## Part 1: Create a Telegram Bot & Get API Token
 
@@ -12,7 +12,7 @@ The primary way to interact with the Telegram API is through a bot. You'll creat
 
 2.  **Create a new bot:**
     *   Send the command `/newbot` to BotFather.
-    *   It will ask you for a **name** for your bot. This is a friendly name that will be displayed in chats (e.g., `Manda Network Bot`).
+    *   It will ask you for a **name** for your bot. This is a friendly name that will be displayed in chats (e.g., `Varban Academy Bot`).
     *   Next, it will ask for a **username**. This must be unique and end in `bot` (e.g., `MandaNetworkBot` or `manda_network_bot`).
 
 3.  **Copy your API Token:**
@@ -33,7 +33,7 @@ This channel is where your bot will post notifications for your users.
 
 1.  **Create a New Channel:**
     *   In Telegram, go to "New Message" and select "New Channel".
-    *   Give your channel a name (e.g., "Manda Network Announcements") and an optional description.
+    *   Give your channel a name (e.g., "Varban Academy Announcements") and an optional description.
     *   **Crucially, set the channel type to "Public"**. This makes it easy to get the channel ID.
     *   Create a simple, memorable public link (e.g., `t.me/MandaAnnouncements`). The part after `t.me/` is your channel's username.
 

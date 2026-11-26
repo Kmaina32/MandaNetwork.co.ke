@@ -19,21 +19,29 @@ async function readRecords<T>(collection: string): Promise<T[]> {
 
 const defaultHero: HeroData = {
   title: 'Unlock Your Potential.', subtitle: 'Quality, affordable courses designed for the Kenyan market.',
-  imageUrl: 'https://placehold.co/1200x400.png', loginImageUrl: 'https://placehold.co/1200x900.png',
-  signupImageUrl: 'https://placehold.co/1200x900.png', programsImageUrl: 'https://picsum.photos/1200/400',
-  bootcampsImageUrl: 'https://picsum.photos/1200/400', hackathonsImageUrl: 'https://picsum.photos/1200/400',
-  portfoliosImageUrl: 'https://picsum.photos/1200/400', slideshowSpeed: 5, imageBrightness: 60,
+  imageUrl: 'https://images.unsplash.com/photo-1768055105681-7d2096c5165f?auto=format&fit=crop&w=1800&q=85', loginImageUrl: 'https://images.unsplash.com/photo-1748439435495-722cc1728b7e?auto=format&fit=crop&w=1600&q=85',
+  signupImageUrl: 'https://images.unsplash.com/photo-1769794371055-54436b54577e?auto=format&fit=crop&w=1600&q=85', programsImageUrl: 'https://images.unsplash.com/photo-1758873269035-aae0e1fd3422?auto=format&fit=crop&w=1800&q=85',
+  bootcampsImageUrl: 'https://images.unsplash.com/photo-1758873269035-aae0e1fd3422?auto=format&fit=crop&w=1800&q=85', hackathonsImageUrl: 'https://images.unsplash.com/photo-1758873269035-aae0e1fd3422?auto=format&fit=crop&w=1800&q=85',
+  portfoliosImageUrl: 'https://images.unsplash.com/photo-1758873269035-aae0e1fd3422?auto=format&fit=crop&w=1800&q=85', slideshowSpeed: 5, imageBrightness: 60,
   recaptchaEnabled: true, onboardingEnabled: true, theme: 'default', animationsEnabled: true,
   orgHeroTitle: 'Varban Academy for Business', orgHeroSubtitle: 'Empower your workforce with the skills they need to succeed.',
-  orgHeroImageUrl: 'https://picsum.photos/1200/800', orgLoginImageUrl: 'https://picsum.photos/1200/900',
-  orgSignupImageUrl: 'https://picsum.photos/1200/900', adsEnabled: false, adInterval: 30,
+  orgHeroImageUrl: 'https://images.unsplash.com/photo-1758518731706-be5d5230e5a5?auto=format&fit=crop&w=1800&q=85', orgLoginImageUrl: 'https://images.unsplash.com/photo-1758518730151-cf64fddb4f0a?auto=format&fit=crop&w=1800&q=85',
+  orgSignupImageUrl: 'https://images.unsplash.com/photo-1758873269035-aae0e1fd3422?auto=format&fit=crop&w=1800&q=85', adsEnabled: false, adInterval: 30,
   activityTrackingEnabled: false, aiProvider: 'gemini', customModelId: '',
 };
 
 export const getHeroData = cache(async (): Promise<HeroData> => {
   const { data, error } = await supabase.from('app_settings').select('value').eq('key','hero').maybeSingle();
   if (error) throw error;
-  return { ...defaultHero, ...(data?.value || {}) } as HeroData;
+  const resolved = { ...defaultHero, ...(data?.value || {}) } as HeroData;
+  const imageKeys = ['imageUrl', 'loginImageUrl', 'signupImageUrl', 'programsImageUrl', 'bootcampsImageUrl', 'hackathonsImageUrl', 'portfoliosImageUrl', 'orgHeroImageUrl', 'orgLoginImageUrl', 'orgSignupImageUrl'] as const;
+  for (const key of imageKeys) {
+    const value = resolved[key];
+    if (typeof value !== 'string' || !value.trim() || /picsum\\.photos|placehold\\.co/i.test(value)) {
+      resolved[key] = defaultHero[key] || defaultHero.imageUrl;
+    }
+  }
+  return resolved;
 }, ['supabase-hero-data'], { revalidate });
 
 export const getAllCourses = cache(async (): Promise<Course[]> => {

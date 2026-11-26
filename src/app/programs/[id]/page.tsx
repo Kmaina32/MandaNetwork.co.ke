@@ -69,7 +69,7 @@ export default function ProgramDetailPage() {
     const shareData = {
         title: program.title,
         text: program.description,
-        url: `https://www.mandanetwork.co.ke/programs/${program.id}`
+        url: `${window.location.origin}/programs/${program.id}`
     };
 
     if (navigator.share) {

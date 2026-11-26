@@ -9,7 +9,7 @@ import { Rocket } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
-import { getAllBootcamps } from '@/lib/firebase-server';
+import { getAllBootcamps, getHeroData } from '@/lib/firebase-server';
 import type { Bootcamp } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -58,7 +58,7 @@ function BootcampCard({ bootcamp }: { bootcamp: Bootcamp }) {
 }
 
 export default async function BootcampsPage() {
-  const bootcamps = await getPublicBootcamps();
+  const [bootcamps, heroData] = await Promise.all([getPublicBootcamps(), getHeroData().catch(() => null)]);
 
   return (
     <SidebarProvider>
@@ -68,7 +68,7 @@ export default async function BootcampsPage() {
         <main className="flex-grow">
           <section className="relative bg-secondary/50 py-12 md:py-16">
             <div className="container mx-auto px-4 md:px-6">
-              <div className="relative isolate overflow-hidden rounded-xl min-h-[400px] flex items-center justify-center text-center p-4 bg-cover bg-center" style={{ backgroundImage: 'linear-gradient(rgba(0,0,0,0.56), rgba(0,0,0,0.68)), url(https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1800&q=85)' }}>
+              <div className="relative isolate overflow-hidden rounded-xl min-h-[400px] flex items-center justify-center text-center p-4 bg-cover bg-center" style={{ backgroundImage: `linear-gradient(rgba(0,0,0,0.56), rgba(0,0,0,0.68)), url(${heroData?.bootcampsImageUrl || 'https://images.unsplash.com/photo-1758873269035-aae0e1fd3422?auto=format&fit=crop&w=1800&q=85'})` }}>
                 <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-black/20" />
                 <div className="relative z-10 text-white">
                   <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit mb-4">

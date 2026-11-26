@@ -15,7 +15,7 @@ Before you can create an app, you need access to the X Developer Platform.
     *   You will be asked to apply for a developer account. This process involves describing your intended use case.
 
 3.  **Describe Your Use Case:**
-    *   Be clear and concise. Explain that you intend to use the API for your application, **Manda Network**, to do things like:
+    *   Be clear and concise. Explain that you intend to use the API for your application, **Varban Academy**, to do things like:
         *   Automatically post announcements about new courses.
         *   Share updates about community events like hackathons.
         *   Engage with your user community.
@@ -26,7 +26,7 @@ Before you can create an app, you need access to the X Developer Platform.
 Once your developer account is approved, you can create a Project and an App to get your API keys.
 
 1.  **Create a New Project:**
-    *   From your developer dashboard, create a new Project. Give it a name related to your application, like "Manda Network".
+    *   From your developer dashboard, create a new Project. Give it a name related to your application, like "Varban Academy".
     *   Select your use case (e.g., "Building tools for Twitter users").
 
 2.  **Create a New App:**

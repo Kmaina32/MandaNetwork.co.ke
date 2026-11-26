@@ -45,14 +45,14 @@ function PdfRenderer({ content, docType, forwardRef }: { content: string, docTyp
             <div className="pdf-header">
                 <div className="pdf-logo">
                     <GitBranch className="h-8 w-8 text-primary" />
-                    <span className="font-bold text-xl font-headline">Manda Network</span>
+                    <span className="font-bold text-xl font-headline">Varban Academy</span>
                 </div>
             </div>
             <div className={isPitchDeck ? 'pdf-slide-content' : 'pdf-general-content'}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{slideContent}</ReactMarkdown>
             </div>
             <div className="pdf-footer">
-                <span>&copy; {new Date().getFullYear()} Manda Network | Confidential</span>
+                <span>&copy; {new Date().getFullYear()} Varban Academy | Confidential</span>
                 <span>Page {index + 1}</span>
             </div>
         </div>

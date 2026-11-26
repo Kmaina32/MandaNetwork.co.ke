@@ -88,7 +88,7 @@ export function Certificate({ course, userName }: CertificateProps) {
       const pdfHeight = pdf.internal.pageSize.getHeight();
 
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Manda_Network_Certificate_${course.title.replace(/\s+/g, '_')}.pdf`);
+      pdf.save(`Varban_Academy_Certificate_${course.title.replace(/\s+/g, '_')}.pdf`);
     } catch (error) {
       console.error("Error generating PDF:", error);
     } finally {
@@ -178,8 +178,8 @@ export function Certificate({ course, userName }: CertificateProps) {
            <div className="flex justify-between items-end text-[10px] text-gray-500 mt-4">
                 <span>Issued on: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                 <div className="flex items-center gap-2">
-                    <QRCode value={`https://manda.network/verify/${certificateId}`} size={24} bgColor="transparent" fgColor="#002147" />
-                    <span>Verify at manda.network/verify</span>
+                    <QRCode value={`${typeof window !== 'undefined' ? window.location.origin : ''}/verify/${certificateId}`} size={24} bgColor="transparent" fgColor="#002147" />
+                    <span>Scan to verify certificate</span>
                 </div>
                 <span>ID: {certificateId.substring(0,20)}...</span>
            </div>

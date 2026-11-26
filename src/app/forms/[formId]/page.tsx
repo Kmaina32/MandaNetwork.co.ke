@@ -158,7 +158,7 @@ export default function FillFormPage() {
                              <div className="text-center mb-8">
                                 <Link href="/" className="flex items-center justify-center gap-2 font-bold text-2xl font-headline mb-4">
                                     <GitBranch className="h-7 w-7 text-primary" />
-                                    <span>Manda Network</span>
+                                    <span>Varban Academy</span>
                                 </Link>
                                 <h1 className="text-3xl font-bold">{formDef.title}</h1>
                                 {formDef.description && <p className="text-muted-foreground mt-2">{formDef.description}</p>}

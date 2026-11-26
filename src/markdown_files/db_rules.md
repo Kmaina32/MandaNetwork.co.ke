@@ -1,7 +1,7 @@
 
-# Manda Network - Database Security Rules Overview
+# Varban Academy - Database Security Rules Overview
 
-This document provides a clear, high-level explanation of the security rules that govern the Manda Network Firebase Realtime Database. These rules are critical for protecting user data, ensuring data integrity, and controlling access to different parts of the application.
+This document provides a clear, high-level explanation of the security rules that govern the Varban Academy Firebase Realtime Database. These rules are critical for protecting user data, ensuring data integrity, and controlling access to different parts of the application.
 
 ## 1. Core Principles
 
