@@ -178,7 +178,7 @@ export default function CreateHackathonPage() {
                       <FormItem>
                         <FormLabel>Title</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., Manda Network Fintech Challenge" {...field} />
+                          <Input placeholder="e.g., Varban Academy Fintech Challenge" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
