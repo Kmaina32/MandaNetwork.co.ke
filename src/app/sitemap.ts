@@ -3,7 +3,7 @@ import type { MetadataRoute } from 'next';
 import { getAllCourses, getAllPrograms, getAllBootcamps, getPublicProfiles, getAllBlogPosts } from '@/lib/firebase-server';
 import { slugify } from '@/lib/utils';
 
-const BASE_URL = 'https://www.mandanetwork.co.ke';
+const BASE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.mandanetwork.co.ke').replace(/\\/+$/, '');
 
 // Rebuild the sitemap periodically so database-backed entries refresh after deployment.
 export const revalidate = 300;
