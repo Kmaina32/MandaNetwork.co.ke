@@ -75,7 +75,23 @@ export function limitToLast(count: number): Constraint { return { kind: 'limit',
 export function increment(amount: number) { return { __supabaseIncrement: amount }; }
 export function serverTimestamp() { return new Date().toISOString(); }
 
-const activeListeners = new WeakMap<Function, () => void>();
+type ListenerRegistration = { path: string; event: 'value' | 'child_added'; callback: Function; unsubscribe: () => void };
+const activeListeners = new Set<ListenerRegistration>();
+
+function registerListener(reference: PathRef, event: ListenerRegistration['event'], callback: Function, stop: () => void) {
+  let active = true;
+  const registration: ListenerRegistration = {
+    path: reference.path.join('/'), event, callback,
+    unsubscribe: () => {
+      if (!active) return;
+      active = false;
+      activeListeners.delete(registration);
+      stop();
+    },
+  };
+  activeListeners.add(registration);
+  return registration.unsubscribe;
+}
 export function onValue(reference: PathRef, callback: (snapshot: Snapshot) => void, errorOrOptions?: ((error: Error) => void) | { onlyOnce?: boolean }) {
   let active = true;
   const onlyOnce = typeof errorOrOptions === 'object' && Boolean(errorOrOptions.onlyOnce);
@@ -86,32 +102,53 @@ export function onValue(reference: PathRef, callback: (snapshot: Snapshot) => vo
   const collection = reference.path[0];
   const channel = getSupabaseBrowserClient().channel('academy-records-value-' + crypto.randomUUID())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'academy_records', filter: 'collection=eq.' + collection }, () => { void refresh(); }).subscribe();
-  const unsubscribe = () => { active = false; void getSupabaseBrowserClient().removeChannel(channel); };
-  activeListeners.set(callback, unsubscribe);
+  const unsubscribe = registerListener(reference, 'value', callback, () => {
+    active = false;
+    void getSupabaseBrowserClient().removeChannel(channel);
+  });
   return unsubscribe;
 }
 export function onChildAdded(reference: PathRef, callback: (snapshot: Snapshot) => void) {
   let active = true;
   const known = new Set<string>();
-  const initial = async () => {
-    try { const snapshot = await get(reference); const value = snapshot.val();
-      if (value && typeof value === 'object') Object.entries(value).forEach(([key,item]) => { known.add(key); callback(makeSnapshot(key,item)); });
-    } catch (error) { console.error('Supabase child listener initial load failed:', error); }
+  const refresh = async () => {
+    if (!active) return;
+    try {
+      const snapshot = await get(reference);
+      const value = snapshot.val();
+      if (value && typeof value === 'object') {
+        Object.entries(value).forEach(([key, item]) => {
+          if (!known.has(key)) {
+            known.add(key);
+            callback(makeSnapshot(key, item));
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Supabase child listener refresh failed:', error);
+    }
   };
-  void initial();
   const collection = reference.path[0];
   const channel = getSupabaseBrowserClient().channel('academy-records-child-' + crypto.randomUUID())
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'academy_records', filter: 'collection=eq.' + collection }, async () => {
-      if (!active) return;
-      try { const snapshot = await get(reference); const value = snapshot.val();
-        if (value && typeof value === 'object') Object.entries(value).forEach(([key,item]) => { if (!known.has(key)) { known.add(key); callback(makeSnapshot(key,item)); } });
-      } catch (error) { console.error('Supabase child listener refresh failed:', error); }
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'academy_records', filter: 'collection=eq.' + collection }, () => {
+      void refresh();
     }).subscribe();
-  const unsubscribe = () => { active = false; void getSupabaseBrowserClient().removeChannel(channel); };
-  activeListeners.set(callback, unsubscribe);
-  return unsubscribe;
+  // Subscribe before the initial read so inserts between setup and the read are not missed.
+  void refresh();
+  return registerListener(reference, 'child_added', callback, () => {
+    active = false;
+    void getSupabaseBrowserClient().removeChannel(channel);
+  });
 }
-export function off(_reference: PathRef, _event?: string, callback?: Function) { if (typeof callback === 'function') (callback as any)(); }
+export function off(reference: PathRef, event?: string, callback?: Function) {
+  const targetPath = reference.path.join('/');
+  for (const listener of Array.from(activeListeners)) {
+    if (listener.path !== targetPath) continue;
+    if (event && listener.event !== event) continue;
+    if (callback && listener.callback !== callback) continue;
+    listener.unsubscribe();
+  }
+}
 export function push(reference: PathRef): PathRef {
   const key = crypto.randomUUID();
   return { path: [...reference.path, key], key };
