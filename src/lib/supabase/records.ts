@@ -145,7 +145,7 @@ export function off(reference: PathRef, event?: string, callback?: Function) {
   for (const listener of Array.from(activeListeners)) {
     if (listener.path !== targetPath) continue;
     if (event && listener.event !== event) continue;
-    if (callback && listener.callback !== callback) continue;
+    if (callback && listener.callback !== callback && listener.unsubscribe !== callback) continue;
     listener.unsubscribe();
   }
 }
