@@ -21,30 +21,6 @@ function parts(path: string): string[] {
 function nestedGet(value: any, path: string[]): any {
   return path.reduce((current, key) => current == null ? undefined : current[key], value);
 }
-function nestedSet(value: any, path: string[], next: any): any {
-  if (!path.length) return next;
-  const root = value && typeof value === 'object' && !Array.isArray(value) ? { ...value } : {};
-  let cursor = root;
-  for (let i = 0; i < path.length - 1; i++) {
-    const key = path[i];
-    cursor[key] = cursor[key] && typeof cursor[key] === 'object' ? { ...cursor[key] } : {};
-    cursor = cursor[key];
-  }
-  cursor[path[path.length - 1]] = next;
-  return root;
-}
-function nestedMerge(value: any, patch: any): any {
-  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) return patch;
-  const output = value && typeof value === 'object' && !Array.isArray(value) ? { ...value } : {};
-  for (const [key, item] of Object.entries(patch)) {
-    output[key] = item && typeof item === 'object' && '__supabaseIncrement' in item
-      ? Number(output[key] || 0) + Number((item as any).__supabaseIncrement || 0)
-      : item && typeof item === 'object' && !Array.isArray(item)
-        ? nestedMerge(output[key], item)
-        : item;
-  }
-  return output;
-}
 function ownerFor(data: any): string | null {
   const candidate = data?.ownerId ?? data?.userId ?? data?.uid ?? data?.studentId ?? data?.affiliateId ?? data?.createdBy;
   return typeof candidate === 'string' && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(candidate) ? candidate : null;
@@ -75,43 +51,84 @@ export function limitToLast(count: number): Constraint { return { kind: 'limit',
 export function increment(amount: number) { return { __supabaseIncrement: amount }; }
 export function serverTimestamp() { return new Date().toISOString(); }
 
-const activeListeners = new WeakMap<Function, () => void>();
+type ListenerRegistration = { path: string; event: 'value' | 'child_added'; callback: Function; unsubscribe: () => void };
+const activeListeners = new Set<ListenerRegistration>();
+
+function registerListener(reference: PathRef, event: ListenerRegistration['event'], callback: Function, stop: () => void) {
+  let active = true;
+  const registration: ListenerRegistration = {
+    path: reference.path.join('/'), event, callback,
+    unsubscribe: () => {
+      if (!active) return;
+      active = false;
+      activeListeners.delete(registration);
+      stop();
+    },
+  };
+  activeListeners.add(registration);
+  return registration.unsubscribe;
+}
 export function onValue(reference: PathRef, callback: (snapshot: Snapshot) => void, errorOrOptions?: ((error: Error) => void) | { onlyOnce?: boolean }) {
   let active = true;
   const onlyOnce = typeof errorOrOptions === 'object' && Boolean(errorOrOptions.onlyOnce);
   const onError = typeof errorOrOptions === 'function' ? errorOrOptions : undefined;
   const refresh = async () => { try { const snapshot = await get(reference); if (active) callback(snapshot); } catch (error) { if (active) onError?.(error as Error); } };
-  void refresh();
-  if (onlyOnce) return () => { active = false; };
+  if (onlyOnce) {
+    void refresh();
+    return () => { active = false; };
+  }
   const collection = reference.path[0];
   const channel = getSupabaseBrowserClient().channel('academy-records-value-' + crypto.randomUUID())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'academy_records', filter: 'collection=eq.' + collection }, () => { void refresh(); }).subscribe();
-  const unsubscribe = () => { active = false; void getSupabaseBrowserClient().removeChannel(channel); };
-  activeListeners.set(callback, unsubscribe);
+  // Subscribe before the initial read so a write during setup is not missed.
+  void refresh();
+  const unsubscribe = registerListener(reference, 'value', callback, () => {
+    active = false;
+    void getSupabaseBrowserClient().removeChannel(channel);
+  });
   return unsubscribe;
 }
 export function onChildAdded(reference: PathRef, callback: (snapshot: Snapshot) => void) {
   let active = true;
   const known = new Set<string>();
-  const initial = async () => {
-    try { const snapshot = await get(reference); const value = snapshot.val();
-      if (value && typeof value === 'object') Object.entries(value).forEach(([key,item]) => { known.add(key); callback(makeSnapshot(key,item)); });
-    } catch (error) { console.error('Supabase child listener initial load failed:', error); }
+  const refresh = async () => {
+    if (!active) return;
+    try {
+      const snapshot = await get(reference);
+      const value = snapshot.val();
+      if (value && typeof value === 'object') {
+        Object.entries(value).forEach(([key, item]) => {
+          if (!known.has(key)) {
+            known.add(key);
+            callback(makeSnapshot(key, item));
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Supabase child listener refresh failed:', error);
+    }
   };
-  void initial();
   const collection = reference.path[0];
   const channel = getSupabaseBrowserClient().channel('academy-records-child-' + crypto.randomUUID())
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'academy_records', filter: 'collection=eq.' + collection }, async () => {
-      if (!active) return;
-      try { const snapshot = await get(reference); const value = snapshot.val();
-        if (value && typeof value === 'object') Object.entries(value).forEach(([key,item]) => { if (!known.has(key)) { known.add(key); callback(makeSnapshot(key,item)); } });
-      } catch (error) { console.error('Supabase child listener refresh failed:', error); }
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'academy_records', filter: 'collection=eq.' + collection }, () => {
+      void refresh();
     }).subscribe();
-  const unsubscribe = () => { active = false; void getSupabaseBrowserClient().removeChannel(channel); };
-  activeListeners.set(callback, unsubscribe);
-  return unsubscribe;
+  // Subscribe before the initial read so inserts between setup and the read are not missed.
+  void refresh();
+  return registerListener(reference, 'child_added', callback, () => {
+    active = false;
+    void getSupabaseBrowserClient().removeChannel(channel);
+  });
 }
-export function off(_reference: PathRef, _event?: string, callback?: Function) { if (typeof callback === 'function') (callback as any)(); }
+export function off(reference: PathRef, event?: string, callback?: Function) {
+  const targetPath = reference.path.join('/');
+  for (const listener of Array.from(activeListeners)) {
+    if (listener.path !== targetPath) continue;
+    if (event && listener.event !== event) continue;
+    if (callback && listener.callback !== callback && listener.unsubscribe !== callback) continue;
+    listener.unsubscribe();
+  }
+}
 export function push(reference: PathRef): PathRef {
   const key = crypto.randomUUID();
   return { path: [...reference.path, key], key };
@@ -150,14 +167,15 @@ export async function set(reference: PathRef, value: any): Promise<void> {
   if (!collection || !recordId) throw new Error('Writes must target a record.');
   const supabase = getSupabaseBrowserClient();
   if (childPath.length) {
-    const { data: current, error: readError } = await supabase.from('academy_records').select('data,owner_id').eq('collection',collection).eq('record_id',recordId).maybeSingle();
-    if (readError) throw readError;
-    const next = nestedSet(current?.data || {}, childPath, value);
-    const { data: auth } = await supabase.auth.getUser();
-    const { error } = await supabase.from('academy_records').upsert({
-      collection, record_id: recordId, owner_id: current?.owner_id || ownerFor(next) || auth.user?.id || null,
-      data: next, updated_at: new Date().toISOString(),
-    }, { onConflict: 'collection,record_id' });
+    const { data: auth, error: authError } = await supabase.auth.getUser();
+    if (authError || !auth.user) throw new Error('Sign-in is required to write records.');
+    const { error } = await supabase.rpc('academy_record_set_path', {
+      p_collection: collection,
+      p_record_id: recordId,
+      p_path: childPath,
+      p_value: value,
+      p_owner_id: ownerFor(value) || auth.user.id,
+    });
     if (error) throw error;
     return;
   }
@@ -172,35 +190,33 @@ export async function update(reference: PathRef, patch: any): Promise<void> {
   const [collection, recordId, ...childPath] = reference.path;
   if (!collection || !recordId) throw new Error('Updates must target a record.');
   const supabase = getSupabaseBrowserClient();
-  const { data: current, error: readError } = await supabase.from('academy_records').select('data,owner_id').eq('collection',collection).eq('record_id',recordId).maybeSingle();
-  if (readError) throw readError;
-  const next = childPath.length
-    ? nestedSet(current?.data || {}, childPath, nestedMerge(nestedGet(current?.data || {},childPath),patch))
-    : nestedMerge(current?.data || {},patch);
-  const { data: auth } = await supabase.auth.getUser();
-  const { error } = await supabase.from('academy_records').upsert({
-    collection, record_id: recordId, owner_id: current?.owner_id || ownerFor(next) || auth.user?.id || null,
-    data: next, updated_at: new Date().toISOString(),
-  }, { onConflict: 'collection,record_id' });
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  if (authError || !auth.user) throw new Error('Sign-in is required to update records.');
+  const { error } = await supabase.rpc('academy_record_merge', {
+    p_collection: collection,
+    p_record_id: recordId,
+    p_path: childPath,
+    p_patch: patch,
+    p_owner_id: ownerFor(patch) || auth.user.id,
+  });
   if (error) throw error;
 }
 export async function remove(reference: PathRef): Promise<void> {
   const [collection, recordId, ...childPath] = reference.path;
   if (!collection) throw new Error('A collection path is required.');
-  const supabase = getSupabaseBrowserClient();
   if (!recordId) throw new Error('Collection-wide deletion is not supported.');
+  const supabase = getSupabaseBrowserClient();
   if (!childPath.length) {
-    const { error } = await supabase.from('academy_records').delete().eq('collection',collection).eq('record_id',recordId);
+    const { error } = await supabase.from('academy_records').delete().eq('collection', collection).eq('record_id', recordId);
     if (error) throw error;
     return;
   }
-  const { data: current, error: readError } = await supabase.from('academy_records').select('data').eq('collection',collection).eq('record_id',recordId).maybeSingle();
-  if (readError) throw readError;
-  const parent = childPath.slice(0,-1);
-  const key = childPath[childPath.length-1];
-  const target = nestedGet(current?.data || {},parent);
-  if (target && typeof target === 'object') delete target[key];
-  const next = parent.length ? nestedSet(current?.data || {},parent,target) : target;
-  const { error } = await supabase.from('academy_records').update({ data: next, updated_at: new Date().toISOString() }).eq('collection',collection).eq('record_id',recordId);
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  if (authError || !auth.user) throw new Error('Sign-in is required to remove record fields.');
+  const { error } = await supabase.rpc('academy_record_remove_path', {
+    p_collection: collection,
+    p_record_id: recordId,
+    p_path: childPath,
+  });
   if (error) throw error;
 }
