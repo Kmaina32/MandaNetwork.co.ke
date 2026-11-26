@@ -1,0 +1,272 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { ArrowRight, BookOpen, ChartNoAxesCombined, GraduationCap, Menu, PlayCircle, Search, Video, X } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { getAllCourses, getAllBlogPosts, getHeroData } from '@/lib/firebase-service';
+import type { Course } from '@/lib/mock-data';
+import type { BlogPost } from '@/lib/types';
+import { slugify } from '@/lib/utils';
+import { LoadingAnimation } from '@/components/LoadingAnimation';
+
+const HERO_IMAGE = 'https://images.unsplash.com/photo-1768055105681-7d2096c5165f?auto=format&fit=crop&w=1800&q=85';
+const LEARNING_IMAGE = 'https://images.unsplash.com/photo-1642790106117-e829e14a795f?auto=format&fit=crop&w=1100&q=85';
+const ANALYSIS_IMAGE = 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=900&q=85';
+
+function SectionHeading({ eyebrow, title, description, href, linkLabel = 'View all' }: {
+  eyebrow?: string; title: string; description?: string; href?: string; linkLabel?: string;
+}) {
+  return (
+    <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="max-w-2xl">
+        {eyebrow && <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">{eyebrow}</p>}
+        <h2 className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl">{title}</h2>
+        {description && <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-600 sm:text-base">{description}</p>}
+      </div>
+      {href && <Link href={href} className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-neutral-900 transition hover:gap-3">{linkLabel}<ArrowRight className="h-4 w-4" /></Link>}
+    </div>
+  );
+}
+
+export default function Home() {
+  const { user } = useAuth();
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [heroImageUrl, setHeroImageUrl] = useState(HERO_IMAGE);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileNavLinks: [string, string][] = user
+    ? [['Courses', '#courses'], ['Learning resources', '#resources'], ['Programs', '/programs'], ['Insights', '/blog'], ['My dashboard', '/dashboard']]
+    : [['Courses', '#courses'], ['Learning resources', '#resources'], ['Programs', '/programs'], ['Insights', '/blog'], ['Log in', '/login'], ['Get started', '/signup']];
+
+  useEffect(() => {
+    let active = true;
+    getHeroData().then((settings) => { if (active && settings.imageUrl) setHeroImageUrl(settings.imageUrl); }).catch((error) => console.error('Unable to load homepage hero image', error));
+    const loadLandingContent = async () => {
+      setLoading(true);
+      const [courseResult, postResult] = await Promise.allSettled([getAllCourses(), getAllBlogPosts()]);
+      if (!active) return;
+      if (courseResult.status === 'fulfilled') setCourses(Array.isArray(courseResult.value) ? courseResult.value : []);
+      else console.error('Unable to load academy courses', courseResult.reason);
+      if (postResult.status === 'fulfilled') {
+        setPosts((Array.isArray(postResult.value) ? postResult.value : []).filter((post) => post.isPublished).slice(0, 3));
+      } else console.error('Unable to load academy articles', postResult.reason);
+      setLoading(false);
+    };
+    loadLandingContent();
+    return () => { active = false; };
+  }, []);
+
+  const featuredCourses = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return courses.filter((course) => !query || [course.title, course.category, course.description].some((value) => String(value || '').toLowerCase().includes(query))).slice(0, 3);
+  }, [courses, searchQuery]);
+
+
+  return (
+    <div className="min-h-screen overflow-hidden bg-white text-neutral-950">
+      <header className="sticky top-0 z-40 border-b border-neutral-200/80 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 sm:px-8">
+          <Link href="/" className="flex items-center gap-3" aria-label="Varban Academy home">
+            
+            <span className="text-base font-bold tracking-tight sm:text-lg">Varban Academy</span>
+          </Link>
+          <nav className="hidden items-center gap-8 md:flex" aria-label="Main navigation">
+            <Link className="text-sm font-medium text-neutral-600 transition hover:text-black" href="#courses">Courses</Link>
+            <Link className="text-sm font-medium text-neutral-600 transition hover:text-black" href="#resources">Learning resources</Link>
+            <Link className="text-sm font-medium text-neutral-600 transition hover:text-black" href="/programs">Programs</Link>
+            <Link className="text-sm font-medium text-neutral-600 transition hover:text-black" href="/blog">Insights</Link>
+          </nav>
+          <div className="hidden items-center gap-3 md:flex">
+            {user ? (
+              <Link href="/dashboard" className="rounded-lg bg-black px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-neutral-800">My dashboard</Link>
+            ) : (
+              <>
+                <Link href="/login" className="rounded-lg px-4 py-2.5 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-100">Log in</Link>
+                <Link href="/signup" className="rounded-lg bg-black px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-neutral-800">Get started</Link>
+              </>
+            )}
+          </div>
+          <button type="button" onClick={() => setMobileMenuOpen((open) => !open)} className="flex h-10 w-10 items-center justify-center rounded-lg border border-neutral-200 md:hidden" aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'} aria-expanded={mobileMenuOpen}>
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
+        {mobileMenuOpen && (
+          <nav className="border-t border-neutral-200 bg-white px-5 py-4 md:hidden" aria-label="Mobile navigation">
+            <div className="flex flex-col gap-1">
+              {mobileNavLinks.map(([label, href]) => (
+                <Link key={label} href={href} onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-3 py-3 text-sm font-medium text-neutral-800 hover:bg-neutral-100">{label}</Link>
+              ))}
+            </div>
+          </nav>
+        )}
+      </header>
+
+      <main>
+        <section className="relative isolate flex min-h-[560px] items-center overflow-hidden bg-neutral-100 bg-cover bg-center px-5 py-20 sm:px-8 sm:py-24 lg:min-h-[640px]" style={{ backgroundImage: `linear-gradient(90deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.91) 48%, rgba(255,255,255,0.72) 100%), url("${heroImageUrl}")` }}>
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-white/50" aria-hidden="true" />
+          <div className="relative mx-auto w-full max-w-7xl">
+            <div className="max-w-3xl">
+              <p className="mb-5 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-600">Varban Academy · Financial education</p>
+              <h1 className="text-[2.7rem] font-semibold leading-[1.06] tracking-[-0.055em] text-black sm:text-6xl lg:text-[4.5rem]">
+                Know more.<br />Trade better.
+              </h1>
+              <p className="mt-6 max-w-2xl text-base leading-7 text-neutral-700 sm:text-lg sm:leading-8">
+                Build your understanding of financial markets with practical courses, guided lessons and learning resources designed to help you make more informed decisions.
+              </p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link href="/programs" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-black px-6 text-sm font-semibold text-white transition hover:bg-neutral-800">Explore courses <ArrowRight className="h-4 w-4" /></Link>
+                <Link href="/blog" className="inline-flex min-h-12 items-center justify-center rounded-lg border border-neutral-300 bg-white/95 px-6 text-sm font-semibold text-neutral-900 transition hover:bg-white">Browse learning resources</Link>
+              </div>
+              <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-neutral-300/80 pt-6 text-xs font-medium text-neutral-600">
+                <span className="inline-flex items-center gap-2"><BookOpen className="h-4 w-4 text-neutral-900" /> Structured learning</span>
+                <span className="inline-flex items-center gap-2"><Video className="h-4 w-4 text-neutral-900" /> Practical lessons</span>
+                <span className="inline-flex items-center gap-2"><ChartNoAxesCombined className="h-4 w-4 text-neutral-900" /> Market knowledge</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="courses" className="scroll-mt-24 border-y border-neutral-100 bg-neutral-50/80 py-16 sm:py-20">
+          <div className="mx-auto max-w-7xl px-5 sm:px-8">
+            <SectionHeading eyebrow="Build your knowledge" title="Courses for every stage of your journey" description="Explore structured learning designed to help you understand the markets, develop your skills and build confidence step by step." href="/programs" linkLabel="Explore all courses" />
+            <div className="mb-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-neutral-500">A selection from the Varban Academy catalogue</p>
+              <div className="relative w-full sm:max-w-xs">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                <input aria-label="Search courses" type="search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search courses..." className="h-11 w-full rounded-lg border border-neutral-200 bg-white pl-10 pr-4 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-neutral-500" />
+              </div>
+            </div>
+            {loading ? (
+              <div className="flex justify-center py-16"><LoadingAnimation /></div>
+            ) : featuredCourses.length > 0 ? (
+              <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                {featuredCourses.map((course) => (
+                  <Link key={course.id} href={`/courses/${slugify(course.title)}`} className="group overflow-hidden rounded-xl border border-neutral-200 bg-white transition duration-300 hover:-translate-y-1 hover:border-neutral-300 hover:shadow-xl">
+                    <div className="relative aspect-[1.65/1] overflow-hidden bg-neutral-100">
+                      <Image src={course.imageUrl || LEARNING_IMAGE} alt={course.title} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition duration-500 group-hover:scale-[1.04]" />
+                      <span className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-800">{course.category || 'Course'}</span>
+                    </div>
+                    <div className="p-5">
+                      <h3 className="text-lg font-semibold tracking-tight text-neutral-950">{course.title}</h3>
+                      <p className="mt-2 line-clamp-2 min-h-12 text-sm leading-6 text-neutral-600">{course.description}</p>
+                      <div className="mt-5 flex items-center justify-between border-t border-neutral-100 pt-4">
+                        <span className="text-sm font-semibold text-neutral-950">{course.price > 0 ? `Ksh ${course.price.toLocaleString()}` : 'Free'}</span>
+                        <span className="inline-flex items-center gap-2 text-xs font-semibold text-neutral-800">View course <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-neutral-300 bg-white px-6 py-12 text-center">
+                <GraduationCap className="mx-auto h-8 w-8 text-neutral-400" />
+                <p className="mt-3 text-sm font-semibold text-neutral-900">{searchQuery ? 'No matching courses found' : 'New courses are on the way'}</p>
+                <p className="mt-1 text-sm text-neutral-500">{searchQuery ? 'Try a different search term.' : 'Explore our programs and check back for new learning opportunities.'}</p>
+                <Link href="/programs" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-neutral-900">Browse programs <ArrowRight className="h-4 w-4" /></Link>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="mx-auto grid max-w-7xl items-center gap-10 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-2 lg:gap-16">
+          <div className="relative order-2 lg:order-1">
+            <div className="relative aspect-[1.25/1] overflow-hidden rounded-2xl bg-neutral-100">
+              <Image src={LEARNING_IMAGE} alt="A detailed financial trading chart used for market analysis" fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
+            </div>
+            <div className="absolute -bottom-4 -right-2 w-44 rounded-xl border border-neutral-200 bg-white p-4 shadow-lg sm:-right-5">
+              <p className="text-xs font-semibold text-neutral-950">Learn the process</p>
+              <p className="mt-1 text-xs leading-5 text-neutral-500">Understand concepts before putting them into practice.</p>
+            </div>
+          </div>
+          <div className="order-1 max-w-xl lg:order-2">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Learning that makes sense</p>
+            <h2 className="text-3xl font-semibold leading-tight tracking-tight text-neutral-950 sm:text-4xl">Build a stronger foundation before you trade.</h2>
+            <p className="mt-5 text-base leading-7 text-neutral-600">Move from the basics to more advanced market concepts through clear explanations and structured learning. Take your time, revisit lessons and develop your understanding at your own pace.</p>
+            <div className="mt-7 space-y-4">
+              <div className="flex gap-3"><span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xs font-bold">1</span><div><p className="text-sm font-semibold text-neutral-900">Understand the fundamentals</p><p className="mt-1 text-sm text-neutral-500">Learn terminology, market structure and essential concepts.</p></div></div>
+              <div className="flex gap-3"><span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xs font-bold">2</span><div><p className="text-sm font-semibold text-neutral-900">Develop practical skills</p><p className="mt-1 text-sm text-neutral-500">Explore analysis methods and platform workflows.</p></div></div>
+              <div className="flex gap-3"><span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xs font-bold">3</span><div><p className="text-sm font-semibold text-neutral-900">Keep learning consistently</p><p className="mt-1 text-sm text-neutral-500">Use guides, courses and tutorials to keep building your knowledge.</p></div></div>
+            </div>
+            <Link href="/programs" className="mt-8 inline-flex min-h-11 items-center gap-2 rounded-lg bg-black px-5 text-sm font-semibold text-white transition hover:bg-neutral-800">Explore learning paths <ArrowRight className="h-4 w-4" /></Link>
+          </div>
+        </section>
+
+        <section id="resources" className="scroll-mt-24 bg-neutral-50 py-16 sm:py-20">
+          <div className="mx-auto max-w-7xl px-5 sm:px-8">
+            <SectionHeading eyebrow="Go beyond the classroom" title="More ways to keep learning" description="Choose the format that works for you, from practical sessions to focused reading and guided programs." />
+            <div className="grid gap-5 md:grid-cols-3">
+              <Link href="/blog" className="group overflow-hidden rounded-xl border border-neutral-200 bg-white transition hover:-translate-y-1 hover:shadow-lg">
+                <div className="relative aspect-[1.55/1] overflow-hidden bg-neutral-100"><Image src={ANALYSIS_IMAGE} alt="Market analysis and data visualisation" fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition duration-500 group-hover:scale-105" /></div>
+                <div className="p-5"><BookOpen className="h-5 w-5 text-neutral-700" /><h3 className="mt-4 text-lg font-semibold text-neutral-950">Guides and insights</h3><p className="mt-2 text-sm leading-6 text-neutral-600">Read useful explanations, tutorials and perspectives that support your learning.</p><span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold">Explore articles <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span></div>
+              </Link>
+              <Link href="/live" className="group overflow-hidden rounded-xl border border-neutral-200 bg-white transition hover:-translate-y-1 hover:shadow-lg">
+                <div className="relative aspect-[1.55/1] overflow-hidden bg-neutral-100"><Image src={heroImageUrl} alt="Trading screens during a practical learning session" fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition duration-500 group-hover:scale-105" /></div>
+                <div className="p-5"><PlayCircle className="h-5 w-5 text-neutral-700" /><h3 className="mt-4 text-lg font-semibold text-neutral-950">Live learning</h3><p className="mt-2 text-sm leading-6 text-neutral-600">Access the live learning area for practical sessions and demonstrations when available.</p><span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold">Visit live learning <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span></div>
+              </Link>
+              <Link href="/programs" className="group overflow-hidden rounded-xl border border-neutral-200 bg-white transition hover:-translate-y-1 hover:shadow-lg">
+                <div className="relative aspect-[1.55/1] overflow-hidden bg-neutral-100"><Image src={LEARNING_IMAGE} alt="Learning resources for understanding financial markets" fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition duration-500 group-hover:scale-105" /></div>
+                <div className="p-5"><GraduationCap className="h-5 w-5 text-neutral-700" /><h3 className="mt-4 text-lg font-semibold text-neutral-950">Guided programs</h3><p className="mt-2 text-sm leading-6 text-neutral-600">Find a structured program and follow a clearer path through the material.</p><span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold">View programs <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span></div>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20">
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div><p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">From the academy</p><h2 className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl">Latest learning insights</h2><p className="mt-2 text-sm text-neutral-600">Fresh articles and ideas to help you keep moving forward.</p></div>
+            <Link href="/blog" className="inline-flex items-center gap-2 text-sm font-semibold">Visit the insights hub <ArrowRight className="h-4 w-4" /></Link>
+          </div>
+          {posts.length > 0 ? (
+            <div className="grid gap-5 md:grid-cols-3">
+              {posts.map((post) => (
+                <Link key={post.id} href={`/blog/${post.slug}`} className="group overflow-hidden rounded-xl border border-neutral-200 bg-white transition hover:-translate-y-1 hover:shadow-lg">
+                  <div className="relative aspect-[1.65/1] overflow-hidden bg-neutral-100"><Image src={post.imageUrl || ANALYSIS_IMAGE} alt={post.title} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition duration-500 group-hover:scale-105" /></div>
+                  <div className="p-5"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">{post.category || 'Learning'}</p><h3 className="mt-2 line-clamp-2 text-lg font-semibold leading-snug text-neutral-950">{post.title}</h3><p className="mt-2 line-clamp-3 text-sm leading-6 text-neutral-600">{post.description}</p><span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold">Read article <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span></div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-8 text-center"><p className="text-sm text-neutral-600">New learning insights will appear here as they are published.</p><Link href="/blog" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold">Browse all articles <ArrowRight className="h-4 w-4" /></Link></div>
+          )}
+        </section>
+
+        <section className="px-5 pb-16 sm:px-8 sm:pb-20">
+          <div className="mx-auto max-w-7xl overflow-hidden rounded-2xl bg-black px-6 py-12 text-white sm:px-12 sm:py-16">
+            <div className="grid items-center gap-8 md:grid-cols-[1fr_auto]">
+              <div className="max-w-2xl"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">Your next step starts here</p><h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Make learning part of your trading journey.</h2><p className="mt-4 max-w-xl text-sm leading-6 text-neutral-300 sm:text-base">Create an account to access your learning space and continue building your market knowledge.</p></div>
+              <Link href="/signup" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-white px-6 text-sm font-semibold text-black transition hover:bg-neutral-200">Create your account <ArrowRight className="h-4 w-4" /></Link>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-neutral-200 bg-white text-neutral-950">
+        <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:py-16">
+          <div className="grid gap-10 border-b border-neutral-200 pb-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+            <div className="max-w-sm"><Link href="/" className="text-xl font-bold tracking-tight">Varban Academy</Link><p className="mt-4 text-sm leading-6 text-neutral-600">Practical learning for people building knowledge, skills and confidence for a changing world.</p></div>
+            <div><h3 className="text-sm font-semibold">Learn</h3><ul className="mt-4 space-y-3 text-sm text-neutral-600"><li><Link href="/programs">Courses and programs</Link></li><li><Link href="/bootcamps">Bootcamps</Link></li><li><Link href="/blog">Insights and guides</Link></li><li><Link href="/live">Live learning</Link></li></ul></div>
+            <div><h3 className="text-sm font-semibold">Varban Academy</h3><ul className="mt-4 space-y-3 text-sm text-neutral-600"><li><Link href="/about">About us</Link></li><li><Link href="/for-business">For organisations</Link></li><li><Link href="/contact">Contact</Link></li><li><Link href="/help">Help centre</Link></li></ul></div>
+            <div><h3 className="text-sm font-semibold">Legal and privacy</h3><ul className="mt-4 space-y-3 text-sm text-neutral-600"><li><Link href="/legal/terms">Terms and agreements</Link></li><li><Link href="/legal/risk-disclosure">Risk disclosure</Link></li><li><Link href="/legal/privacy">Privacy notice</Link></li><li><Link href="/legal/data-use">How we use your data</Link></li><li><Link href="/legal/data-safety">Data safety</Link></li><li><Link href="/account-deletion">Account deletion</Link></li><li><Link href="/legal/legal">Legal information</Link></li></ul></div>
+          </div>
+          <section aria-labelledby="academy-disclosures" className="border-b border-neutral-200 py-8 text-[13px] leading-6 text-neutral-600">
+            <h2 id="academy-disclosures" className="mb-4 text-sm font-semibold text-neutral-900">Important information and risk disclosure</h2>
+            <p className="mb-3">The information on Varban Academy is provided for educational and informational purposes only. It is not financial, investment, legal, tax or other professional advice, and it is not a recommendation, offer or solicitation to buy or sell any financial product. Information may become outdated or may not be suitable for your circumstances. Conduct your own research and seek independent advice before making financial decisions.</p>
+            <p className="mb-3">Demo accounts, simulations and practice environments are for learning and strategy testing only. Results achieved in a simulated environment do not guarantee similar results in live markets. Live trading involves additional risks, including emotional decision-making, liquidity, slippage, execution differences and the possibility of losing some or all of the capital committed.</p>
+            <p className="mb-3">Trading in derivatives, contracts for difference (CFDs), synthetic contracts and leveraged products can be complex and carries a high risk of loss. Leverage can magnify both gains and losses. You should understand how a product works, assess your financial position and risk tolerance, and never trade with money you cannot afford to lose.</p>
+            <p className="mb-3">This website may use automated translation tools for convenience. The English-language version is the reference version for interpreting the website content, subject to mandatory rights under applicable law.</p>
+            <p className="mb-3">Varban Academy is an education platform. Its educational content does not, by itself, constitute a regulated brokerage, investment, portfolio-management or payment service. Any regulated service, if offered, will be provided only by the specifically identified legal entity under the authorisations applicable to that service and jurisdiction.</p>
+            <p className="mb-3">Services may not be available to residents of certain countries or territories where access would be unlawful or where the relevant service is not authorised. Restrictions may change. Users are responsible for checking local laws and the eligibility terms applicable to them.</p>
+            <p className="mb-3">Content, course materials, graphics and other original materials on this website may not be copied, republished, redistributed or commercially exploited without prior written permission, except where permitted by law.</p>
+            <p className="mb-3">Personal information is handled in accordance with our <Link href="/legal/privacy" className="font-semibold underline underline-offset-2">Privacy Notice</Link> and <Link href="/legal/data-safety" className="font-semibold underline underline-offset-2">Data Safety statement</Link>. Payment card processing, where available, is performed by the relevant payment provider. We do not claim PCI DSS or ISO/IEC 27001 certification unless the applicable certification and scope have been independently verified.</p>
+            <p className="font-medium text-neutral-800">Please read our <Link href="/legal/terms" className="underline underline-offset-2">Terms and Agreements</Link>, <Link href="/legal/risk-disclosure" className="underline underline-offset-2">Risk Disclosure</Link> and <Link href="/legal/data-safety" className="underline underline-offset-2">Data Safety</Link> information before using the platform.</p>
+          </section>
+          <div className="flex flex-col gap-2 pt-6 text-xs text-neutral-500 sm:flex-row sm:items-center sm:justify-between"><p>© {new Date().getFullYear()} Varban Academy. All rights reserved.</p><p>Educational content only. Learning outcomes are not guaranteed.</p></div>
+        </div>
+      </footer>
+    </div>
+  );
+}
