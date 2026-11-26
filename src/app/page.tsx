@@ -106,7 +106,7 @@ export default function Home() {
       </header>
 
       <main>
-        <section className="relative isolate flex min-h-[560px] items-center overflow-hidden bg-neutral-100 bg-cover bg-center px-5 py-20 sm:px-8 sm:py-24 lg:min-h-[640px]" style={{ backgroundImage: `linear-gradient(90deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.91) 48%, rgba(255,255,255,0.72) 100%), url("${HERO_IMAGE}")` }}>
+        <section className="relative isolate flex min-h-[560px] items-center overflow-hidden bg-neutral-100 bg-cover bg-center px-5 py-20 sm:px-8 sm:py-24 lg:min-h-[640px]" style={{ backgroundImage: `linear-gradient(90deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.91) 48%, rgba(255,255,255,0.72) 100%), url("${heroImageUrl}")` }}>
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-white/50" aria-hidden="true" />
           <div className="relative mx-auto w-full max-w-7xl">
             <div className="max-w-3xl">
@@ -204,7 +204,7 @@ export default function Home() {
                 <div className="p-5"><BookOpen className="h-5 w-5 text-neutral-700" /><h3 className="mt-4 text-lg font-semibold text-neutral-950">Guides and insights</h3><p className="mt-2 text-sm leading-6 text-neutral-600">Read useful explanations, tutorials and perspectives that support your learning.</p><span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold">Explore articles <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span></div>
               </Link>
               <Link href="/live" className="group overflow-hidden rounded-xl border border-neutral-200 bg-white transition hover:-translate-y-1 hover:shadow-lg">
-                <div className="relative aspect-[1.55/1] overflow-hidden bg-neutral-100"><Image src={HERO_IMAGE} alt="Trading screens during a practical learning session" fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition duration-500 group-hover:scale-105" /></div>
+                <div className="relative aspect-[1.55/1] overflow-hidden bg-neutral-100"><Image src={heroImageUrl} alt="Trading screens during a practical learning session" fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition duration-500 group-hover:scale-105" /></div>
                 <div className="p-5"><PlayCircle className="h-5 w-5 text-neutral-700" /><h3 className="mt-4 text-lg font-semibold text-neutral-950">Live learning</h3><p className="mt-2 text-sm leading-6 text-neutral-600">Access the live learning area for practical sessions and demonstrations when available.</p><span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold">Visit live learning <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span></div>
               </Link>
               <Link href="/programs" className="group overflow-hidden rounded-xl border border-neutral-200 bg-white transition hover:-translate-y-1 hover:shadow-lg">
