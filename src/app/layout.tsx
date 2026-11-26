@@ -9,7 +9,7 @@ import { Providers } from './providers';
 import { AdPopup } from '@/components/AdPopup';
 import { UserOnboarding } from '@/components/shared/UserOnboarding';
 
-const BASE_URL = 'https://www.mandanetwork.co.ke';
+const BASE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.mandanetwork.co.ke').replace(/\\/+$/, '');
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
@@ -21,9 +21,6 @@ export const metadata: Metadata = {
   keywords: "Varban Academy, Africa tech startups, AI learning, online courses, bootcamps, East Africa, Kenya, digital skills, innovation hub",
   authors: [{ name: "Varban Academy" }],
   robots: "index, follow",
-  verification: {
-    google: 'qNZsueqgogEIZHV-vcsY-Kv7tkLo82P_-w7BQvJG1jY',
-  },
   openGraph: {
     title: 'Varban Academy | Empowering Digital Africa',
     description: 'Join Africa’s fastest-growing platform for digital learning and innovation. Learn AI, coding, business, and more with Varban Academy.',
