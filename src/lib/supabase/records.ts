@@ -97,11 +97,15 @@ export function onValue(reference: PathRef, callback: (snapshot: Snapshot) => vo
   const onlyOnce = typeof errorOrOptions === 'object' && Boolean(errorOrOptions.onlyOnce);
   const onError = typeof errorOrOptions === 'function' ? errorOrOptions : undefined;
   const refresh = async () => { try { const snapshot = await get(reference); if (active) callback(snapshot); } catch (error) { if (active) onError?.(error as Error); } };
-  void refresh();
-  if (onlyOnce) return () => { active = false; };
+  if (onlyOnce) {
+    void refresh();
+    return () => { active = false; };
+  }
   const collection = reference.path[0];
   const channel = getSupabaseBrowserClient().channel('academy-records-value-' + crypto.randomUUID())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'academy_records', filter: 'collection=eq.' + collection }, () => { void refresh(); }).subscribe();
+  // Subscribe before the initial read so a write during setup is not missed.
+  void refresh();
   const unsubscribe = registerListener(reference, 'value', callback, () => {
     active = false;
     void getSupabaseBrowserClient().removeChannel(channel);
