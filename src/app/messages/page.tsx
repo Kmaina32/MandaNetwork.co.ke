@@ -13,6 +13,8 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useAuth } from '@/hooks/use-auth';
 import type { Notification } from '@/lib/types';
 import { getAllNotifications } from '@/lib/firebase-service';
+import { updateUserNotifications } from '@/lib/supabase/notifications';
+import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
@@ -41,9 +43,23 @@ import { cn } from '@/lib/utils';
 
 type SortOption = 'newest' | 'oldest' | 'unread';
 
+function getMessageBody(value: unknown): Record<string, any> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, any>;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+    } catch {
+      return { message: value };
+    }
+  }
+  return {};
+}
+
 export default function MessagesPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -88,7 +104,7 @@ export default function MessagesPage() {
   // Filter and sort messages
   const filteredAndSortedMessages = messages
     .filter(msg => {
-      const body = msg.body as any; // Type assertion
+      const body = getMessageBody(msg.body);
       const matchesSearch = 
         body.employerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         body.organizationName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -115,40 +131,69 @@ export default function MessagesPage() {
   const unreadCount = messages.filter(m => !m.read).length;
 
   const markAsRead = async (messageId: string) => {
-    // TODO: Implement Firebase update
-    setMessages(prev => prev.map(msg => 
-      msg.id === messageId ? { ...msg, read: true } : msg
-    ));
+    if (!user) return;
+    try {
+      await updateUserNotifications(user.uid, [messageId], 'mark_read');
+      setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, read: true } : msg));
+    } catch (error) {
+      console.error('Unable to mark message as read:', error);
+      toast({ title: 'Could not update message', description: 'Please try again.', variant: 'destructive' });
+    }
   };
 
   const markAllAsRead = async () => {
-    if (selectedMessages.size === 0) {
-      // Mark all visible messages as read
-      const messageIds = filteredAndSortedMessages.map(m => m.id);
-      // TODO: Implement Firebase batch update
-      setMessages(prev => prev.map(msg => 
-        messageIds.includes(msg.id) ? { ...msg, read: true } : msg
-      ));
-    } else {
-      // Mark selected messages as read
-      // TODO: Implement Firebase batch update
-      setMessages(prev => prev.map(msg => 
-        selectedMessages.has(msg.id) ? { ...msg, read: true } : msg
-      ));
+    if (!user) return;
+    const messageIds = selectedMessages.size > 0 ? Array.from(selectedMessages) : filteredAndSortedMessages.map(message => message.id);
+    if (!messageIds.length) return;
+    try {
+      await updateUserNotifications(user.uid, messageIds, 'mark_read');
+      const ids = new Set(messageIds);
+      setMessages(prev => prev.map(msg => ids.has(msg.id) ? { ...msg, read: true } : msg));
       setSelectedMessages(new Set());
+    } catch (error) {
+      console.error('Unable to mark messages as read:', error);
+      toast({ title: 'Could not update messages', description: 'Please try again.', variant: 'destructive' });
     }
   };
 
   const archiveMessage = async (messageId: string) => {
-    // TODO: Implement Firebase update
-    setMessages(prev => prev.filter(msg => msg.id !== messageId));
+    if (!user) return;
+    try {
+      await updateUserNotifications(user.uid, [messageId], 'archive');
+      setMessages(prev => prev.filter(msg => msg.id !== messageId));
+      setSelectedMessages(prev => { const next = new Set(prev); next.delete(messageId); return next; });
+    } catch (error) {
+      console.error('Unable to archive message:', error);
+      toast({ title: 'Could not archive message', description: 'Please try again.', variant: 'destructive' });
+    }
   };
 
   const deleteMessage = async (messageId: string) => {
-    // TODO: Implement Firebase delete
-    setMessages(prev => prev.filter(msg => msg.id !== messageId));
-    setDeleteDialogOpen(false);
-    setMessageToDelete(null);
+    if (!user) return;
+    try {
+      await updateUserNotifications(user.uid, [messageId], 'delete');
+      setMessages(prev => prev.filter(msg => msg.id !== messageId));
+      setSelectedMessages(prev => { const next = new Set(prev); next.delete(messageId); return next; });
+      setDeleteDialogOpen(false);
+      setMessageToDelete(null);
+    } catch (error) {
+      console.error('Unable to delete message:', error);
+      toast({ title: 'Could not delete message', description: 'Please try again.', variant: 'destructive' });
+    }
+  };
+
+  const bulkArchive = async () => {
+    if (!user || selectedMessages.size === 0) return;
+    const messageIds = Array.from(selectedMessages);
+    try {
+      await updateUserNotifications(user.uid, messageIds, 'archive');
+      const ids = new Set(messageIds);
+      setMessages(prev => prev.filter(msg => !ids.has(msg.id)));
+      setSelectedMessages(new Set());
+    } catch (error) {
+      console.error('Unable to archive selected messages:', error);
+      toast({ title: 'Could not archive messages', description: 'Please try again.', variant: 'destructive' });
+    }
   };
 
   const handleDeleteClick = (messageId: string) => {
@@ -304,7 +349,9 @@ export default function MessagesPage() {
                                     {/* Messages List */}
                                     {filteredAndSortedMessages.length > 0 ? (
                                         <div className="space-y-4">
-                                            {filteredAndSortedMessages.map(msg => (
+                                            {filteredAndSortedMessages.map(msg => {
+                                                const body = getMessageBody(msg.body);
+                                                return (
                                                 <Card 
                                                     key={msg.id} 
                                                     className={cn(
@@ -319,7 +366,7 @@ export default function MessagesPage() {
                                                         />
                                                         <Avatar className="h-10 w-10 flex-shrink-0">
                                                             <AvatarFallback className="bg-primary/10">
-                                                                {(msg.body as any).employerName?.[0]?.toUpperCase() || 'E'}
+                                                                {body.employerName?.[0]?.toUpperCase() || 'E'}
                                                             </AvatarFallback>
                                                         </Avatar>
                                                         <div className="flex-1 min-w-0">
@@ -402,7 +449,8 @@ export default function MessagesPage() {
                                                         </div>
                                                     </div>
                                                 </Card>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     ) : (
                                         <div className="text-center py-12 border-2 border-dashed rounded-lg">
