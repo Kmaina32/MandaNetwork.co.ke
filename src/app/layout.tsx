@@ -54,14 +54,9 @@ const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
   "name": "Varban Academy",
-  "url": "https://www.mandanetwork.co.ke/",
-  "logo": "https://www.mandanetwork.co.ke/assets/logo.png",
-  "sameAs": [
-    "https://www.linkedin.com/company/mandanetwork",
-    "https://www.instagram.com/mandanetwork",
-    "https://www.twitter.com/mandanetwork",
-    "https://www.facebook.com/mandanetwork"
-  ],
+  "url": BASE_URL,
+  "logo": `${BASE_URL}/assets/logo.png`,
+  "sameAs": [],
   "contactPoint": [{
     "@type": "ContactPoint",
     "telephone": "+254742999999",
