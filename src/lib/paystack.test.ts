@@ -7,6 +7,10 @@ import {
   handlePaystackWebhookEvent,
 } from './paystack';
 
+const headers = (signature?: string) => ({
+  get: (name: string) => name.toLowerCase() === 'x-paystack-signature' ? signature ?? null : null,
+}) as unknown as Headers;
+
 describe('Paystack payment safeguards', () => {
   const originalSecret = process.env.PAYSTACK_SECRET_KEY;
 
@@ -29,21 +33,19 @@ describe('Paystack payment safeguards', () => {
   it('accepts a valid SHA-512 webhook signature', () => {
     const body = JSON.stringify({ event: 'charge.success', data: { reference: 'VA-test' } });
     const signature = createHmac('sha512', process.env.PAYSTACK_SECRET_KEY!).update(body).digest('hex');
-    expect(verifyPaystackWebhookSignature(body, new Headers({ 'x-paystack-signature': signature }))).toBe(true);
+    expect(verifyPaystackWebhookSignature(body, headers(signature))).toBe(true);
   });
 
   it('rejects missing, malformed, and incorrect webhook signatures', () => {
     const body = '{"event":"charge.success"}';
-    expect(verifyPaystackWebhookSignature(body, new Headers())).toBe(false);
-    expect(verifyPaystackWebhookSignature(body, new Headers({ 'x-paystack-signature': 'not-a-signature' }))).toBe(false);
-    expect(verifyPaystackWebhookSignature(body, new Headers({ 'x-paystack-signature': '0'.repeat(128) }))).toBe(false);
+    expect(verifyPaystackWebhookSignature(body, headers())).toBe(false);
+    expect(verifyPaystackWebhookSignature(body, headers('not-a-signature'))).toBe(false);
+    expect(verifyPaystackWebhookSignature(body, headers('0'.repeat(128)))).toBe(false);
   });
 
   it('fails closed when the Paystack secret is not configured', () => {
     delete process.env.PAYSTACK_SECRET_KEY;
-    expect(() => verifyPaystackWebhookSignature('body', new Headers({
-      'x-paystack-signature': '0'.repeat(128),
-    }))).toThrow('Paystack is not configured.');
+    expect(() => verifyPaystackWebhookSignature('body', headers('0'.repeat(128)))).toThrow('Paystack is not configured.');
   });
 
   it('ignores unsupported webhook event types without attempting fulfillment', async () => {
