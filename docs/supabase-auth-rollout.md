@@ -13,16 +13,16 @@ Project: `irsirrzyvcsxtyonnhwv`
 Set the Supabase Auth **Site URL** to:
 
 ```text
-https://mandanetwork.co.ke
+https://YOUR_VARBAN_DOMAIN
 ```
 
 Add these redirect URLs to the Auth redirect allowlist:
 
 ```text
-https://mandanetwork.co.ke/auth/callback
-https://www.mandanetwork.co.ke/auth/callback
+https://YOUR_VARBAN_DOMAIN/auth/callback
+https://YOUR_VARBAN_DOMAIN/auth/callback
 http://localhost:9002/auth/callback
-https://mandanetwork.co.ke/auth/callback?next=/auth/reset-password
+https://YOUR_VARBAN_DOMAIN/auth/callback?next=/auth/reset-password
 ```
 
 For each Vercel preview hostname used for testing, add its exact `/auth/callback` URL to the allowlist. Do not use a broad wildcard unless the preview-domain pattern is constrained to this project.
