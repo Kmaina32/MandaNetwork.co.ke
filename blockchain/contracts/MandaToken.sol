@@ -8,7 +8,7 @@ error MandaToken__FaucetCooldownNotOver();
 
 /**
  * @title MandaToken
- * @dev An ERC20 token for the Manda Network platform with a faucet feature.
+ * @dev An ERC20 token for the Varban Academy platform with a faucet feature.
  */
 contract MandaToken is ERC20 {
     address private immutable i_owner;
