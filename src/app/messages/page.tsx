@@ -219,19 +219,7 @@ export default function MessagesPage() {
     }
   };
 
-  const bulkArchive = async () => {
-    if (!user || selectedMessages.size === 0) return;
-    const messageIds = Array.from(selectedMessages);
-    try {
-      await updateUserNotifications(user.uid, messageIds, 'archive');
-      const ids = new Set(messageIds);
-      setMessages(prev => prev.filter(msg => !ids.has(msg.id)));
-      setSelectedMessages(new Set());
-    } catch (error) {
-      console.error('Unable to archive selected messages:', error);
-      toast({ title: 'Could not archive messages', description: 'Please try again.', variant: 'destructive' });
-    }
-  };
+
 
   if (authLoading || loading) {
     return (
