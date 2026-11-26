@@ -1,7 +1,7 @@
 {
   "name": "manda-blockchain",
   "version": "1.0.0",
-  "description": "Smart contracts for Manda Network",
+  "description": "Smart contracts for Varban Academy",
   "scripts": {
     "test": "hardhat test"
   },
