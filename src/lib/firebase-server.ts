@@ -33,7 +33,15 @@ const defaultHero: HeroData = {
 export const getHeroData = cache(async (): Promise<HeroData> => {
   const { data, error } = await supabase.from('app_settings').select('value').eq('key','hero').maybeSingle();
   if (error) throw error;
-  return { ...defaultHero, ...(data?.value || {}) } as HeroData;
+  const resolved = { ...defaultHero, ...(data?.value || {}) } as HeroData;
+  const imageKeys = ['imageUrl', 'loginImageUrl', 'signupImageUrl', 'programsImageUrl', 'bootcampsImageUrl', 'hackathonsImageUrl', 'portfoliosImageUrl', 'orgHeroImageUrl', 'orgLoginImageUrl', 'orgSignupImageUrl'] as const;
+  for (const key of imageKeys) {
+    const value = resolved[key];
+    if (typeof value !== 'string' || !value.trim() || /picsum\\.photos|placehold\\.co/i.test(value)) {
+      resolved[key] = defaultHero[key] || defaultHero.imageUrl;
+    }
+  }
+  return resolved;
 }, ['supabase-hero-data'], { revalidate });
 
 export const getAllCourses = cache(async (): Promise<Course[]> => {
