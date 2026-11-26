@@ -1,7 +1,7 @@
 
-# Manda Network - Blockchain Integration Conceptual Framework
+# Varban Academy - Blockchain Integration Conceptual Framework
 
-This document provides a high-level architectural overview for integrating a token-based economy and smart contract automation into the Manda Network platform. This is a conceptual guide and not a technical implementation specification.
+This document provides a high-level architectural overview for integrating a token-based economy and smart contract automation into the Varban Academy platform. This is a conceptual guide and not a technical implementation specification.
 
 ## 1. Vision
 
