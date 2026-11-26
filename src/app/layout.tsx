@@ -9,7 +9,7 @@ import { Providers } from './providers';
 import { AdPopup } from '@/components/AdPopup';
 import { UserOnboarding } from '@/components/shared/UserOnboarding';
 
-const BASE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.mandanetwork.co.ke').replace(/\\/+$/, '');
+const BASE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.mandanetwork.co.ke').replace(/\/+$/, '');
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
