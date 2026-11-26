@@ -338,7 +338,7 @@ export default function DeveloperPage() {
                                 </p>
 
                                 <h5 className="font-semibold text-sm pt-2">Example Request:</h5>
-                                <CodeBlock>{`curl -X GET 'https://www.mandanetwork.co.ke/api/courses' \\\n     -H 'Authorization: Bearer YOUR_API_KEY'`}</CodeBlock>
+                                <CodeBlock>{`curl -X GET 'https://YOUR_VARBAN_DOMAIN/api/courses' \\\n     -H 'Authorization: Bearer YOUR_API_KEY'`}</CodeBlock>
                                 
                                 <h5 className="font-semibold text-sm pt-2">Example Response:</h5>
                                 <CodeBlock>{`[
