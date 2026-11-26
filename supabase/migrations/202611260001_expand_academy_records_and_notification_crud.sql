@@ -36,7 +36,7 @@ begin
     raise exception 'Sign-in is required.';
   end if;
 
-  if p_action not in ('mark_read', 'archive', 'delete') then
+  if p_action is null or p_action not in ('mark_read', 'archive', 'delete') then
     raise exception 'Unsupported notification action.';
   end if;
 
