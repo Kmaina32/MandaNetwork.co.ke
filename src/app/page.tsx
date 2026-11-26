@@ -5,13 +5,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, BookOpen, ChartNoAxesCombined, GraduationCap, Menu, PlayCircle, Search, Video, X } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { getAllCourses, getAllBlogPosts } from '@/lib/firebase-service';
+import { getAllCourses, getAllBlogPosts, getHeroData } from '@/lib/firebase-service';
 import type { Course } from '@/lib/mock-data';
 import type { BlogPost } from '@/lib/types';
 import { slugify } from '@/lib/utils';
 import { LoadingAnimation } from '@/components/LoadingAnimation';
 
-const HERO_IMAGE = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1600&q=85';
+const HERO_IMAGE = 'https://images.unsplash.com/photo-1768055105681-7d2096c5165f?auto=format&fit=crop&w=1800&q=85';
 const LEARNING_IMAGE = 'https://images.unsplash.com/photo-1642790106117-e829e14a795f?auto=format&fit=crop&w=1100&q=85';
 const ANALYSIS_IMAGE = 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=900&q=85';
 
@@ -35,6 +35,7 @@ export default function Home() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [heroImageUrl, setHeroImageUrl] = useState(HERO_IMAGE);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mobileNavLinks: [string, string][] = user
@@ -43,6 +44,7 @@ export default function Home() {
 
   useEffect(() => {
     let active = true;
+    getHeroData().then((settings) => { if (active && settings.imageUrl) setHeroImageUrl(settings.imageUrl); }).catch((error) => console.error('Unable to load homepage hero image', error));
     const loadLandingContent = async () => {
       setLoading(true);
       const [courseResult, postResult] = await Promise.allSettled([getAllCourses(), getAllBlogPosts()]);
