@@ -675,7 +675,7 @@ This channel is where your bot will post notifications for your users.
 
 3.  **Get the Channel ID:**
     *   For **public channels**, the ID is simply the username, prefixed with an \`@\` symbol.
-    *   For example, if your public link is \`t.me/MandaAnnouncements\`, your Channel ID is \`@MandaAnnouncements\`.
+    *   For example, if your public link is \`t.me/MandaAnnouncements\`, your Channel ID is \`@VarbanAcademyAnnouncements\`.
 
 4.  **Save your Channel ID:**
     *   Open your \`.env\` file again.
@@ -693,7 +693,7 @@ Your \`.env\` file should now contain these new lines (along with your other var
 
 # Telegram Integration
 TELEGRAM_BOT_TOKEN="1234567890:ABC-DEF1234ghIkl-zyx57W2v1u123456789"
-TELEGRAM_CHANNEL_ID="@MandaAnnouncements"
+TELEGRAM_CHANNEL_ID="@VarbanAcademyAnnouncements"
 \`\`\`
 
 Once you have completed these steps and saved your \`.env\` file, the application will be ready to use these credentials for the Telegram integration features we build.
