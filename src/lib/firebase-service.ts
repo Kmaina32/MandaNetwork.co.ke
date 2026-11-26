@@ -256,7 +256,15 @@ export async function getHeroData(): Promise<HeroData> {
   const supabase = getSupabaseBrowserClient();
   const { data, error } = await supabase.from('app_settings').select('value').eq('key','hero').maybeSingle();
   if (error) throw error;
-  return { ...defaults, ...(data?.value || {}) } as HeroData;
+  const resolved = { ...defaults, ...(data?.value || {}) } as HeroData;
+  const imageKeys = ['imageUrl', 'loginImageUrl', 'signupImageUrl', 'programsImageUrl', 'bootcampsImageUrl', 'hackathonsImageUrl', 'portfoliosImageUrl', 'orgHeroImageUrl', 'orgLoginImageUrl', 'orgSignupImageUrl'] as const;
+  for (const key of imageKeys) {
+    const value = resolved[key];
+    if (typeof value !== 'string' || !value.trim() || /picsum\\.photos|placehold\\.co/i.test(value)) {
+      resolved[key] = defaults[key] || defaults.imageUrl;
+    }
+  }
+  return resolved;
 }
 
 export async function saveHeroData(data: Partial<HeroData>): Promise<void> {
