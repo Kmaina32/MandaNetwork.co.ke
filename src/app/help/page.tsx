@@ -85,7 +85,7 @@ function AiAssistant() {
             setMessages([
                 {
                     role: 'assistant',
-                    content: "Hello! If you can't find an answer in the FAQ, ask me anything about how the Manda Network platform works."
+                    content: "Hello! If you can't find an answer in the FAQ, ask me anything about how the Varban Academy platform works."
                 }
             ]);
         });
