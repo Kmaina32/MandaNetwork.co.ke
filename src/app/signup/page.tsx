@@ -142,7 +142,7 @@ function SignupFormComponent() {
            <div className="grid gap-2 text-center">
               <Link href="/" className="flex items-center justify-center gap-2 font-bold text-2xl font-headline">
                   <GitBranch className="h-7 w-7 text-primary" />
-                  <span>Manda Network</span>
+                  <span>Varban Academy</span>
               </Link>
           </div>
           <Card>
