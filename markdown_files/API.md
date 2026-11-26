@@ -1,6 +1,6 @@
-# Manda Network - API Documentation
+# Varban Academy - API Documentation
 
-This document outlines the API endpoints for the Manda Network application, detailing their purpose, request/response formats, and required permissions.
+This document outlines the API endpoints for the Varban Academy application, detailing their purpose, request/response formats, and required permissions.
 
 ## 1. Authentication
 
