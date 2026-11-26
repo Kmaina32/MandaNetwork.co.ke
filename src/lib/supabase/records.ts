@@ -21,30 +21,6 @@ function parts(path: string): string[] {
 function nestedGet(value: any, path: string[]): any {
   return path.reduce((current, key) => current == null ? undefined : current[key], value);
 }
-function nestedSet(value: any, path: string[], next: any): any {
-  if (!path.length) return next;
-  const root = value && typeof value === 'object' && !Array.isArray(value) ? { ...value } : {};
-  let cursor = root;
-  for (let i = 0; i < path.length - 1; i++) {
-    const key = path[i];
-    cursor[key] = cursor[key] && typeof cursor[key] === 'object' ? { ...cursor[key] } : {};
-    cursor = cursor[key];
-  }
-  cursor[path[path.length - 1]] = next;
-  return root;
-}
-function nestedMerge(value: any, patch: any): any {
-  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) return patch;
-  const output = value && typeof value === 'object' && !Array.isArray(value) ? { ...value } : {};
-  for (const [key, item] of Object.entries(patch)) {
-    output[key] = item && typeof item === 'object' && '__supabaseIncrement' in item
-      ? Number(output[key] || 0) + Number((item as any).__supabaseIncrement || 0)
-      : item && typeof item === 'object' && !Array.isArray(item)
-        ? nestedMerge(output[key], item)
-        : item;
-  }
-  return output;
-}
 function ownerFor(data: any): string | null {
   const candidate = data?.ownerId ?? data?.userId ?? data?.uid ?? data?.studentId ?? data?.affiliateId ?? data?.createdBy;
   return typeof candidate === 'string' && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(candidate) ? candidate : null;
