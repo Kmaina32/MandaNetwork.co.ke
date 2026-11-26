@@ -105,11 +105,9 @@ export default function MessagesPage() {
   const filteredAndSortedMessages = messages
     .filter(msg => {
       const body = getMessageBody(msg.body);
-      const matchesSearch = 
-        body.employerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        body.organizationName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        body.message?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        body.email?.toLowerCase().includes(searchQuery.toLowerCase());
+      const term = searchQuery.toLowerCase();
+      const matchesSearch = [body.employerName, body.organizationName, body.message, body.email]
+        .some(value => String(value || '').toLowerCase().includes(term));
       
       const matchesFilter = filterUnread ? !msg.read : true;
       
