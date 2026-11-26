@@ -1,6 +1,6 @@
-# Manda Network - Technical Framework
+# Varban Academy - Technical Framework
 
-This document outlines the core technologies and architectural principles that power the Manda Network platform.
+This document outlines the core technologies and architectural principles that power the Varban Academy platform.
 
 ## 1. Core Technologies
 
