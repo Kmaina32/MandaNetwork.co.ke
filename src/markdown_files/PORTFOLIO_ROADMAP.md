@@ -48,7 +48,7 @@ These features transform the portfolio from a static page into an active career 
 -   **Description:** A one-click button to generate and download the entire portfolio as a professionally formatted PDF resume.
 
 **9. Customizable URL:**
--   **Description:** Allow students to choose a personalized, memorable URL for their public portfolio (e.g., `manda.network/portfolio/jane-doe`).
+-   **Description:** Allow students to choose a personalized, memorable URL for their public portfolio (e.g., `your Varban domain/portfolio/jane-doe`).
 
 **10. Testimonials & Recommendations:**
 -   **Description:** A system where instructors or even peers can write recommendations that appear on the student's profile, adding social proof.
