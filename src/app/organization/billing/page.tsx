@@ -94,7 +94,7 @@ export default function OrganizationBillingPage() {
                                             <Button className="w-full" onClick={() => handleUpgradeClick(tier)}>
                                                 Upgrade to {tier.name}
                                             </Button>
-                                            <Button className="w-full" variant="outline" onClick={() => window.location.href='mailto:support@manda.network'}>
+                                            <Button className="w-full" variant="outline" onClick={() => window.location.href='/contact'}>
                                                 <Mail className="mr-2 h-4 w-4" />
                                                 Contact Sales
                                             </Button>
